@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StartDashboard · Project Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #FAFAF7;
+  --surface: #FFFFFF;
+  --border: #E8E6E0;
+  --text-primary: #1A1A1A;
+  --text-secondary: #5A5A5A;
+  --text-muted: #8A8A8A;
+  --accent: #0F766E;
+  --accent-soft: #99F6E4;
+  --status-planning: #6366F1;
+  --status-planning-soft: #E0E7FF;
+  --status-active: #EA580C;
+  --status-active-soft: #FFEDD5;
+  --status-done: #16A34A;
+  --status-done-soft: #DCFCE7;
+  --status-pending: #D1D5DB;
+  --tag-decision: #6366F1;
+  --tag-decision-soft: #E0E7FF;
+  --tag-feature: #0F766E;
+  --tag-feature-soft: #CCFBF1;
+  --tag-question: #D97706;
+  --tag-question-soft: #FEF3C7;
+  --code-bg: #1F2937;
+  --code-text: #F9FAFB;
+  --code-prompt: #10B981;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text-primary); font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+.container { max-width: 960px; margin: 0 auto; padding: 0 32px; }
+.site-header { position: sticky; top: 0; z-index: 10; background: var(--bg); border-bottom: 1px solid var(--border); }
+.site-header .container { display: flex; align-items: center; justify-content: space-between; padding-top: 24px; padding-bottom: 20px; gap: 16px; flex-wrap: wrap; }
+h1 { font-size: 32px; font-weight: 600; line-height: 1.2; margin: 0; letter-spacing: -0.01em; }
+.header-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.status-pill { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; background: var(--status-pending); color: var(--text-secondary); }
+.status-pill.in-progress { background: var(--status-active-soft); color: var(--status-active); }
+.status-pill.planning { background: var(--status-planning-soft); color: var(--status-planning); }
+.status-pill.complete { background: var(--status-done-soft); color: var(--status-done); }
+.last-updated { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-muted); }
+main { padding-top: 48px; padding-bottom: 64px; }
+section { margin-bottom: 48px; }
+h2 { font-size: 20px; font-weight: 600; line-height: 1.3; margin: 0 0 24px; letter-spacing: -0.005em; }
+h3 { font-size: 16px; font-weight: 600; line-height: 1.4; margin: 0 0 12px; }
+p { margin: 0 0 12px; }
+.placeholder { color: var(--text-muted); font-style: italic; }
+small, .meta { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+ul { margin: 0; padding-left: 20px; }
+ul li { margin-bottom: 6px; }
+.phase-tracker { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 12px 0; position: relative; }
+.phase { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); position: relative; text-align: center; }
+.phase::before { content: ''; display: block; width: 16px; height: 16px; border-radius: 50%; background: transparent; border: 2px solid var(--status-pending); z-index: 1; }
+.phase.done::before { background: var(--status-done); border-color: var(--status-done); }
+.phase.active::before { background: var(--status-active); border-color: var(--status-active); animation: pulse 2s ease-in-out infinite; }
+.phase.active { color: var(--text-primary); font-weight: 500; }
+.phase:not(:last-child)::after { content: ''; position: absolute; top: 7px; left: calc(50% + 12px); right: calc(-50% + 12px); height: 2px; background: var(--status-pending); z-index: 0; }
+.phase.done:not(:last-child)::after { background: var(--status-done); }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.4); } 50% { box-shadow: 0 0 0 6px rgba(234, 88, 12, 0); } }
+.dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 32px; }
+.dash-grid h3 { color: var(--text-secondary); font-size: 13px; text-transform: uppercase; letter-spacing: 0.6px; }
+.doc-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.doc-card { display: block; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; text-decoration: none; color: var(--text-primary); transition: border-color 0.15s ease, transform 0.15s ease; }
+.doc-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+.doc-card .icon { font-size: 24px; display: block; margin-bottom: 12px; line-height: 1; }
+.doc-card .title { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+.doc-card .desc { font-size: 13px; color: var(--text-secondary); }
+.doc-card.missing { opacity: 0.7; }
+.doc-card.missing .desc { color: var(--text-muted); font-style: italic; }
+.run-block { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+.run-block h3 { margin-top: 0; font-size: 14px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.6px; }
+.port-callout { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; color: var(--accent); background: var(--accent-soft); padding: 2px 8px; border-radius: 4px; margin-left: 8px; }
+pre.cmd { background: var(--code-bg); color: var(--code-text); padding: 16px 20px 16px 44px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 13px; position: relative; user-select: text; overflow-x: auto; margin: 12px 0; line-height: 1.5; }
+pre.cmd::before { content: '$'; position: absolute; left: 20px; top: 16px; color: var(--code-prompt); user-select: none; }
+.troubleshooting { list-style: none; padding: 0; }
+.troubleshooting li { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+.troubleshooting li:last-child { border-bottom: none; }
+.troubleshooting strong { font-weight: 500; color: var(--text-primary); }
+.session-entry { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; margin-bottom: 16px; }
+.session-entry.latest { border-left: 3px solid var(--accent); }
+.session-entry .date { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-muted); margin-bottom: 4px; }
+.session-entry .focus { font-size: 16px; font-weight: 500; margin-bottom: 12px; }
+.session-entry h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-secondary); margin: 12px 0 6px; font-weight: 500; }
+.open-item { display: flex; align-items: flex-start; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+.open-item:last-child { border-bottom: none; }
+.open-item .body { flex: 1; }
+.open-item .added { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.type-tag { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0; margin-top: 2px; }
+.type-tag.decision { background: var(--tag-decision-soft); color: var(--tag-decision); }
+.type-tag.feature { background: var(--tag-feature-soft); color: var(--tag-feature); }
+.type-tag.question { background: var(--tag-question-soft); color: var(--tag-question); }
+footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 13px; color: var(--text-muted); }
+@media (max-width: 760px) { .container { padding: 0 20px; } h1 { font-size: 26px; } .dash-grid { grid-template-columns: 1fr; gap: 24px; } .doc-cards { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .phase-tracker { flex-direction: column; align-items: flex-start; gap: 12px; } .phase { flex-direction: row; align-items: center; text-align: left; gap: 12px; } .phase::before { width: 12px; height: 12px; } .phase:not(:last-child)::after { top: auto; left: 5px; bottom: -12px; width: 2px; height: 12px; right: auto; } }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <h1>StartDashboard</h1>
+    <div class="header-meta">
+      <!-- HUB:STATUS_OVERALL -->
+      <span class="status-pill in-progress">In Progress</span>
+      <!-- /HUB:STATUS_OVERALL -->
+      <!-- HUB:LAST_UPDATED -->
+      <span class="last-updated">2026-05-27 · Wed · 4:00 PM EDT</span>
+      <!-- /HUB:LAST_UPDATED -->
+    </div>
+  </div>
+</header>
+
+<main class="container">
+
+  <section id="status-dashboard" aria-label="Project status">
+    <nav class="phase-tracker" aria-label="Project phase">
+      <!-- HUB:PHASE_TRACKER -->
+      <div class="phase done">Planning</div>
+      <div class="phase done">Research</div>
+      <div class="phase done">Design</div>
+      <div class="phase done">Build</div>
+      <div class="phase active" aria-current="step">Documented</div>
+      <div class="phase pending">Complete</div>
+      <!-- /HUB:PHASE_TRACKER -->
+    </nav>
+
+    <div class="dash-grid">
+      <div>
+        <h3>Recently completed</h3>
+        <!-- HUB:RECENT_COMPLETED -->
+        <ul>
+          <li>Approved build plan for StartDashboard v1 (personas, sync, widgets, backgrounds, bookmarklet).</li>
+          <li>Built the dashboard app — single-file <code>index.html</code>, ~1,800 lines of vanilla HTML/CSS/JS.</li>
+          <li>Wrote setup README with token generation, GitHub Pages deploy steps, and troubleshooting.</li>
+          <li>Stood up the four workspace templates (PROJECT-HUB, MASTER-HUB, TECHNICAL, UX).</li>
+        </ul>
+        <!-- /HUB:RECENT_COMPLETED -->
+      </div>
+      <div>
+        <h3>What's next</h3>
+        <!-- HUB:WHATS_NEXT -->
+        <ul>
+          <li>Tom deploys the repo to GitHub Pages and runs the first-time setup in Chrome.</li>
+          <li>Test the bookmarklet on a real site; confirm the gist sync round-trips.</li>
+          <li>Repeat setup in Safari to verify cross-browser sync, then on iPhone.</li>
+        </ul>
+        <!-- /HUB:WHATS_NEXT -->
+      </div>
+    </div>
+  </section>
+
+  <section id="doc-library">
+    <h2>Documentation</h2>
+    <!-- HUB:DOC_LIBRARY -->
+    <div class="doc-cards">
+      <a class="doc-card" href="docs/TECHNICAL.html">
+        <span class="icon">&#9881;</span>
+        <div class="title">Technical Doc</div>
+        <div class="desc">Architecture, file map, decisions, and the GitHub gist sync model.</div>
+      </a>
+      <a class="doc-card" href="docs/USER-EXPERIENCE.html">
+        <span class="icon">&#9788;</span>
+        <div class="title">User Experience</div>
+        <div class="desc">What the dashboard does, screen by screen, in plain English.</div>
+      </a>
+      <a class="doc-card" href="HANDOFF.md">
+        <span class="icon">&#9993;</span>
+        <div class="title">Handoff Doc</div>
+        <div class="desc">Drop-in context for any LLM if you need a second opinion.</div>
+      </a>
+    </div>
+    <!-- /HUB:DOC_LIBRARY -->
+  </section>
+
+  <section id="how-to-run">
+    <h2>How to Run This App</h2>
+    <!-- HUB:HOW_TO_RUN -->
+    <div class="run-block">
+      <h3>One-time setup</h3>
+      <p>Deploy <code>index.html</code> to GitHub Pages under your account (<code>TECGUNTHER</code>). Detailed steps live in <a href="README.md">README.md</a> &mdash; one git push and one toggle in GitHub Settings.</p>
+      <pre class="cmd">git init &amp;&amp; git add . &amp;&amp; git commit -m "Initial StartDashboard"</pre>
+      <pre class="cmd">git remote add origin https://github.com/TECGUNTHER/startdashboard.git &amp;&amp; git push -u origin main</pre>
+      <p>Then in GitHub: <strong>Settings &rarr; Pages &rarr; Deploy from a branch &rarr; main / (root)</strong>.</p>
+    </div>
+    <div class="run-block">
+      <h3>To launch</h3>
+      <p>Open in any browser:</p>
+      <pre class="cmd">open https://tecgunther.github.io/startdashboard/</pre>
+      <p>For local-only preview (no sync), just double-click <code>index.html</code>.</p>
+      <p><span class="port-callout">No port required</span> &mdash; static page served by GitHub Pages.</p>
+    </div>
+    <div class="run-block">
+      <h3>Troubleshooting</h3>
+      <ul class="troubleshooting">
+        <li><strong>"Bad credentials" on first run</strong> &middot; PAT was pasted wrong or is missing the <code>gist</code> scope. Regenerate.</li>
+        <li><strong>Sync indicator turns red</strong> &middot; Click it to reload from the gist. If still failing, the token may have expired &mdash; regenerate and reset this browser in Settings.</li>
+        <li><strong>Bookmarklet popup blocked</strong> &middot; Allow popups for <code>tecgunther.github.io</code> in browser settings.</li>
+        <li><strong>Changes not appearing across browsers</strong> &middot; Reload the other browser. Sync polls every ~60s; reload is instant.</li>
+      </ul>
+    </div>
+    <!-- /HUB:HOW_TO_RUN -->
+  </section>
+
+  <section id="session-log">
+    <h2>Session Log</h2>
+    <!-- HUB:SESSION_LOG -->
+    <article class="session-entry latest">
+      <div class="date">2026-05-27 &middot; Wednesday</div>
+      <div class="focus">Designed, built, and documented StartDashboard v1 end-to-end.</div>
+      <h4>Completed</h4>
+      <ul>
+        <li>Drafted and revised the build plan after two rounds of input (added personas + customizable backgrounds based on Tom's feedback during planning).</li>
+        <li>Built the four agent-system templates (PROJECT-HUB, MASTER-HUB, TECHNICAL, UX).</li>
+        <li>Built <code>index.html</code> &mdash; single-file dashboard with persona tabs, GitHub gist sync, four widgets (clock, weather, todos, notes), eight CSS-only background presets, drag-drop bookmark adds, and a bookmarklet popup flow.</li>
+        <li>Wrote README with setup steps, troubleshooting, and privacy notes.</li>
+        <li>Generated PROJECT-HUB, TECHNICAL, UX, and HANDOFF docs.</li>
+        <li>Created MASTER-HUB.html at workspace root with this project as the first card.</li>
+      </ul>
+      <h4>Decisions made</h4>
+      <ul>
+        <li>Per-persona widgets and backgrounds (not global) &mdash; matches Tom's mental separation between Work and Personal.</li>
+        <li>GitHub gist + Personal Access Token over a third-party sync service &mdash; durable, free, no vendor risk.</li>
+        <li>Bookmarklet over a browser extension &mdash; avoids per-browser build/maintenance.</li>
+        <li>Backgrounds: 8 CSS-only presets + paste-any-image-URL; image upload deferred (would bloat the gist).</li>
+        <li>Per-device default persona stored in <code>localStorage</code> &mdash; lets the work Mac open to Work, iPhone open to Personal, without affecting the shared data.</li>
+      </ul>
+    </article>
+    <!-- /HUB:SESSION_LOG -->
+  </section>
+
+  <section id="open-items">
+    <h2>Open Items</h2>
+    <!-- HUB:OPEN_ITEMS -->
+    <div class="open-item">
+      <span class="type-tag question">Question</span>
+      <div class="body">
+        Does mobile Safari's drag-drop from address bar behave the same as desktop? Worth a quick check on iPhone after first deploy.
+        <div class="added">Added: 2026-05-27</div>
+      </div>
+    </div>
+    <div class="open-item">
+      <span class="type-tag feature">Feature</span>
+      <div class="body">
+        Optional &mdash; add a "Custom embed" widget for pasting iframes (calendar, RSS, etc.) once Tom has the basics working.
+        <div class="added">Added: 2026-05-27</div>
+      </div>
+    </div>
+    <!-- /HUB:OPEN_ITEMS -->
+  </section>
+
+</main>
+
+<footer>
+  <div class="container">
+    Maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-27 4:00 PM EDT</span>
+  </div>
+</footer>
+
+</body>
+</html>

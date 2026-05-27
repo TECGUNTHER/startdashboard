@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StartDashboard · Technical Documentation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root { --bg: #FAFAF7; --surface: #FFFFFF; --border: #E8E6E0; --text-primary: #1A1A1A; --text-secondary: #5A5A5A; --text-muted: #8A8A8A; --accent: #0F766E; --accent-soft: #99F6E4; --code-bg: #1F2937; --code-text: #F9FAFB; --code-prompt: #10B981; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text-primary); font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 15px; line-height: 1.7; -webkit-font-smoothing: antialiased; }
+.container { max-width: 960px; margin: 0 auto; padding: 0 32px; }
+.site-header { border-bottom: 1px solid var(--border); }
+.site-header .container { padding-top: 48px; padding-bottom: 32px; }
+h1 { font-size: 32px; font-weight: 600; line-height: 1.2; margin: 0 0 12px; letter-spacing: -0.01em; }
+.subtitle { font-size: 16px; color: var(--text-secondary); margin: 0 0 16px; }
+.last-updated { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-muted); }
+.doc-kind { display: inline-block; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px; color: var(--accent); background: var(--accent-soft); padding: 3px 10px; border-radius: 999px; margin-bottom: 16px; }
+main { padding-top: 48px; padding-bottom: 64px; }
+section { margin-bottom: 56px; }
+h2 { font-size: 22px; font-weight: 600; line-height: 1.3; margin: 0 0 8px; letter-spacing: -0.005em; }
+.section-num { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-muted); font-weight: 500; display: block; margin-bottom: 6px; letter-spacing: 0.5px; }
+.section-lead { font-size: 14px; color: var(--text-muted); margin: 0 0 24px; }
+h3 { font-size: 16px; font-weight: 600; margin: 24px 0 8px; }
+p { margin: 0 0 14px; }
+ul, ol { margin: 0 0 14px; padding-left: 22px; }
+ul li, ol li { margin-bottom: 6px; }
+code { font-family: 'JetBrains Mono', monospace; font-size: 13px; background: var(--accent-soft); color: var(--text-primary); padding: 1px 6px; border-radius: 3px; }
+pre.cmd { background: var(--code-bg); color: var(--code-text); padding: 16px 20px 16px 44px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 13px; position: relative; user-select: text; overflow-x: auto; margin: 12px 0; line-height: 1.5; }
+pre.cmd::before { content: '$'; position: absolute; left: 20px; top: 16px; color: var(--code-prompt); user-select: none; }
+pre.tree { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 20px; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.6; overflow-x: auto; color: var(--text-primary); margin: 0; }
+.stack-list { list-style: none; padding: 0; margin: 0; }
+.stack-list li { padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 16px; align-items: baseline; }
+.stack-list li:last-child { border-bottom: none; }
+.stack-list .name { font-weight: 500; min-width: 140px; color: var(--text-primary); }
+.stack-list .why { flex: 1; color: var(--text-secondary); font-size: 14px; min-width: 200px; }
+.decision { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; padding: 18px 20px; margin-bottom: 16px; }
+.decision h3 { margin-top: 0; }
+.decision .meta { font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-top: 8px; }
+.modify-map { list-style: none; padding: 0; }
+.modify-map li { padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 8px; font-size: 14px; }
+.modify-map strong { color: var(--text-primary); font-weight: 500; }
+.limitations li { margin-bottom: 12px; }
+.run-block { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; margin-bottom: 16px; }
+.run-block h3 { margin-top: 0; font-size: 13px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.6px; }
+footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 13px; color: var(--text-muted); }
+@media (max-width: 760px) { .container { padding: 0 20px; } h1 { font-size: 26px; } h2 { font-size: 19px; } main { padding-top: 32px; } section { margin-bottom: 40px; } }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <span class="doc-kind">Technical Documentation</span>
+    <h1>StartDashboard</h1>
+    <p class="subtitle">A single-file, cross-browser personal dashboard with GitHub-gist sync.</p>
+    <!-- TECH:LAST_UPDATED -->
+    <span class="last-updated">Last updated: 2026-05-27</span>
+    <!-- /TECH:LAST_UPDATED -->
+  </div>
+</header>
+
+<main class="container">
+
+  <section id="architecture">
+    <span class="section-num">01</span>
+    <h2>Architecture Overview</h2>
+    <p class="section-lead">How the app is structured and how the pieces fit together.</p>
+    <!-- TECH:ARCHITECTURE -->
+    <p>StartDashboard is a single HTML file. Everything &mdash; markup, styles, and behavior &mdash; lives in <code>index.html</code>. There is no build step, no framework, and no server. The page is served as a static asset (GitHub Pages in production; you can also double-click the file locally).</p>
+    <p>The app has three runtime layers:</p>
+    <ul>
+      <li><strong>State.</strong> A single <code>state</code> object holds everything: the GitHub token (read from localStorage on boot), the gist ID, the device's default persona, and the synced <code>state.data</code> object that mirrors the gist's JSON. All UI rendering reads from this object; all mutations go through a small <code>setState()</code> wrapper that re-renders and triggers a debounced save.</li>
+      <li><strong>Sync.</strong> Reads and writes go to the GitHub REST API at <code>api.github.com/gists/:id</code>. Loading is a single GET; saving is a single PATCH that replaces the JSON file's content. Saves are debounced ~1.5 seconds after the last edit so rapid changes coalesce. A 60-second background poll checks <code>updated_at</code> on the gist and surfaces a "stale" indicator if another browser updated it.</li>
+      <li><strong>Render.</strong> Vanilla DOM manipulation. The whole dashboard re-renders on persona switch (it's cheap &mdash; there are few enough elements). Per-widget render functions handle clock (re-rendered every 30 seconds), weather (fetched from Open-Meteo on render), todos, and the notes textarea.</li>
+    </ul>
+    <p>The bookmarklet adds bookmarks via a separate code path. When the URL contains <code>?add=&lt;url&gt;&amp;title=&lt;title&gt;</code>, the page renders only a compact "Pick a persona + category" overlay, writes synchronously to the gist, and closes its window. The main dashboard is never instantiated in that mode.</p>
+    <!-- /TECH:ARCHITECTURE -->
+  </section>
+
+  <section id="stack">
+    <span class="section-num">02</span>
+    <h2>The Stack</h2>
+    <p class="section-lead">Every language, framework, and service this project depends on, with the reasoning for each pick.</p>
+    <!-- TECH:STACK -->
+    <ul class="stack-list">
+      <li><span class="name">HTML / CSS / JS</span><span class="why">Single file, vanilla, no build step. Matches Tom's stated preference for "single-file HTML when possible".</span></li>
+      <li><span class="name">Google Fonts</span><span class="why">Inter (UI) + JetBrains Mono (code/timestamps). Loaded with <code>display=swap</code>. The only external CSS dependency.</span></li>
+      <li><span class="name">GitHub REST API</span><span class="why">Backend-as-a-database via private gists. Free, durable, no third-party service to outlive Tom's GitHub account.</span></li>
+      <li><span class="name">GitHub Pages</span><span class="why">Free static hosting at <code>tecgunther.github.io/startdashboard/</code>. One URL works on any browser, any device.</span></li>
+      <li><span class="name">Open-Meteo</span><span class="why">Free weather API; no key required. Picked over OpenWeatherMap and Tomorrow.io because it has no auth surface to manage.</span></li>
+      <li><span class="name">Google Favicon service</span><span class="why">Best-effort favicon images for bookmark rows (<code>www.google.com/s2/favicons</code>). Easy to patch out if Tom prefers privacy.</span></li>
+    </ul>
+    <!-- /TECH:STACK -->
+  </section>
+
+  <section id="file-map">
+    <span class="section-num">03</span>
+    <h2>File Map</h2>
+    <p class="section-lead">Every important file in the project, with a one-line description.</p>
+    <!-- TECH:FILE_MAP -->
+    <pre class="tree">projects/personal-dashboard/
+├── index.html              &mdash; the entire app (HTML + CSS + JS in one file)
+├── README.md               &mdash; setup walkthrough (PAT, GitHub Pages deploy, bookmarklet)
+├── PROJECT-HUB.html        &mdash; Tom's first stop when opening this project
+├── HANDOFF.md              &mdash; drop-in context for any LLM
+├── docs/
+│   ├── TECHNICAL.html      &mdash; this file
+│   └── USER-EXPERIENCE.html&mdash; what the app does, plain English
+└── plans/
+    └── 2026-05-27-personal-dashboard-v1.md  &mdash; approved build plan</pre>
+    <!-- /TECH:FILE_MAP -->
+  </section>
+
+  <section id="decisions">
+    <span class="section-num">04</span>
+    <h2>Key Decisions</h2>
+    <p class="section-lead">Decisions made during the build, with the reasoning preserved so future-Tom understands why.</p>
+    <!-- TECH:DECISIONS -->
+    <div class="decision">
+      <h3>GitHub gist as the data backend, not a third-party service</h3>
+      <p>StartMe-style services bring ads and lock-in. Supabase or jsonbin work but add a dependency on a free tier that may go away. GitHub gists are durable as long as Tom's GitHub account exists, free, and use auth Tom already understands.</p>
+      <p class="meta">decided 2026-05-27 during plan revision</p>
+    </div>
+    <div class="decision">
+      <h3>Personal Access Token per browser, stored in localStorage</h3>
+      <p>Avoids the complexity of OAuth flows in a single static page. Each browser gets its own token; if a device is lost, only that one token needs to be revoked. The token is sent only to <code>api.github.com</code>.</p>
+      <p class="meta">decided 2026-05-27</p>
+    </div>
+    <div class="decision">
+      <h3>Per-persona widgets, backgrounds, and accent colors</h3>
+      <p>The whole point of personas is mental separation between Work and Personal. Sharing widgets across personas would blur that. Each persona is fully independent.</p>
+      <p class="meta">decided 2026-05-27 after Tom raised the persona concept</p>
+    </div>
+    <div class="decision">
+      <h3>Per-device default persona via localStorage (not in the gist)</h3>
+      <p>Tom wants his work Mac to open to Work and his iPhone to open to Personal. The default persona is a per-device preference, not a synced setting. Stored as <code>sd_default_persona</code> in localStorage.</p>
+      <p class="meta">decided 2026-05-27</p>
+    </div>
+    <div class="decision">
+      <h3>Bookmarklet over a browser extension</h3>
+      <p>A browser extension means three separate builds (Chrome, Safari, Firefox) and ongoing maintenance as their extension formats evolve. A bookmarklet is one piece of JavaScript that works in every browser, forever.</p>
+      <p class="meta">decided 2026-05-27 during planning</p>
+    </div>
+    <div class="decision">
+      <h3>Backgrounds: 8 CSS-only presets + image URL only (no upload in v1)</h3>
+      <p>Image upload would mean storing base64 in the gist, which bloats the JSON on every save. URL-based images work well and keep the gist small. Upload can be added later if Tom wants it.</p>
+      <p class="meta">decided 2026-05-27</p>
+    </div>
+    <div class="decision">
+      <h3>Last-write-wins on sync conflicts</h3>
+      <p>Real conflict resolution is overkill for a single-user app. If Tom edits in two browsers simultaneously, a toast warns him and the most recent save wins. The 60-second background poll surfaces stale state proactively.</p>
+      <p class="meta">decided 2026-05-27</p>
+    </div>
+    <!-- /TECH:DECISIONS -->
+  </section>
+
+  <section id="dependencies">
+    <span class="section-num">05</span>
+    <h2>Dependencies &amp; Setup</h2>
+    <p class="section-lead">How to set up this project on a fresh machine. Every install, every config file, every environment variable.</p>
+    <!-- TECH:DEPENDENCIES -->
+    <p>There are no local dependencies. No <code>npm install</code>, no <code>requirements.txt</code>, no Docker. The project is one HTML file.</p>
+    <h3>External services Tom must set up once</h3>
+    <ul>
+      <li><strong>GitHub repository</strong> at <code>github.com/TECGUNTHER/startdashboard</code> with GitHub Pages enabled (Settings &rarr; Pages &rarr; main / root).</li>
+      <li><strong>GitHub Personal Access Token</strong> with <code>gist</code> scope. Generated once per browser. Pasted into the dashboard's first-run setup screen.</li>
+      <li><strong>One private gist</strong> on Tom's GitHub account. Created automatically by the dashboard on first-run setup if Tom picks "First browser &mdash; create a new gist".</li>
+    </ul>
+    <h3>Per-browser localStorage keys (set during first-run setup)</h3>
+    <ul>
+      <li><code>sd_pat</code> &mdash; GitHub Personal Access Token (this browser only)</li>
+      <li><code>sd_gist_id</code> &mdash; ID of the gist storing this dashboard's data</li>
+      <li><code>sd_default_persona</code> &mdash; ID of the persona this device opens to by default</li>
+    </ul>
+    <h3>Full step-by-step setup</h3>
+    <p>See <a href="../README.md">README.md</a> in the project root.</p>
+    <!-- /TECH:DEPENDENCIES -->
+  </section>
+
+  <section id="how-to-run">
+    <span class="section-num">06</span>
+    <h2>How to Run</h2>
+    <p class="section-lead">The launch command, the port number, and common troubleshooting.</p>
+    <!-- TECH:HOW_TO_RUN -->
+    <div class="run-block">
+      <h3>To launch (production)</h3>
+      <pre class="cmd">open https://tecgunther.github.io/startdashboard/</pre>
+    </div>
+    <div class="run-block">
+      <h3>To preview locally (no sync)</h3>
+      <p>Just double-click <code>index.html</code>, or:</p>
+      <pre class="cmd">open projects/personal-dashboard/index.html</pre>
+      <p>The setup screen will appear since no PAT is in localStorage; you can paste a token to test sync locally if you want.</p>
+    </div>
+    <div class="run-block">
+      <h3>Troubleshooting</h3>
+      <ul>
+        <li><strong>"Bad credentials"</strong> on first run &mdash; PAT is wrong or missing the <code>gist</code> scope. Regenerate at <a href="https://github.com/settings/tokens">github.com/settings/tokens</a>.</li>
+        <li><strong>Sync indicator turns red &#9888;</strong> &mdash; click it to reload. If still failing, the token may have expired; reset this browser in Settings.</li>
+        <li><strong>Cross-browser changes not showing</strong> &mdash; reload the other browser (Cmd+R). Background poll is 60s, but reload is instant.</li>
+        <li><strong>Bookmarklet popup blocked</strong> &mdash; allow popups for <code>tecgunther.github.io</code> in browser settings.</li>
+        <li><strong>Weather "Could not load"</strong> &mdash; transient Open-Meteo issue, or invalid lat/lon. Confirm coordinates in Settings.</li>
+      </ul>
+    </div>
+    <!-- /TECH:HOW_TO_RUN -->
+  </section>
+
+  <section id="how-to-modify">
+    <span class="section-num">07</span>
+    <h2>How to Modify</h2>
+    <p class="section-lead">"If you want to change X, look in Y." A quick map for future edits.</p>
+    <!-- TECH:HOW_TO_MODIFY -->
+    <ul class="modify-map">
+      <li><strong>Add a new background preset.</strong> Add a CSS class <code>.bg-&lt;name&gt;</code> in the <code>&lt;style&gt;</code> block of <code>index.html</code> (search for "Background presets") and add a matching entry to <code>BG_PRESETS</code> in the script.</li>
+      <li><strong>Add a new widget.</strong> Add a <code>&lt;div class="widget"&gt;</code> entry to the <code>widgets-row</code> section, then write a <code>render&lt;Name&gt;Widget(persona)</code> function and call it from <code>renderWidgets()</code>.</li>
+      <li><strong>Change the dark color palette.</strong> CSS custom properties live at the top of the <code>:root</code> block in <code>index.html</code>.</li>
+      <li><strong>Change the gist filename.</strong> Constant <code>GIST_FILENAME</code> in the script. Changing this on an existing setup will silently break sync &mdash; only change before first deploy.</li>
+      <li><strong>Disable the favicon service</strong> for privacy. Search for <code>s2/favicons</code> in <code>index.html</code> and either remove the block or replace with your own service.</li>
+      <li><strong>Change the search engine list.</strong> The <code>SEARCH_ENGINES</code> object near the top of the script holds URL templates.</li>
+      <li><strong>Change the bookmarklet popup size.</strong> The bookmarklet JavaScript is generated in <code>openBookmarkletModal()</code>; the <code>width=520,height=600</code> values are inline there.</li>
+      <li><strong>Adjust the save debounce.</strong> The 1500ms timeout in <code>setState()</code>.</li>
+      <li><strong>Adjust the stale-check interval.</strong> The 60000ms interval at the very bottom of the script.</li>
+    </ul>
+    <!-- /TECH:HOW_TO_MODIFY -->
+  </section>
+
+  <section id="limitations">
+    <span class="section-num">08</span>
+    <h2>Known Limitations</h2>
+    <p class="section-lead">What the project doesn't do, what it can't do without significant work, what's brittle.</p>
+    <!-- TECH:LIMITATIONS -->
+    <ul class="limitations">
+      <li><strong>Real-time collaboration is not supported.</strong> Sync polls every 60 seconds and saves are debounced ~1.5 seconds. If two browsers edit at once, last save wins and a toast surfaces the conflict.</li>
+      <li><strong>Image uploads are not supported in v1.</strong> Backgrounds can be presets or URL-based images. Adding upload would mean base64-encoding into the gist, which bloats it on every save.</li>
+      <li><strong>No automatic bookmark import.</strong> Bookmarks come over manually as Tom uses the bookmarklet. Adding a JSON-import flow is straightforward if needed later.</li>
+      <li><strong>PAT lives in localStorage.</strong> Anyone with physical access to an unlocked browser could read it. For a personal-use app on a personal machine this is acceptable. For shared devices, log out / lock the screen.</li>
+      <li><strong>Gist is private but not encrypted.</strong> GitHub staff and GitHub's automated systems could, in principle, see the contents. The data is bookmarks and notes &mdash; not secrets &mdash; so this is acceptable.</li>
+      <li><strong>The favicon service sends bookmark domains to Google.</strong> If this matters to you, see "How to Modify" above.</li>
+      <li><strong>Bookmarklet popups can be blocked.</strong> Most browsers allow them for the originating site by default, but some configurations block them entirely. Tom can allow popups for <code>tecgunther.github.io</code> if it happens.</li>
+      <li><strong>No undo.</strong> Delete a bookmark and it's gone. Worth adding a "Recently deleted" trash bin in a future iteration.</li>
+    </ul>
+    <!-- /TECH:LIMITATIONS -->
+  </section>
+
+</main>
+
+<footer>
+  <div class="container">
+    Generated and maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-27</span>
+  </div>
+</footer>
+
+</body>
+</html>

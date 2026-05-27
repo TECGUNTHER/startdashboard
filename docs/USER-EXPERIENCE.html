@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StartDashboard · User Experience</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root { --bg: #FAFAF7; --surface: #FFFFFF; --border: #E8E6E0; --text-primary: #1A1A1A; --text-secondary: #5A5A5A; --text-muted: #8A8A8A; --accent: #0F766E; --accent-soft: #99F6E4; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text-primary); font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; line-height: 1.75; -webkit-font-smoothing: antialiased; }
+.container { max-width: 960px; margin: 0 auto; padding: 0 32px; }
+.site-header { border-bottom: 1px solid var(--border); }
+.site-header .container { padding-top: 48px; padding-bottom: 32px; }
+h1 { font-size: 34px; font-weight: 600; line-height: 1.2; margin: 0 0 12px; letter-spacing: -0.01em; }
+.subtitle { font-size: 18px; color: var(--text-secondary); margin: 0 0 16px; line-height: 1.5; }
+.last-updated { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-muted); }
+.doc-kind { display: inline-block; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px; color: var(--accent); background: var(--accent-soft); padding: 3px 10px; border-radius: 999px; margin-bottom: 16px; }
+main { padding-top: 48px; padding-bottom: 64px; }
+section { margin-bottom: 56px; max-width: 720px; }
+h2 { font-size: 24px; font-weight: 600; line-height: 1.3; margin: 0 0 8px; letter-spacing: -0.005em; }
+.section-num { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-muted); font-weight: 500; display: block; margin-bottom: 6px; letter-spacing: 0.5px; }
+.section-lead { font-size: 15px; color: var(--text-muted); margin: 0 0 24px; }
+h3 { font-size: 18px; font-weight: 600; margin: 24px 0 8px; }
+p { margin: 0 0 16px; }
+ul, ol { margin: 0 0 16px; padding-left: 24px; }
+ul li, ol li { margin-bottom: 8px; }
+code { font-family: 'JetBrains Mono', monospace; font-size: 14px; background: var(--accent-soft); color: var(--text-primary); padding: 1px 6px; border-radius: 3px; }
+.feature { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; margin-bottom: 16px; }
+.feature h3 { margin: 0 0 6px; font-size: 17px; }
+.feature .one-liner { color: var(--text-secondary); font-size: 15px; margin: 0 0 12px; }
+.feature .walkthrough { color: var(--text-primary); margin: 0; font-size: 15px; }
+.screen { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; padding: 20px 24px; margin-bottom: 16px; }
+.screen h3 { margin-top: 0; }
+.workflow { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; margin-bottom: 16px; }
+.workflow h3 { margin-top: 0; font-size: 16px; color: var(--text-primary); }
+.workflow ol { padding-left: 24px; margin-bottom: 0; }
+.workflow ol li { font-size: 15px; margin-bottom: 8px; }
+.audience-block, .scope-block { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; }
+footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 13px; color: var(--text-muted); }
+@media (max-width: 760px) { .container { padding: 0 20px; } h1 { font-size: 26px; } h2 { font-size: 20px; } body { font-size: 15px; } main { padding-top: 32px; } section { margin-bottom: 40px; } }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <span class="doc-kind">User Experience</span>
+    <h1>StartDashboard</h1>
+    <p class="subtitle">A personal home page that travels with you across every browser and every device, with separate "channels" for different sides of your life.</p>
+    <!-- UX:LAST_UPDATED -->
+    <span class="last-updated">Last updated: 2026-05-27</span>
+    <!-- /UX:LAST_UPDATED -->
+  </div>
+</header>
+
+<main class="container">
+
+  <section id="overview">
+    <span class="section-num">01</span>
+    <h2>What This App Does</h2>
+    <p class="section-lead">The problem this app solves and the basic experience of using it.</p>
+    <!-- UX:OVERVIEW -->
+    <p>StartDashboard replaces the fractured pile of bookmarks you accumulate across Chrome, Safari, and every other browser you touch. It's one web page, at one URL, that looks and behaves identically wherever you open it. You bookmark a site once and it shows up everywhere &mdash; on your laptop, your phone, your work computer &mdash; within seconds.</p>
+    <p>It also recognizes that you're not one person to your browser. You have a work mode, a personal mode, and probably a few obsessions besides (investments, side projects, things you're learning). Each of those is a "persona": its own complete dashboard with its own bookmarks, its own widgets, its own background, and its own accent color. You switch between them with one click on a tab bar at the top of the page.</p>
+    <p>The aesthetic is dark, modern, and tech-leaning &mdash; think Linear, Vercel, Raycast. Bookmark categories sit on top of a chosen background (animated gradients, deep space, a synthwave grid, or any image URL you paste in). A small row of widgets near the top gives you a multi-time-zone clock, the weather, a to-do list, and a sticky notes pad &mdash; one set per persona, so your work to-dos and personal to-dos never mix.</p>
+    <p>Behind the scenes, all your data lives in one private GitHub gist on your account. There are no ads, no third-party services besides GitHub and a free weather API, and nothing tracks what you do.</p>
+    <!-- /UX:OVERVIEW -->
+  </section>
+
+  <section id="features">
+    <span class="section-num">02</span>
+    <h2>Key Features</h2>
+    <p class="section-lead">The major features, what they let users do, and how they work in practice.</p>
+    <!-- UX:FEATURES -->
+
+    <div class="feature">
+      <h3>Personas (channels)</h3>
+      <p class="one-liner">Multiple complete dashboards under one URL.</p>
+      <p class="walkthrough">A tab bar across the top shows your personas &mdash; Work, Personal, Investments, anything you create. One click switches the whole dashboard: different bookmarks, different widgets, different background. Each persona is fully independent. Add a new persona with the <strong>+</strong> button; rename by double-clicking a tab; reorder by dragging; right-click for delete and "make default on this device."</p>
+    </div>
+
+    <div class="feature">
+      <h3>Bookmarks with three add paths</h3>
+      <p class="one-liner">Add a bookmark however feels natural in the moment.</p>
+      <p class="walkthrough">The <strong>bookmarklet</strong> lives in your browser's bookmarks bar &mdash; one click on any site sends it to your dashboard. Or <strong>drag</strong> a URL straight from the address bar onto a category card. Or click <strong>+ Add bookmark</strong> at the bottom of any category and paste a URL by hand.</p>
+    </div>
+
+    <div class="feature">
+      <h3>Inline rename, drag-drop reorder</h3>
+      <p class="one-liner">Organize without ever leaving the page.</p>
+      <p class="walkthrough">Double-click anything &mdash; persona tab, category title, bookmark name &mdash; to rename. Drag bookmarks between categories. Drag categories to reorder. Use the <strong>&#8599;</strong> icon on a bookmark to move it to a different persona.</p>
+    </div>
+
+    <div class="feature">
+      <h3>Per-persona widgets</h3>
+      <p class="one-liner">Quick utilities, scoped to each persona.</p>
+      <p class="walkthrough">Four widgets sit above the categories: a <strong>clock</strong> showing time across any zones you add, <strong>weather</strong> for any cities you list (uses the free Open-Meteo API &mdash; no key needed), a <strong>to-do list</strong>, and a freeform <strong>sticky notes</strong> pad. Each persona has its own instance of every widget, so the work persona's to-dos never appear under personal.</p>
+    </div>
+
+    <div class="feature">
+      <h3>Custom backgrounds and accent colors</h3>
+      <p class="one-liner">Make each persona feel distinct.</p>
+      <p class="walkthrough">Choose from 8 built-in dark backgrounds (Midnight Mesh, Aurora, Synthwave, Carbon Grid, Deep Space, Liquid Glass, Tokyo Night, Terminal, Monochrome) &mdash; all CSS-only, no images to load. Or paste any image URL (an Unsplash link works great). Pick an accent color and it colors the persona's tab indicator, hover states, and focus rings.</p>
+    </div>
+
+    <div class="feature">
+      <h3>Sync across every browser and device</h3>
+      <p class="one-liner">Same dashboard everywhere, within seconds.</p>
+      <p class="walkthrough">Your data lives in a private GitHub gist on your account. Edits save automatically a couple of seconds after you stop typing. A small indicator in the header shows the sync status: green dot when in sync, amber when saving, red when another browser has updated it (click to reload). The same URL opens to the same data in any browser.</p>
+    </div>
+
+    <div class="feature">
+      <h3>Per-device default persona</h3>
+      <p class="one-liner">Your work Mac opens to Work. Your iPhone opens to Personal.</p>
+      <p class="walkthrough">Each browser remembers which persona to load on startup. You set it during first-time setup or in Settings. The default is per-device, so different machines can open to different personas without interfering with each other.</p>
+    </div>
+
+    <div class="feature">
+      <h3>Built-in web search</h3>
+      <p class="one-liner">Type and hit Enter &mdash; opens a search in a new tab.</p>
+      <p class="walkthrough">A search bar lives below the header. Type a query and press Enter to search Google by default. In Settings you can swap to DuckDuckGo, Bing, or Kagi.</p>
+    </div>
+
+    <!-- /UX:FEATURES -->
+  </section>
+
+  <section id="screens">
+    <span class="section-num">03</span>
+    <h2>Screens &amp; Views</h2>
+    <p class="section-lead">The distinct screens of the app and what users can do on each.</p>
+    <!-- UX:SCREENS -->
+
+    <div class="screen">
+      <h3>Setup screen</h3>
+      <p>Shown the first time you open the dashboard in any browser. A three-step form: paste your GitHub token, choose whether this is your first browser (create a fresh gist) or you're joining an existing setup (paste the gist ID from another browser), then continue. Disappears once setup is complete.</p>
+    </div>
+
+    <div class="screen">
+      <h3>Main dashboard</h3>
+      <p>What you see day-to-day. Header on top (title, persona tabs, sync indicator, settings button). Search bar below that. Four widget cards in a row. Categories grid below, each category a card containing bookmarks. Background is whatever this persona has selected.</p>
+    </div>
+
+    <div class="screen">
+      <h3>Bookmarklet add overlay</h3>
+      <p>What you see when you click the bookmarklet on a website. A small popup window opens with the URL and title pre-filled. You see all your personas grouped, and within each, buttons for every category. Click any button to add the bookmark there. The window auto-closes once saved.</p>
+    </div>
+
+    <div class="screen">
+      <h3>Settings modal</h3>
+      <p>Triggered by the gear icon in the header. Configure: dashboard title, this device's default persona, this persona's name + accent color + background, clock zones, weather cities, search engine, gist ID (for copying to other browsers). Includes a Bookmarklet button that shows the drag-to-install link, and Reset This Browser for re-doing setup.</p>
+    </div>
+
+    <!-- /UX:SCREENS -->
+  </section>
+
+  <section id="workflows">
+    <span class="section-num">04</span>
+    <h2>Primary Workflows</h2>
+    <p class="section-lead">Step-by-step walkthroughs of the most common things users do in this app.</p>
+    <!-- UX:WORKFLOWS -->
+
+    <div class="workflow">
+      <h3>Add a bookmark while reading an article</h3>
+      <ol>
+        <li>While on the article, click the <strong>+ Add to StartDashboard</strong> bookmarklet in your bookmarks bar.</li>
+        <li>A small popup window appears. You see all your personas grouped, with category buttons under each.</li>
+        <li>Click the category where the bookmark should go. The window closes automatically.</li>
+        <li>Open your dashboard in any browser &mdash; the bookmark is there.</li>
+      </ol>
+    </div>
+
+    <div class="workflow">
+      <h3>Switch from Work to Personal mode</h3>
+      <ol>
+        <li>Click the <strong>Personal</strong> tab in the top bar.</li>
+        <li>The whole page re-renders: different bookmarks, different widgets, different background, different accent color.</li>
+        <li>Switch back to Work the same way.</li>
+      </ol>
+    </div>
+
+    <div class="workflow">
+      <h3>Set up StartDashboard on a new browser</h3>
+      <ol>
+        <li>Open <code>https://tecgunther.github.io/startdashboard/</code> in the new browser.</li>
+        <li>Generate a new GitHub Personal Access Token (one per browser &mdash; never share tokens).</li>
+        <li>Paste the token into the setup screen.</li>
+        <li>Choose <strong>I already set up another browser</strong>, paste the gist ID from your first browser (found in Settings &rarr; Sync), and continue.</li>
+        <li>The dashboard loads with all your data. Optionally set this browser's default persona in Settings.</li>
+      </ol>
+    </div>
+
+    <div class="workflow">
+      <h3>Create a new persona for a focused area (e.g. Investments)</h3>
+      <ol>
+        <li>Click the <strong>+</strong> button next to the persona tabs.</li>
+        <li>Type a name for the persona ("Investments") and click OK.</li>
+        <li>A fresh dashboard appears with one empty category. Start adding categories and bookmarks.</li>
+        <li>Open Settings (gear icon) to customize the accent color and background for this persona.</li>
+      </ol>
+    </div>
+
+    <div class="workflow">
+      <h3>Reorganize bookmarks across categories</h3>
+      <ol>
+        <li>Drag a bookmark from one category card and drop it onto another.</li>
+        <li>The bookmark moves immediately. Sync saves the change ~2 seconds later.</li>
+        <li>To move a bookmark to a different <em>persona</em>, hover the bookmark and click the &#8599; icon, then pick the target persona and category.</li>
+      </ol>
+    </div>
+
+    <div class="workflow">
+      <h3>Add a city to the weather widget</h3>
+      <ol>
+        <li>Click the gear icon in the header to open Settings.</li>
+        <li>In the <strong>Weather &mdash; cities</strong> box, add a line like <code>San Francisco, 37.7749, -122.4194</code>.</li>
+        <li>Click Save changes. The widget refreshes with the new city.</li>
+      </ol>
+    </div>
+
+    <!-- /UX:WORKFLOWS -->
+  </section>
+
+  <section id="audience">
+    <span class="section-num">05</span>
+    <h2>Intended Audience</h2>
+    <p class="section-lead">Who this app is built for and what level of expertise it assumes.</p>
+    <!-- UX:AUDIENCE -->
+    <div class="audience-block">
+      <p>StartDashboard is built for one person: Tom. It assumes you have a GitHub account, can copy-paste a personal access token, and can run two git commands to push the file to GitHub Pages. No code-writing is required once setup is done.</p>
+      <p>It's not designed for multi-user use, team sharing, or distribution as a product. Other people could fork it and run their own copy with their own gist, but there's no admin layer, user accounts, or sharing model.</p>
+    </div>
+    <!-- /UX:AUDIENCE -->
+  </section>
+
+  <section id="scope">
+    <span class="section-num">06</span>
+    <h2>What This App Isn't</h2>
+    <p class="section-lead">The scope boundary &mdash; what people might assume this does that it doesn't.</p>
+    <!-- UX:SCOPE -->
+    <div class="scope-block">
+      <ul>
+        <li><strong>Not a bookmark manager replacement</strong> &mdash; the browser's own bookmarks still exist; StartDashboard is a curated overlay you choose what goes into.</li>
+        <li><strong>Not an automatic browser-bookmark import tool</strong> &mdash; bookmarks come over manually as you use the bookmarklet. A JSON-import flow could be added later if needed.</li>
+        <li><strong>Not multi-user.</strong> One person, one gist.</li>
+        <li><strong>Not real-time.</strong> Sync polls every 60 seconds in the background; saves are debounced about 2 seconds. Edit in two browsers at once and the most recent save wins.</li>
+        <li><strong>Not a notes app.</strong> The Notes widget is a scratchpad, not a place to write long documents.</li>
+        <li><strong>Not a task manager.</strong> The To-do widget is a quick checklist, not a project tracker.</li>
+        <li><strong>Not a widget marketplace</strong> &mdash; the four widgets are baked in. New widgets can be added later by editing the HTML file.</li>
+        <li><strong>Not a browser extension.</strong> The bookmarklet does the same job without per-browser build overhead.</li>
+        <li><strong>Not a mobile-native app.</strong> The web page is responsive and works on mobile Safari; there's no App Store version.</li>
+      </ul>
+    </div>
+    <!-- /UX:SCOPE -->
+  </section>
+
+</main>
+
+<footer>
+  <div class="container">
+    Generated and maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-27</span>
+  </div>
+</footer>
+
+</body>
+</html>

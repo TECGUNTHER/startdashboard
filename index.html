@@ -1,0 +1,2470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StartDashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   StartDashboard — Tom Carbaugh's personal home page
+   Single-file vanilla HTML/CSS/JS. No build step. No frameworks.
+   Data lives in a private GitHub gist on Tom's account.
+   Authoritative spec: ../plans/2026-05-27-personal-dashboard-v1.md
+   ============================================================ */
+
+/* ---------- Palette and theme tokens ----------
+   Dark / modern / tech aesthetic. References: Linear, Vercel, Raycast.
+   The --accent variable is overridden per-persona at runtime so each
+   persona has its own highlight color (work = teal, personal = pink, etc.)
+*/
+:root {
+  --bg: #0A0A0F;
+  --bg-elev-1: rgba(255, 255, 255, 0.025);
+  --bg-elev-2: rgba(255, 255, 255, 0.045);
+  --bg-overlay: rgba(10, 10, 15, 0.78);
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --text-primary: #F4F4F6;
+  --text-secondary: #B4B4BD;
+  --text-muted: #6B6B78;
+  --accent: #22D3EE;           /* runtime-overridden per persona */
+  --accent-soft: rgba(34, 211, 238, 0.15);
+  --danger: #F87171;
+  --success: #34D399;
+  --warn: #FBBF24;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --shadow-card: 0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 24px rgba(0,0,0,0.35);
+  --blur: 18px;
+}
+
+/* ---------- Reset and base typography ---------- */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--bg);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+button, input, textarea, select {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  outline: none;
+}
+button { cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+.mono { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; }
+.hidden { display: none !important; }
+
+/* ---------- Background layer ----------
+   This sits behind everything. The class on #background is swapped at runtime
+   to match the current persona's chosen background (see "Background presets"
+   section below). When an image URL is used we set inline styles instead.
+*/
+#background {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--bg);
+  transition: opacity 0.4s ease;
+}
+#background::after {
+  /* Subtle vignette to keep edges grounded and improve text contrast */
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.45) 100%);
+  pointer-events: none;
+}
+
+/* ---------- Background presets (all CSS — no image files) ----------
+   Each preset is a body-level class applied to #background.
+*/
+.bg-midnight-mesh {
+  background:
+    radial-gradient(60% 50% at 10% 10%, rgba(34,211,238,0.18), transparent 60%),
+    radial-gradient(50% 50% at 90% 20%, rgba(168,85,247,0.20), transparent 60%),
+    radial-gradient(70% 60% at 30% 90%, rgba(244,114,182,0.12), transparent 60%),
+    radial-gradient(50% 50% at 80% 80%, rgba(56,189,248,0.14), transparent 60%),
+    #06060B;
+  animation: bg-mesh-drift 28s ease-in-out infinite alternate;
+}
+@keyframes bg-mesh-drift {
+  0%   { background-position: 0% 0%, 100% 0%, 0% 100%, 100% 100%, 0 0; }
+  100% { background-position: 6% 8%, 92% 4%, 4% 96%, 96% 92%, 0 0; }
+}
+
+.bg-aurora {
+  background:
+    conic-gradient(from 230deg at 50% 50%, #16213E, #1B3A52, #2C5364, #0F4C75, #16213E),
+    #0A0A0F;
+  background-blend-mode: screen;
+  animation: bg-aurora-spin 60s linear infinite;
+}
+@keyframes bg-aurora-spin {
+  to { filter: hue-rotate(360deg); }
+}
+
+.bg-synthwave {
+  background:
+    linear-gradient(180deg, #1B0A3A 0%, #4A1A6A 50%, #C13B9F 100%);
+  position: fixed;
+}
+.bg-synthwave::before {
+  /* Perspective grid on the lower half — the classic synthwave horizon */
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 55%;
+  background-image:
+    linear-gradient(to right, rgba(255, 56, 200, 0.45) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 56, 200, 0.45) 1px, transparent 1px);
+  background-size: 60px 60px;
+  transform: perspective(420px) rotateX(60deg);
+  transform-origin: center bottom;
+  mask-image: linear-gradient(to bottom, transparent, black 30%, black);
+}
+
+.bg-carbon-grid {
+  background:
+    linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px) 0 0 / 32px 32px,
+    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px) 0 0 / 32px 32px,
+    radial-gradient(60% 60% at 50% 35%, #14141B, #06060A);
+}
+
+.bg-deep-space {
+  background:
+    radial-gradient(1px 1px at 23% 17%, #fff, transparent 100%),
+    radial-gradient(1px 1px at 67% 41%, #fff, transparent 100%),
+    radial-gradient(1px 1px at 84% 73%, #fff, transparent 100%),
+    radial-gradient(1px 1px at 12% 85%, #fff, transparent 100%),
+    radial-gradient(1.5px 1.5px at 55% 12%, #fff, transparent 100%),
+    radial-gradient(1px 1px at 33% 64%, #fff, transparent 100%),
+    radial-gradient(1px 1px at 91% 28%, #fff, transparent 100%),
+    radial-gradient(1px 1px at 7% 42%, #fff, transparent 100%),
+    radial-gradient(2px 2px at 71% 89%, #b9d6ff, transparent 100%),
+    radial-gradient(1px 1px at 44% 33%, #fff, transparent 100%),
+    radial-gradient(60% 70% at 30% 70%, rgba(34,80,180,0.25), transparent),
+    radial-gradient(50% 60% at 80% 20%, rgba(140,60,200,0.20), transparent),
+    #03030A;
+  background-repeat: repeat;
+}
+
+.bg-liquid-glass {
+  background:
+    radial-gradient(40% 35% at 25% 30%, rgba(56,189,248,0.30), transparent 60%),
+    radial-gradient(50% 40% at 70% 60%, rgba(168,85,247,0.30), transparent 60%),
+    radial-gradient(40% 50% at 50% 80%, rgba(236,72,153,0.22), transparent 60%),
+    #0A0A14;
+  filter: blur(0px);
+}
+
+.bg-tokyo-night {
+  background:
+    linear-gradient(180deg, #0F0F1E 0%, #1A1B3A 40%, #2C1E4A 80%, #3D1F5A 100%),
+    radial-gradient(60% 40% at 50% 60%, rgba(255, 100, 200, 0.10), transparent);
+}
+
+.bg-terminal {
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0, 255, 100, 0.025) 0,
+      rgba(0, 255, 100, 0.025) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    radial-gradient(70% 70% at 50% 50%, #0A1A0A, #02080A);
+}
+
+.bg-monochrome {
+  background:
+    linear-gradient(135deg, #1A1A22 0%, #0C0C12 60%, #050508 100%);
+}
+
+.bg-image {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.bg-image::before {
+  /* Dark overlay sits between image and content so text stays legible */
+  content: '';
+  position: absolute; inset: 0;
+  background: rgba(6, 6, 12, 0.55);
+}
+
+.bg-solid { /* color set via inline style */ }
+
+/* ============================================================
+   Layout
+   ============================================================ */
+
+.app {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px 28px 80px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- Header ---------- */
+header.dash-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: var(--bg-elev-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  margin-bottom: 20px;
+}
+.brand {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-right: 1px solid var(--border);
+}
+.brand-edit-input {
+  background: none; border: none; color: var(--text-primary);
+  font: inherit; width: 14ch;
+}
+
+/* ---------- Persona tab bar ---------- */
+.persona-tabs {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.persona-tabs::-webkit-scrollbar { display: none; }
+.persona-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+.persona-tab:hover { color: var(--text-primary); background: var(--bg-elev-1); }
+.persona-tab.active {
+  color: var(--text-primary);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.persona-tab .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: currentColor; opacity: 0.7;
+}
+.persona-tab.active .dot { background: var(--accent); opacity: 1; }
+.persona-add-btn {
+  padding: 6px 10px;
+  color: var(--text-muted);
+  border-radius: 8px;
+  font-size: 16px;
+}
+.persona-add-btn:hover { color: var(--text-primary); background: var(--bg-elev-1); }
+
+/* ---------- Sync indicator + settings button (right side of header) ---------- */
+.header-right {
+  display: flex; align-items: center; gap: 10px;
+  margin-left: auto;
+}
+.sync-indicator {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--bg-elev-1);
+  cursor: pointer;
+}
+.sync-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+}
+.sync-dot.synced { background: var(--success); }
+.sync-dot.saving { background: var(--warn); animation: pulse 1s ease-in-out infinite; }
+.sync-dot.stale  { background: var(--danger); }
+.sync-dot.error  { background: var(--danger); }
+@keyframes pulse {
+  50% { opacity: 0.35; }
+}
+.icon-btn {
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+.icon-btn:hover { background: var(--bg-elev-1); color: var(--text-primary); }
+
+/* ---------- Search bar ---------- */
+.search-row {
+  margin-bottom: 24px;
+}
+.search-bar {
+  width: 100%;
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 18px;
+  background: var(--bg-elev-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+}
+.search-bar input {
+  flex: 1;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+.search-bar input::placeholder { color: var(--text-muted); }
+.search-bar .search-icon { font-size: 14px; color: var(--text-muted); }
+
+/* ---------- Widgets row ---------- */
+.widgets-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+@media (max-width: 1100px) { .widgets-row { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px)  { .widgets-row { grid-template-columns: 1fr; } }
+
+.widget {
+  background: var(--bg-elev-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  min-height: 150px;
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  display: flex; flex-direction: column;
+  position: relative;
+}
+.widget:hover { border-color: var(--border-strong); }
+.widget-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px;
+}
+.widget-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+.widget-settings-btn {
+  font-size: 12px; color: var(--text-muted); padding: 2px 6px;
+  border-radius: 6px;
+}
+.widget-settings-btn:hover { background: var(--bg-elev-2); color: var(--text-primary); }
+.widget-body { flex: 1; }
+
+/* ---- Clock widget ---- */
+.clock-zone {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+.clock-zone:last-child { border-bottom: none; }
+.clock-zone .city { font-size: 12px; color: var(--text-secondary); }
+.clock-zone .time { font-family: 'JetBrains Mono'; font-size: 16px; font-weight: 500; color: var(--text-primary); }
+.clock-zone .meta { font-size: 10px; color: var(--text-muted); margin-left: 6px; }
+
+/* ---- Weather widget ---- */
+.weather-city { margin-bottom: 10px; }
+.weather-city:last-child { margin-bottom: 0; }
+.weather-city .city-name { font-size: 12px; color: var(--text-secondary); margin-bottom: 2px; }
+.weather-city .now {
+  display: flex; align-items: baseline; gap: 8px;
+}
+.weather-city .temp { font-family: 'JetBrains Mono'; font-size: 22px; font-weight: 500; }
+.weather-city .desc { font-size: 11px; color: var(--text-muted); }
+.weather-forecast {
+  display: flex; gap: 6px; margin-top: 6px;
+}
+.weather-forecast .day {
+  flex: 1; text-align: center;
+  padding: 4px 2px;
+  background: var(--bg-elev-2);
+  border-radius: 6px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.weather-forecast .day .d-temp {
+  font-family: 'JetBrains Mono';
+  color: var(--text-primary);
+  font-size: 11px;
+  display: block;
+}
+
+/* ---- To-do widget ---- */
+.todo-add {
+  display: flex; gap: 6px; margin-bottom: 8px;
+}
+.todo-add input {
+  flex: 1;
+  background: var(--bg-elev-2);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.todo-list {
+  list-style: none;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.todo-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 0;
+  font-size: 13px;
+}
+.todo-item input[type="checkbox"] {
+  appearance: none;
+  width: 14px; height: 14px;
+  border: 1.5px solid var(--text-muted);
+  border-radius: 4px;
+  position: relative;
+  cursor: pointer;
+}
+.todo-item input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.todo-item input[type="checkbox"]:checked::after {
+  content: '✓';
+  position: absolute;
+  inset: 0;
+  display: grid; place-items: center;
+  font-size: 10px;
+  color: var(--bg);
+  font-weight: 700;
+}
+.todo-item .text { flex: 1; }
+.todo-item.done .text {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+.todo-item .del {
+  font-size: 11px;
+  color: var(--text-muted);
+  opacity: 0;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.todo-item:hover .del { opacity: 1; }
+.todo-item .del:hover { background: var(--bg-elev-2); color: var(--danger); }
+.todo-clear {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+.todo-clear:hover { color: var(--accent); }
+
+/* ---- Notes widget ---- */
+.notes-textarea {
+  width: 100%; height: 100%;
+  min-height: 110px;
+  resize: none;
+  font-family: inherit;
+  font-size: 13px;
+  background: transparent;
+  color: var(--text-primary);
+  line-height: 1.55;
+}
+.notes-textarea::placeholder { color: var(--text-muted); }
+
+/* ---------- Categories grid ---------- */
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+.category {
+  background: var(--bg-elev-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  transition: border-color 0.2s, transform 0.2s;
+}
+.category.drop-target {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.category-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 8px;
+}
+.category-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--accent);
+  cursor: grab;
+  flex: 1;
+}
+.category-title:active { cursor: grabbing; }
+.category-title-input {
+  font-size: 13px; font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-elev-2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  width: 100%;
+}
+.category-menu-btn {
+  font-size: 14px;
+  color: var(--text-muted);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.category-menu-btn:hover { color: var(--text-primary); background: var(--bg-elev-2); }
+.bookmark-list { list-style: none; }
+.bookmark {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 6px;
+  border-radius: 6px;
+  font-size: 13px;
+  transition: background 0.12s;
+}
+.bookmark:hover { background: var(--bg-elev-2); }
+.bookmark .favicon {
+  width: 16px; height: 16px;
+  background: var(--bg-elev-2);
+  border-radius: 4px;
+  flex-shrink: 0;
+  background-size: cover;
+  background-position: center;
+}
+.bookmark .bk-title {
+  flex: 1;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.bookmark .bk-title-input {
+  flex: 1; background: var(--bg-elev-2);
+  padding: 2px 6px; border-radius: 4px;
+}
+.bookmark .bk-actions {
+  display: flex; gap: 2px;
+  opacity: 0;
+}
+.bookmark:hover .bk-actions { opacity: 1; }
+.bk-actions button {
+  font-size: 11px; color: var(--text-muted);
+  padding: 2px 6px; border-radius: 4px;
+}
+.bk-actions button:hover { background: var(--bg-elev-1); color: var(--text-primary); }
+.bk-actions .del:hover { color: var(--danger); }
+
+.category-add-bookmark {
+  margin-top: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 6px 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  border-radius: 6px;
+}
+.category-add-bookmark:hover { background: var(--bg-elev-2); color: var(--accent); }
+
+.new-category-card {
+  display: grid;
+  place-items: center;
+  min-height: 80px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.new-category-card:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* ---------- Modals / overlays ---------- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: grid; place-items: center;
+  z-index: 100;
+  padding: 20px;
+}
+.modal {
+  background: #11111A;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 24px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+}
+.modal h2 {
+  font-size: 17px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.modal .sub {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 18px;
+}
+.modal label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin: 14px 0 6px;
+}
+.modal input[type="text"],
+.modal input[type="url"],
+.modal input[type="password"],
+.modal textarea,
+.modal select {
+  width: 100%;
+  background: #0A0A12;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+  font-family: inherit;
+}
+.modal input:focus, .modal textarea:focus, .modal select:focus {
+  border-color: var(--accent);
+}
+.modal input.mono { font-family: 'JetBrains Mono'; }
+.modal-actions {
+  display: flex; justify-content: flex-end; gap: 8px;
+  margin-top: 20px;
+}
+.btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--bg-elev-2);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+.btn:hover { background: var(--bg-elev-1); border-color: var(--border-strong); }
+.btn.primary {
+  background: var(--accent);
+  color: #0A0A0F;
+  border-color: var(--accent);
+}
+.btn.primary:hover { filter: brightness(1.1); }
+.btn.danger { color: var(--danger); }
+.btn.danger:hover { background: rgba(248,113,113,0.1); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.swatch {
+  aspect-ratio: 1;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+.swatch.selected { border-color: var(--text-primary); }
+
+.bg-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.bg-preset-thumb {
+  aspect-ratio: 16/10;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  font-size: 10px;
+  color: white;
+  display: flex; align-items: flex-end;
+  padding: 6px 8px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+}
+.bg-preset-thumb.selected { border-color: var(--accent); }
+
+/* ---------- Add-bookmark overlay (used by bookmarklet) ---------- */
+.add-overlay-card {
+  width: 100%;
+  max-width: 460px;
+}
+.add-overlay-card .url-preview {
+  font-family: 'JetBrains Mono';
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--bg-elev-2);
+  padding: 8px 10px;
+  border-radius: 6px;
+  word-break: break-all;
+  margin-bottom: 14px;
+  max-height: 80px; overflow-y: auto;
+}
+.persona-cat-pickers {
+  display: grid; gap: 14px;
+}
+.persona-pick-block {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.persona-pick-block .persona-name {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.persona-pick-block .cat-buttons {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.cat-button {
+  padding: 6px 10px;
+  font-size: 12px;
+  background: var(--bg-elev-2);
+  border-radius: 6px;
+}
+.cat-button:hover { background: var(--accent); color: #0A0A0F; }
+
+/* ---------- Setup screen ---------- */
+.setup {
+  min-height: 100vh;
+  display: grid; place-items: center;
+  padding: 30px;
+}
+.setup-card {
+  max-width: 520px;
+  background: var(--bg-elev-1);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 32px;
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+}
+.setup-card h1 {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.setup-step {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.setup-step h3 {
+  font-size: 13px; font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+.setup-step p { font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; }
+.setup-step ol { padding-left: 20px; font-size: 13px; color: var(--text-secondary); }
+.setup-step ol li { margin: 4px 0; }
+.setup-step code {
+  font-family: 'JetBrains Mono';
+  background: var(--bg-elev-2);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--accent);
+}
+.setup-step a {
+  color: var(--accent);
+  border-bottom: 1px dotted var(--accent);
+}
+.radio-row { display: flex; gap: 14px; margin-bottom: 8px; }
+.radio-row label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; color: var(--text-primary);
+  text-transform: none; letter-spacing: 0; font-weight: 400;
+  margin: 0;
+}
+
+/* ---------- Notification toast ---------- */
+.toast {
+  position: fixed;
+  bottom: 20px; left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 16px;
+  background: #11111A;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  font-size: 13px;
+  z-index: 200;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+
+/* ---------- Context menu ---------- */
+.context-menu {
+  position: fixed;
+  background: #11111A;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 4px;
+  min-width: 160px;
+  z-index: 150;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+.context-menu button, .context-menu .sub-trigger {
+  display: block; width: 100%;
+  text-align: left;
+  padding: 7px 12px;
+  font-size: 12px;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  position: relative;
+}
+.context-menu button:hover, .context-menu .sub-trigger:hover {
+  background: var(--bg-elev-2); color: var(--text-primary);
+}
+.context-menu .danger:hover { color: var(--danger); }
+.context-menu .submenu {
+  position: absolute;
+  left: 100%; top: 0;
+  margin-left: 4px;
+  background: #11111A;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 4px;
+  min-width: 180px;
+  display: none;
+}
+.context-menu .sub-trigger:hover .submenu { display: block; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 700px) {
+  .app { padding: 14px 14px 60px; }
+  header.dash-header { flex-wrap: wrap; gap: 8px; }
+  .brand { border-right: none; border-bottom: 1px solid var(--border); padding-bottom: 8px; width: 100%; }
+  .header-right { width: 100%; justify-content: flex-end; }
+  .categories-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- =====================================================================
+     Background layer — class swapped per persona at runtime
+     ===================================================================== -->
+<div id="background" class="bg-midnight-mesh"></div>
+
+<!-- =====================================================================
+     Setup screen — shown when no GitHub PAT is stored in this browser
+     ===================================================================== -->
+<div id="setup" class="setup hidden">
+  <div class="setup-card">
+    <h1>Welcome to StartDashboard</h1>
+    <p style="color: var(--text-secondary); font-size: 13px;">One-time setup for this browser. About 90 seconds.</p>
+
+    <div class="setup-step">
+      <h3>Step 1 · Create a GitHub Personal Access Token</h3>
+      <p>StartDashboard stores your dashboard data in a private GitHub gist on your account. We need a token to read and write that gist.</p>
+      <ol>
+        <li>Open <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener">github.com/settings/tokens</a> (the "Fine-grained tokens" page).</li>
+        <li>Click <strong>Generate new token</strong>. Name it <code>StartDashboard</code>.</li>
+        <li>Set expiration to 1 year (or longer).</li>
+        <li>Under <strong>Account permissions → Gists</strong>, set access to <strong>Read and write</strong>.</li>
+        <li>Click <strong>Generate token</strong>, then copy the token. It only shows once.</li>
+      </ol>
+      <p style="margin-top: 10px;">Or use a classic token from <a href="https://github.com/settings/tokens/new?scopes=gist&description=StartDashboard" target="_blank" rel="noopener">this preconfigured page</a> (only <code>gist</code> scope needed).</p>
+    </div>
+
+    <div class="setup-step">
+      <h3>Step 2 · Paste your token</h3>
+      <input type="password" id="setup-pat" class="mono" placeholder="ghp_… or github_pat_…" autocomplete="off" />
+    </div>
+
+    <div class="setup-step">
+      <h3>Step 3 · First browser or additional browser?</h3>
+      <div class="radio-row">
+        <label><input type="radio" name="setup-mode" value="new" checked /> First browser — create a new gist</label>
+        <label><input type="radio" name="setup-mode" value="existing" /> I already set up another browser</label>
+      </div>
+      <div id="setup-existing-gist" class="hidden">
+        <p>Paste the gist ID from your other browser. You can find it in Settings → Sync.</p>
+        <input type="text" id="setup-gist-id" class="mono" placeholder="Gist ID (32 hex characters)" />
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top: 24px;">
+      <button class="btn primary" id="setup-go">Continue</button>
+    </div>
+    <div id="setup-error" style="color: var(--danger); font-size: 13px; margin-top: 12px;"></div>
+  </div>
+</div>
+
+<!-- =====================================================================
+     Main dashboard
+     ===================================================================== -->
+<div id="dashboard" class="app hidden">
+
+  <header class="dash-header">
+    <div class="brand" id="brand">StartDashboard</div>
+    <nav class="persona-tabs" id="persona-tabs"></nav>
+    <button class="persona-add-btn" id="persona-add-btn" title="Add persona">+</button>
+    <div class="header-right">
+      <div class="sync-indicator" id="sync-indicator" title="Click for sync details">
+        <span class="sync-dot synced" id="sync-dot"></span>
+        <span id="sync-text">Synced</span>
+      </div>
+      <button class="icon-btn" id="open-settings" title="Settings">⚙</button>
+    </div>
+  </header>
+
+  <div class="search-row">
+    <form class="search-bar" id="search-form">
+      <span class="search-icon">⌕</span>
+      <input id="search-input" type="text" placeholder="Search the web…" />
+    </form>
+  </div>
+
+  <section class="widgets-row" id="widgets-row">
+    <div class="widget" data-widget="clock">
+      <div class="widget-head">
+        <span class="widget-title">Clock</span>
+        <button class="widget-settings-btn" data-widget-settings="clock">⚙</button>
+      </div>
+      <div class="widget-body" id="widget-clock-body"></div>
+    </div>
+    <div class="widget" data-widget="weather">
+      <div class="widget-head">
+        <span class="widget-title">Weather</span>
+        <button class="widget-settings-btn" data-widget-settings="weather">⚙</button>
+      </div>
+      <div class="widget-body" id="widget-weather-body"></div>
+    </div>
+    <div class="widget" data-widget="todos">
+      <div class="widget-head">
+        <span class="widget-title">To-do</span>
+      </div>
+      <div class="widget-body" id="widget-todos-body"></div>
+    </div>
+    <div class="widget" data-widget="notes">
+      <div class="widget-head">
+        <span class="widget-title">Notes</span>
+      </div>
+      <div class="widget-body" id="widget-notes-body">
+        <textarea id="notes-textarea" class="notes-textarea" placeholder="Type anything…"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <section class="categories-grid" id="categories-grid"></section>
+
+</div>
+
+<!-- =====================================================================
+     Bookmarklet add overlay — shown when URL has ?add=... params
+     ===================================================================== -->
+<div id="add-overlay" class="overlay hidden">
+  <div class="modal add-overlay-card">
+    <h2>Add to StartDashboard</h2>
+    <p class="sub">Pick a persona and category. This window will close after saving.</p>
+    <div id="add-title-line" style="margin-bottom: 8px; font-size: 14px; color: var(--text-primary); font-weight: 500;"></div>
+    <div id="add-url-preview" class="url-preview"></div>
+    <div class="persona-cat-pickers" id="persona-cat-pickers"></div>
+    <div class="modal-actions">
+      <button class="btn" id="add-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================================
+     Settings modal
+     ===================================================================== -->
+<div id="settings-modal" class="overlay hidden">
+  <div class="modal" style="max-width: 640px;">
+    <h2>Settings</h2>
+    <p class="sub">Configure your dashboard. Most changes apply immediately.</p>
+
+    <label>Dashboard title</label>
+    <input type="text" id="set-title" />
+
+    <label>Default persona on this browser/device</label>
+    <select id="set-default-persona"></select>
+
+    <label>This persona — name</label>
+    <input type="text" id="set-persona-name" />
+
+    <label>This persona — accent color</label>
+    <input type="color" id="set-persona-accent" style="width: 80px; height: 36px; padding: 2px; border-radius: 6px;" />
+
+    <label>This persona — background</label>
+    <div class="bg-preset-grid" id="bg-preset-grid"></div>
+    <input type="url" id="set-bg-image-url" placeholder="…or paste an image URL" />
+
+    <label>Clock — time zones (comma-separated IANA names)</label>
+    <input type="text" id="set-clock-zones" class="mono" placeholder="e.g. America/New_York, Europe/London, Asia/Tokyo" />
+
+    <label>Weather — cities (one per line: "Name, lat, lon")</label>
+    <textarea id="set-weather-cities" class="mono" rows="3" placeholder="New York, 40.7128, -74.0060"></textarea>
+
+    <label>Search engine</label>
+    <select id="set-search-engine">
+      <option value="google">Google</option>
+      <option value="duckduckgo">DuckDuckGo</option>
+      <option value="bing">Bing</option>
+      <option value="kagi">Kagi</option>
+    </select>
+
+    <label>Sync</label>
+    <div style="font-size: 12px; color: var(--text-secondary);">
+      <div>Gist ID: <code class="mono" id="set-gist-id"></code></div>
+      <div style="margin-top: 6px;">
+        <button class="btn" id="set-copy-gist-id" style="padding: 4px 10px; font-size: 12px;">Copy gist ID</button>
+        <button class="btn" id="set-bookmarklet" style="padding: 4px 10px; font-size: 12px;">Bookmarklet code</button>
+        <button class="btn danger" id="set-reset-browser" style="padding: 4px 10px; font-size: 12px;">Reset this browser</button>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" id="set-cancel">Close</button>
+      <button class="btn primary" id="set-save">Save changes</button>
+    </div>
+    <div style="margin-top: 14px; border-top: 1px solid var(--border); padding-top: 14px;">
+      <button class="btn danger" id="set-delete-persona" style="font-size: 12px;">Delete this persona</button>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================================
+     Bookmarklet code modal
+     ===================================================================== -->
+<div id="bookmarklet-modal" class="overlay hidden">
+  <div class="modal">
+    <h2>Install the bookmarklet</h2>
+    <p class="sub">Drag this link to your browser's bookmarks bar. Then on any site, click it to add the page to StartDashboard.</p>
+    <div style="background: var(--bg-elev-2); padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 14px;">
+      <a id="bookmarklet-link" href="#" style="display: inline-block; padding: 10px 18px; background: var(--accent); color: #0A0A0F; border-radius: 8px; font-weight: 600;">+ Add to StartDashboard</a>
+    </div>
+    <p style="font-size: 12px; color: var(--text-muted);">Right-click the button → "Add to bookmarks bar" if dragging doesn't work in your browser.</p>
+    <div class="modal-actions">
+      <button class="btn" id="bookmarklet-close">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================================
+     Generic confirm dialog
+     ===================================================================== -->
+<div id="confirm-modal" class="overlay hidden">
+  <div class="modal" style="max-width: 400px;">
+    <h2 id="confirm-title">Confirm</h2>
+    <p class="sub" id="confirm-body"></p>
+    <div class="modal-actions">
+      <button class="btn" id="confirm-cancel">Cancel</button>
+      <button class="btn danger" id="confirm-ok">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast for transient messages -->
+<div id="toast" class="toast"></div>
+
+<script>
+/* ============================================================
+   StartDashboard — App JavaScript
+   ============================================================ */
+
+/* ---------- localStorage keys (per-browser/per-device) ---------- */
+const LS = {
+  PAT: 'sd_pat',
+  GIST_ID: 'sd_gist_id',
+  DEFAULT_PERSONA: 'sd_default_persona',
+};
+
+/* ---------- Background preset list ---------- */
+const BG_PRESETS = [
+  { id: 'midnight-mesh', name: 'Midnight Mesh' },
+  { id: 'aurora',        name: 'Aurora' },
+  { id: 'synthwave',     name: 'Synthwave' },
+  { id: 'carbon-grid',   name: 'Carbon Grid' },
+  { id: 'deep-space',    name: 'Deep Space' },
+  { id: 'liquid-glass',  name: 'Liquid Glass' },
+  { id: 'tokyo-night',   name: 'Tokyo Night' },
+  { id: 'terminal',      name: 'Terminal' },
+  { id: 'monochrome',    name: 'Monochrome' },
+];
+
+/* ---------- Default colors for new personas (rotates) ---------- */
+const DEFAULT_ACCENTS = [
+  '#22D3EE', '#F472B6', '#34D399', '#FBBF24',
+  '#A78BFA', '#FB7185', '#60A5FA', '#FACC15'
+];
+
+/* ---------- Search engine URL templates ---------- */
+const SEARCH_ENGINES = {
+  google: 'https://www.google.com/search?q=',
+  duckduckgo: 'https://duckduckgo.com/?q=',
+  bing: 'https://www.bing.com/search?q=',
+  kagi: 'https://kagi.com/search?q=',
+};
+
+/* ---------- Application state — single source of truth ----------
+   The `data` object is the JSON we sync to/from the gist. Everything
+   else is per-browser runtime state (token, default persona) or UI state.
+*/
+const state = {
+  pat: localStorage.getItem(LS.PAT) || null,
+  gistId: localStorage.getItem(LS.GIST_ID) || null,
+  defaultPersonaId: localStorage.getItem(LS.DEFAULT_PERSONA) || null,
+  data: null,                  // Loaded from gist after setup
+  currentPersonaId: null,      // Which persona is being viewed
+  syncStatus: 'synced',        // 'synced' | 'saving' | 'stale' | 'error'
+  lastLoadedAt: null,
+  saveTimer: null,
+  loadedEtag: null,            // For optimistic conflict detection
+};
+
+/* ============================================================
+   Boot
+   ============================================================ */
+
+window.addEventListener('DOMContentLoaded', boot);
+
+async function boot() {
+  /* The bookmarklet sends users to ?add=<url>&title=<title>. If those
+     params are present we show only the lightweight add overlay rather
+     than the full dashboard — this is the popup flow. */
+  const params = new URLSearchParams(location.search);
+  const addUrl = params.get('add');
+  const addTitle = params.get('title');
+
+  if (!state.pat || !state.gistId) {
+    if (addUrl) {
+      // Bookmarklet click but no setup yet — show a helpful message.
+      alert('Please set up StartDashboard in your main browser window first, then try the bookmarklet again.');
+      window.close();
+      return;
+    }
+    showSetup();
+    return;
+  }
+
+  // Load the gist data, then either show the add overlay or full dashboard.
+  try {
+    await loadFromGist();
+  } catch (e) {
+    document.getElementById('setup').classList.remove('hidden');
+    showToast('Could not load your dashboard. Check your token. ' + e.message);
+    showSetup();
+    return;
+  }
+
+  if (addUrl) {
+    showAddOverlay(decodeURIComponent(addUrl), addTitle ? decodeURIComponent(addTitle) : '');
+  } else {
+    showDashboard();
+  }
+}
+
+/* ============================================================
+   Sync layer — GitHub Gist as the storage backend
+   ============================================================ */
+
+const GIST_FILENAME = 'startdashboard.json';
+
+/* Wraps fetch with auth and JSON handling. */
+async function ghRequest(path, opts = {}) {
+  const url = path.startsWith('http') ? path : ('https://api.github.com' + path);
+  const headers = Object.assign({
+    'Accept': 'application/vnd.github+json',
+    'Authorization': 'Bearer ' + state.pat,
+    'X-GitHub-Api-Version': '2022-11-28',
+  }, opts.headers || {});
+  if (opts.body && typeof opts.body !== 'string') {
+    headers['Content-Type'] = 'application/json';
+    opts = Object.assign({}, opts, { body: JSON.stringify(opts.body) });
+  }
+  const res = await fetch(url, Object.assign({}, opts, { headers }));
+  if (!res.ok) {
+    let msg = res.status + ' ' + res.statusText;
+    try { const j = await res.json(); if (j.message) msg += ': ' + j.message; } catch {}
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+/* Fetch the current gist and parse its JSON file into state.data. */
+async function loadFromGist() {
+  setSyncStatus('saving', 'Loading…');
+  const gist = await ghRequest('/gists/' + state.gistId);
+  const file = gist.files && gist.files[GIST_FILENAME];
+  if (!file) throw new Error('Gist exists but does not contain ' + GIST_FILENAME);
+  let content = file.content;
+  // Large gists are returned truncated and we have to fetch the raw URL instead.
+  if (file.truncated && file.raw_url) {
+    const r = await fetch(file.raw_url);
+    content = await r.text();
+  }
+  state.data = JSON.parse(content);
+  ensureSchema(state.data);
+  state.lastLoadedAt = new Date();
+  state.loadedEtag = gist.updated_at;
+  setSyncStatus('synced', 'Loaded ' + formatTime(state.lastLoadedAt));
+}
+
+/* Push state.data back to the gist. Debounced from setState to avoid hammering. */
+async function saveToGist() {
+  if (!state.data) return;
+  setSyncStatus('saving', 'Saving…');
+  try {
+    // Quick freshness check: if the gist was updated by another browser since
+    // we last loaded, warn the user before overwriting.
+    const head = await ghRequest('/gists/' + state.gistId);
+    if (state.loadedEtag && head.updated_at && head.updated_at !== state.loadedEtag) {
+      // Conflict — surface it but still allow save (last-write-wins per the plan)
+      setSyncStatus('stale', 'Another browser updated the dashboard. Saving anyway…');
+      // We could prompt here, but the plan says "last save wins"; just toast.
+      showToast('Note: another browser had updated this dashboard. Your save took precedence.');
+    }
+    const body = {
+      files: {
+        [GIST_FILENAME]: { content: JSON.stringify(state.data, null, 2) }
+      }
+    };
+    const result = await ghRequest('/gists/' + state.gistId, { method: 'PATCH', body });
+    state.loadedEtag = result.updated_at;
+    setSyncStatus('synced', 'Saved ' + formatTime(new Date()));
+  } catch (e) {
+    setSyncStatus('error', 'Save failed: ' + e.message);
+  }
+}
+
+/* Mutating helper. Call this after any change to state.data, and the save
+   will happen ~2s after the last edit (debounced). */
+function setState(mutator) {
+  mutator(state.data);
+  render();
+  if (state.saveTimer) clearTimeout(state.saveTimer);
+  state.saveTimer = setTimeout(() => {
+    saveToGist();
+  }, 1500);
+}
+
+/* Ensure all expected top-level fields exist on freshly-loaded data so we
+   don't crash on older or partial gists. */
+function ensureSchema(d) {
+  if (!d.title) d.title = 'StartDashboard';
+  if (!d.searchEngine) d.searchEngine = 'google';
+  if (!Array.isArray(d.personas) || d.personas.length === 0) {
+    d.personas = makeSeedPersonas();
+  }
+  d.personas.forEach(ensurePersonaSchema);
+}
+
+function ensurePersonaSchema(p) {
+  if (!p.id) p.id = uid();
+  if (!p.name) p.name = 'Untitled';
+  if (!p.accent) p.accent = DEFAULT_ACCENTS[0];
+  if (!p.background) p.background = 'midnight-mesh';
+  if (!Array.isArray(p.categories)) p.categories = [];
+  p.categories.forEach(c => {
+    if (!c.id) c.id = uid();
+    if (!c.name) c.name = 'Category';
+    if (!Array.isArray(c.bookmarks)) c.bookmarks = [];
+    c.bookmarks.forEach(b => {
+      if (!b.id) b.id = uid();
+      if (!b.title) b.title = b.url;
+    });
+  });
+  if (!p.widgets) p.widgets = {};
+  if (!p.widgets.clock)   p.widgets.clock   = { zones: [Intl.DateTimeFormat().resolvedOptions().timeZone] };
+  if (!p.widgets.weather) p.widgets.weather = { cities: [] };
+  if (!Array.isArray(p.widgets.todos)) p.widgets.todos = [];
+  if (typeof p.widgets.notes !== 'string') p.widgets.notes = '';
+}
+
+/* The seed personas applied on the very first run, per the plan. */
+function makeSeedPersonas() {
+  return [
+    {
+      id: 'work',
+      name: 'Work',
+      accent: '#22D3EE',
+      background: 'midnight-mesh',
+      categories: [
+        { id: uid(), name: 'Daily', bookmarks: [
+          { id: uid(), title: 'Email',    url: 'https://mail.google.com' },
+          { id: uid(), title: 'Calendar', url: 'https://calendar.google.com' },
+        ]},
+        { id: uid(), name: 'Tools', bookmarks: [] },
+      ],
+      widgets: {
+        clock: { zones: ['America/New_York', 'America/Los_Angeles', 'Europe/London'] },
+        weather: { cities: [] },
+        todos: [],
+        notes: '',
+      },
+    },
+    {
+      id: 'personal',
+      name: 'Personal',
+      accent: '#F472B6',
+      background: 'aurora',
+      categories: [
+        { id: uid(), name: 'Everyday', bookmarks: [] },
+        { id: uid(), name: 'Reading',  bookmarks: [] },
+      ],
+      widgets: {
+        clock: { zones: ['America/New_York'] },
+        weather: { cities: [] },
+        todos: [],
+        notes: '',
+      },
+    },
+  ];
+}
+
+/* ============================================================
+   Sync UI
+   ============================================================ */
+function setSyncStatus(status, text) {
+  state.syncStatus = status;
+  const dot = document.getElementById('sync-dot');
+  const txt = document.getElementById('sync-text');
+  if (!dot) return;
+  dot.className = 'sync-dot ' + status;
+  txt.textContent = text || status;
+}
+function formatTime(d) {
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+/* ============================================================
+   Render — top-level
+   ============================================================ */
+function render() {
+  if (!state.data) return;
+  document.title = (state.data.title || 'StartDashboard');
+  document.getElementById('brand').textContent = state.data.title || 'StartDashboard';
+  renderPersonaTabs();
+  const p = currentPersona();
+  if (!p) return;
+  applyPersonaTheme(p);
+  renderCategories(p);
+  renderWidgets(p);
+}
+
+/* The persona currently being viewed. If we don't have one yet (boot), pick
+   the device's default if it still exists, otherwise the first persona. */
+function currentPersona() {
+  if (!state.data) return null;
+  if (!state.currentPersonaId) {
+    const def = state.data.personas.find(p => p.id === state.defaultPersonaId);
+    state.currentPersonaId = def ? def.id : state.data.personas[0].id;
+  }
+  return state.data.personas.find(p => p.id === state.currentPersonaId) || state.data.personas[0];
+}
+
+function switchPersona(id) {
+  state.currentPersonaId = id;
+  render();
+}
+
+/* Apply persona-specific theming: accent color + background. */
+function applyPersonaTheme(p) {
+  const root = document.documentElement;
+  root.style.setProperty('--accent', p.accent);
+  // Build a soft (transparent) version of the accent for backgrounds.
+  root.style.setProperty('--accent-soft', hexToRgba(p.accent, 0.15));
+  const bg = document.getElementById('background');
+  bg.removeAttribute('style');
+  // Remove any old preset classes, then add the new one.
+  bg.className = '';
+  if (p.background && p.background.startsWith('url:')) {
+    bg.classList.add('bg-image');
+    bg.style.backgroundImage = 'url("' + p.background.slice(4) + '")';
+  } else if (p.background && p.background.startsWith('color:')) {
+    bg.classList.add('bg-solid');
+    bg.style.background = p.background.slice(6);
+  } else {
+    bg.classList.add('bg-' + (p.background || 'midnight-mesh'));
+  }
+}
+
+function hexToRgba(hex, a) {
+  hex = (hex || '#22D3EE').replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map(c => c+c).join('');
+  const n = parseInt(hex, 16);
+  return 'rgba(' + ((n>>16)&255) + ',' + ((n>>8)&255) + ',' + (n&255) + ',' + a + ')';
+}
+
+/* ============================================================
+   Persona tabs (rendered into header)
+   ============================================================ */
+function renderPersonaTabs() {
+  const nav = document.getElementById('persona-tabs');
+  nav.innerHTML = '';
+  state.data.personas.forEach(p => {
+    const tab = document.createElement('button');
+    tab.className = 'persona-tab' + (p.id === state.currentPersonaId ? ' active' : '');
+    tab.dataset.id = p.id;
+    tab.style.setProperty('--accent', p.accent);
+    tab.innerHTML = '<span class="dot" style="background:' + p.accent + '"></span>' + escapeHtml(p.name);
+    tab.addEventListener('click', () => switchPersona(p.id));
+    tab.addEventListener('dblclick', () => beginRenamePersona(p.id, tab));
+    tab.addEventListener('contextmenu', (e) => { e.preventDefault(); openPersonaContextMenu(e, p); });
+    // Allow drag-reorder of personas.
+    tab.draggable = true;
+    tab.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('application/x-persona-id', p.id);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    tab.addEventListener('dragover', (e) => {
+      if (e.dataTransfer.types.includes('application/x-persona-id')) {
+        e.preventDefault();
+      }
+    });
+    tab.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const draggedId = e.dataTransfer.getData('application/x-persona-id');
+      if (draggedId && draggedId !== p.id) movePersonaBefore(draggedId, p.id);
+    });
+    nav.appendChild(tab);
+  });
+}
+
+function beginRenamePersona(id, tabEl) {
+  const p = state.data.personas.find(pp => pp.id === id);
+  if (!p) return;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = p.name;
+  input.className = 'brand-edit-input';
+  input.style.width = Math.max(6, p.name.length) + 'ch';
+  tabEl.innerHTML = '';
+  tabEl.appendChild(input);
+  input.focus();
+  input.select();
+  const commit = () => {
+    const v = input.value.trim() || p.name;
+    setState(d => { d.personas.find(pp => pp.id === id).name = v; });
+  };
+  input.addEventListener('blur', commit, { once: true });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') { input.value = p.name; input.blur(); }
+  });
+}
+
+function movePersonaBefore(srcId, targetId) {
+  setState(d => {
+    const src = d.personas.findIndex(p => p.id === srcId);
+    const tgt = d.personas.findIndex(p => p.id === targetId);
+    if (src < 0 || tgt < 0) return;
+    const [item] = d.personas.splice(src, 1);
+    const newTgt = d.personas.findIndex(p => p.id === targetId);
+    d.personas.splice(newTgt, 0, item);
+  });
+}
+
+function openPersonaContextMenu(e, p) {
+  closeContextMenus();
+  const menu = document.createElement('div');
+  menu.className = 'context-menu';
+  menu.style.left = e.clientX + 'px';
+  menu.style.top = e.clientY + 'px';
+  menu.innerHTML = `
+    <button data-act="switch">Switch to "${escapeHtml(p.name)}"</button>
+    <button data-act="rename">Rename</button>
+    <button data-act="settings">Open settings…</button>
+    <button data-act="set-default">Make default on this device</button>
+    <button data-act="delete" class="danger">Delete persona</button>
+  `;
+  menu.addEventListener('click', (ev) => {
+    const act = ev.target.dataset.act;
+    if (act === 'switch') switchPersona(p.id);
+    if (act === 'rename') {
+      const tab = document.querySelector('.persona-tab[data-id="' + p.id + '"]');
+      if (tab) beginRenamePersona(p.id, tab);
+    }
+    if (act === 'settings') { switchPersona(p.id); openSettingsModal(); }
+    if (act === 'set-default') {
+      localStorage.setItem(LS.DEFAULT_PERSONA, p.id);
+      state.defaultPersonaId = p.id;
+      showToast('"' + p.name + '" is now the default on this browser');
+    }
+    if (act === 'delete') confirmDeletePersona(p.id);
+    closeContextMenus();
+  });
+  document.body.appendChild(menu);
+  setTimeout(() => document.addEventListener('click', closeContextMenus, { once: true }), 0);
+}
+
+function closeContextMenus() {
+  document.querySelectorAll('.context-menu').forEach(m => m.remove());
+}
+
+function confirmDeletePersona(id) {
+  if (state.data.personas.length <= 1) {
+    showToast('You need at least one persona.');
+    return;
+  }
+  const p = state.data.personas.find(pp => pp.id === id);
+  openConfirm('Delete "' + p.name + '"?', 'All categories, bookmarks, and widget state for this persona will be removed. This cannot be undone.', () => {
+    setState(d => {
+      d.personas = d.personas.filter(pp => pp.id !== id);
+    });
+    if (state.currentPersonaId === id) {
+      state.currentPersonaId = state.data.personas[0].id;
+      render();
+    }
+  });
+}
+
+function addNewPersona() {
+  const name = prompt('Name this persona (e.g. "Investments"):', '');
+  if (!name) return;
+  const used = state.data.personas.length;
+  const accent = DEFAULT_ACCENTS[used % DEFAULT_ACCENTS.length];
+  const id = uid();
+  setState(d => {
+    d.personas.push({
+      id, name: name.trim(), accent, background: BG_PRESETS[used % BG_PRESETS.length].id,
+      categories: [{ id: uid(), name: 'Untitled', bookmarks: [] }],
+      widgets: { clock: { zones: [Intl.DateTimeFormat().resolvedOptions().timeZone] },
+                 weather: { cities: [] }, todos: [], notes: '' },
+    });
+  });
+  switchPersona(id);
+}
+
+/* ============================================================
+   Categories & bookmarks
+   ============================================================ */
+function renderCategories(p) {
+  const grid = document.getElementById('categories-grid');
+  grid.innerHTML = '';
+  p.categories.forEach(cat => grid.appendChild(renderCategory(cat)));
+  // Always show an "add category" tile at the end.
+  const add = document.createElement('button');
+  add.className = 'new-category-card';
+  add.textContent = '+ New category';
+  add.addEventListener('click', () => {
+    setState(d => {
+      const p = currentPersona();
+      d.personas.find(pp => pp.id === p.id).categories.push({ id: uid(), name: 'New category', bookmarks: [] });
+    });
+  });
+  grid.appendChild(add);
+}
+
+function renderCategory(cat) {
+  const wrap = document.createElement('section');
+  wrap.className = 'category';
+  wrap.dataset.catId = cat.id;
+
+  /* Header: draggable title + ... menu */
+  const head = document.createElement('div');
+  head.className = 'category-head';
+  const titleSpan = document.createElement('span');
+  titleSpan.className = 'category-title';
+  titleSpan.textContent = cat.name;
+  titleSpan.title = 'Drag to reorder · Double-click to rename';
+  titleSpan.draggable = true;
+  titleSpan.addEventListener('dragstart', (e) => {
+    e.dataTransfer.setData('application/x-category-id', cat.id);
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  titleSpan.addEventListener('dblclick', () => beginRenameCategory(cat.id, titleSpan));
+  head.appendChild(titleSpan);
+
+  const menuBtn = document.createElement('button');
+  menuBtn.className = 'category-menu-btn';
+  menuBtn.textContent = '⋯';
+  menuBtn.addEventListener('click', (e) => openCategoryContextMenu(e, cat));
+  head.appendChild(menuBtn);
+
+  wrap.appendChild(head);
+
+  /* Bookmark list */
+  const ul = document.createElement('ul');
+  ul.className = 'bookmark-list';
+  cat.bookmarks.forEach(b => ul.appendChild(renderBookmark(b, cat)));
+  wrap.appendChild(ul);
+
+  /* Inline add row */
+  const addBtn = document.createElement('button');
+  addBtn.className = 'category-add-bookmark';
+  addBtn.textContent = '+ Add bookmark';
+  addBtn.addEventListener('click', () => openManualAddBookmark(cat.id));
+  wrap.appendChild(addBtn);
+
+  /* Make the entire card a drop target for URLs (from address bar)
+     AND for in-app bookmark/category drag operations. */
+  wrap.addEventListener('dragover', (e) => {
+    if (
+      e.dataTransfer.types.includes('text/uri-list') ||
+      e.dataTransfer.types.includes('text/x-moz-url') ||
+      e.dataTransfer.types.includes('text/plain') ||
+      e.dataTransfer.types.includes('application/x-bookmark-id') ||
+      e.dataTransfer.types.includes('application/x-category-id')
+    ) {
+      e.preventDefault();
+      wrap.classList.add('drop-target');
+    }
+  });
+  wrap.addEventListener('dragleave', () => wrap.classList.remove('drop-target'));
+  wrap.addEventListener('drop', (e) => {
+    e.preventDefault();
+    wrap.classList.remove('drop-target');
+    handleDropOnCategory(e, cat.id);
+  });
+
+  return wrap;
+}
+
+function renderBookmark(b, parentCat) {
+  const li = document.createElement('li');
+  li.className = 'bookmark';
+  li.dataset.bkId = b.id;
+  li.draggable = true;
+  li.addEventListener('dragstart', (e) => {
+    e.dataTransfer.setData('application/x-bookmark-id', b.id);
+    e.dataTransfer.setData('application/x-from-category', parentCat.id);
+    e.dataTransfer.effectAllowed = 'move';
+  });
+
+  /* Favicon (loaded best-effort from Google's favicon service.
+     If it fails the slot just shows the empty placeholder. */
+  const fav = document.createElement('span');
+  fav.className = 'favicon';
+  try {
+    const host = new URL(b.url).hostname;
+    fav.style.backgroundImage = "url('https://www.google.com/s2/favicons?sz=32&domain=" + host + "')";
+  } catch { /* invalid URL — leave blank */ }
+  li.appendChild(fav);
+
+  const title = document.createElement('a');
+  title.className = 'bk-title';
+  title.href = b.url;
+  title.textContent = b.title || b.url;
+  title.title = b.url;
+  title.target = '_blank';
+  title.rel = 'noopener';
+  /* Double-click on title enters rename mode without navigating. */
+  title.addEventListener('dblclick', (e) => { e.preventDefault(); beginRenameBookmark(b.id, parentCat.id, li, title); });
+  li.appendChild(title);
+
+  const actions = document.createElement('span');
+  actions.className = 'bk-actions';
+  const renameBtn = document.createElement('button');
+  renameBtn.textContent = '✎';
+  renameBtn.title = 'Rename';
+  renameBtn.addEventListener('click', () => beginRenameBookmark(b.id, parentCat.id, li, title));
+  const moveBtn = document.createElement('button');
+  moveBtn.textContent = '↗';
+  moveBtn.title = 'Move to another persona';
+  moveBtn.addEventListener('click', (e) => openMoveBookmarkMenu(e, b.id, parentCat.id));
+  const delBtn = document.createElement('button');
+  delBtn.className = 'del';
+  delBtn.textContent = '×';
+  delBtn.title = 'Delete';
+  delBtn.addEventListener('click', () => {
+    setState(d => {
+      const p = d.personas.find(pp => pp.id === currentPersona().id);
+      const c = p.categories.find(cc => cc.id === parentCat.id);
+      c.bookmarks = c.bookmarks.filter(bb => bb.id !== b.id);
+    });
+  });
+  actions.appendChild(renameBtn);
+  actions.appendChild(moveBtn);
+  actions.appendChild(delBtn);
+  li.appendChild(actions);
+
+  return li;
+}
+
+function beginRenameBookmark(bkId, catId, li, titleEl) {
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'bk-title-input';
+  input.value = titleEl.textContent;
+  titleEl.replaceWith(input);
+  input.focus(); input.select();
+  const commit = () => {
+    const v = input.value.trim() || 'Untitled';
+    setState(d => {
+      const p = d.personas.find(pp => pp.id === currentPersona().id);
+      const c = p.categories.find(cc => cc.id === catId);
+      const bk = c.bookmarks.find(bb => bb.id === bkId);
+      if (bk) bk.title = v;
+    });
+  };
+  input.addEventListener('blur', commit, { once: true });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') { render(); }
+  });
+}
+
+function beginRenameCategory(catId, span) {
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'category-title-input';
+  input.value = span.textContent;
+  span.replaceWith(input);
+  input.focus(); input.select();
+  const commit = () => {
+    const v = input.value.trim() || 'Untitled';
+    setState(d => {
+      const p = d.personas.find(pp => pp.id === currentPersona().id);
+      const c = p.categories.find(cc => cc.id === catId);
+      if (c) c.name = v;
+    });
+  };
+  input.addEventListener('blur', commit, { once: true });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') render();
+  });
+}
+
+function openCategoryContextMenu(e, cat) {
+  e.stopPropagation();
+  closeContextMenus();
+  const menu = document.createElement('div');
+  menu.className = 'context-menu';
+  menu.style.left = e.clientX + 'px';
+  menu.style.top = e.clientY + 'px';
+  menu.innerHTML = `
+    <button data-act="add">+ Add bookmark</button>
+    <button data-act="rename">Rename</button>
+    <button data-act="delete" class="danger">Delete category</button>
+  `;
+  menu.addEventListener('click', (ev) => {
+    const act = ev.target.dataset.act;
+    if (act === 'add') openManualAddBookmark(cat.id);
+    if (act === 'rename') {
+      const span = document.querySelector(`.category[data-cat-id="${cat.id}"] .category-title`);
+      if (span) beginRenameCategory(cat.id, span);
+    }
+    if (act === 'delete') {
+      const body = cat.bookmarks.length ? ('This category has ' + cat.bookmarks.length + ' bookmark(s). Delete anyway?') : 'Delete this category?';
+      openConfirm('Delete "' + cat.name + '"?', body, () => {
+        setState(d => {
+          const p = d.personas.find(pp => pp.id === currentPersona().id);
+          p.categories = p.categories.filter(cc => cc.id !== cat.id);
+        });
+      });
+    }
+    closeContextMenus();
+  });
+  document.body.appendChild(menu);
+  setTimeout(() => document.addEventListener('click', closeContextMenus, { once: true }), 0);
+}
+
+/* Open a popup-style "move to another persona" picker on a bookmark. */
+function openMoveBookmarkMenu(e, bkId, fromCatId) {
+  e.stopPropagation();
+  closeContextMenus();
+  const menu = document.createElement('div');
+  menu.className = 'context-menu';
+  menu.style.left = e.clientX + 'px';
+  menu.style.top = e.clientY + 'px';
+  state.data.personas.forEach(p => {
+    if (!p.categories.length) return;
+    const trigger = document.createElement('div');
+    trigger.className = 'sub-trigger';
+    trigger.textContent = p.name + ' ▸';
+    const sub = document.createElement('div');
+    sub.className = 'submenu';
+    p.categories.forEach(c => {
+      if (p.id === currentPersona().id && c.id === fromCatId) return; // current location, skip
+      const opt = document.createElement('button');
+      opt.textContent = c.name;
+      opt.addEventListener('click', () => {
+        moveBookmark(bkId, fromCatId, p.id, c.id);
+        closeContextMenus();
+      });
+      sub.appendChild(opt);
+    });
+    trigger.appendChild(sub);
+    menu.appendChild(trigger);
+  });
+  document.body.appendChild(menu);
+  setTimeout(() => document.addEventListener('click', closeContextMenus, { once: true }), 0);
+}
+
+function moveBookmark(bkId, fromCatId, toPersonaId, toCatId) {
+  setState(d => {
+    const fromPersona = d.personas.find(pp => pp.id === currentPersona().id);
+    const fromCat = fromPersona.categories.find(cc => cc.id === fromCatId);
+    const idx = fromCat.bookmarks.findIndex(bb => bb.id === bkId);
+    if (idx < 0) return;
+    const [bk] = fromCat.bookmarks.splice(idx, 1);
+    const toPersona = d.personas.find(pp => pp.id === toPersonaId);
+    const toCat = toPersona.categories.find(cc => cc.id === toCatId);
+    toCat.bookmarks.push(bk);
+  });
+}
+
+/* Handle a drop on a category: either an in-app bookmark/category move
+   or an external URL drop from the browser's address bar. */
+function handleDropOnCategory(e, targetCatId) {
+  const bkId = e.dataTransfer.getData('application/x-bookmark-id');
+  const fromCatId = e.dataTransfer.getData('application/x-from-category');
+  if (bkId) {
+    if (fromCatId === targetCatId) return; // no-op
+    setState(d => {
+      const p = d.personas.find(pp => pp.id === currentPersona().id);
+      const fromCat = p.categories.find(cc => cc.id === fromCatId);
+      const toCat = p.categories.find(cc => cc.id === targetCatId);
+      if (!fromCat || !toCat) return;
+      const idx = fromCat.bookmarks.findIndex(bb => bb.id === bkId);
+      if (idx < 0) return;
+      const [bk] = fromCat.bookmarks.splice(idx, 1);
+      toCat.bookmarks.push(bk);
+    });
+    return;
+  }
+  const catId = e.dataTransfer.getData('application/x-category-id');
+  if (catId) {
+    setState(d => {
+      const p = d.personas.find(pp => pp.id === currentPersona().id);
+      const src = p.categories.findIndex(cc => cc.id === catId);
+      const tgt = p.categories.findIndex(cc => cc.id === targetCatId);
+      if (src < 0 || tgt < 0) return;
+      const [item] = p.categories.splice(src, 1);
+      const newTgt = p.categories.findIndex(cc => cc.id === targetCatId);
+      p.categories.splice(newTgt, 0, item);
+    });
+    return;
+  }
+  /* External URL drop. Different browsers stash the URL in different MIME types. */
+  let url =
+    e.dataTransfer.getData('text/uri-list') ||
+    e.dataTransfer.getData('text/x-moz-url')?.split('\n')[0] ||
+    e.dataTransfer.getData('text/plain');
+  if (!url) return;
+  url = url.trim().split('\n')[0];
+  if (!/^https?:\/\//i.test(url)) return;
+  const title = prompt('Name for this bookmark:', url);
+  if (title === null) return; // cancelled
+  setState(d => {
+    const p = d.personas.find(pp => pp.id === currentPersona().id);
+    const c = p.categories.find(cc => cc.id === targetCatId);
+    c.bookmarks.push({ id: uid(), title: title || url, url });
+  });
+}
+
+function openManualAddBookmark(catId) {
+  const url = prompt('Bookmark URL:');
+  if (!url) return;
+  const safeUrl = /^https?:\/\//i.test(url) ? url : 'https://' + url;
+  const title = prompt('Name (optional):', safeUrl) || safeUrl;
+  setState(d => {
+    const p = d.personas.find(pp => pp.id === currentPersona().id);
+    const c = p.categories.find(cc => cc.id === catId);
+    c.bookmarks.push({ id: uid(), title, url: safeUrl });
+  });
+}
+
+/* ============================================================
+   Widgets
+   ============================================================ */
+function renderWidgets(p) {
+  renderClockWidget(p);
+  renderWeatherWidget(p);
+  renderTodosWidget(p);
+  renderNotesWidget(p);
+}
+
+/* ---- Clock ---- */
+let _clockTimer = null;
+function renderClockWidget(p) {
+  const body = document.getElementById('widget-clock-body');
+  body.innerHTML = '';
+  const zones = (p.widgets.clock && p.widgets.clock.zones) || [];
+  if (!zones.length) {
+    body.innerHTML = '<div style="color: var(--text-muted); font-size: 12px;">Add time zones in widget settings (⚙).</div>';
+  }
+  const update = () => {
+    const now = new Date();
+    body.innerHTML = '';
+    zones.forEach(zone => {
+      const row = document.createElement('div');
+      row.className = 'clock-zone';
+      const city = document.createElement('span');
+      city.className = 'city';
+      city.textContent = zone.split('/').pop().replace(/_/g, ' ');
+      const time = document.createElement('span');
+      time.className = 'time';
+      try {
+        const fmt = new Intl.DateTimeFormat([], { timeZone: zone, hour: '2-digit', minute: '2-digit', hour12: false });
+        time.textContent = fmt.format(now);
+      } catch { time.textContent = '—'; }
+      row.appendChild(city);
+      row.appendChild(time);
+      body.appendChild(row);
+    });
+  };
+  update();
+  if (_clockTimer) clearInterval(_clockTimer);
+  _clockTimer = setInterval(update, 30000); // every 30s
+}
+
+/* ---- Weather (Open-Meteo, no API key) ---- */
+function renderWeatherWidget(p) {
+  const body = document.getElementById('widget-weather-body');
+  const cities = (p.widgets.weather && p.widgets.weather.cities) || [];
+  if (!cities.length) {
+    body.innerHTML = '<div style="color: var(--text-muted); font-size: 12px;">Add cities in widget settings (⚙).</div>';
+    return;
+  }
+  body.innerHTML = '<div style="color: var(--text-muted); font-size: 12px;">Loading…</div>';
+  Promise.all(cities.map(fetchWeather)).then(results => {
+    body.innerHTML = '';
+    results.forEach((data, i) => {
+      const c = cities[i];
+      const block = document.createElement('div');
+      block.className = 'weather-city';
+      if (!data) {
+        block.innerHTML = '<div class="city-name">' + escapeHtml(c.name) + '</div><div style="color:var(--text-muted);font-size:12px;">Could not load.</div>';
+      } else {
+        const w = data.current;
+        const f = data.daily;
+        const codeText = weatherCodeText(w.weather_code);
+        block.innerHTML = `
+          <div class="city-name">${escapeHtml(c.name)}</div>
+          <div class="now"><span class="temp">${Math.round(w.temperature_2m)}°</span><span class="desc">${codeText}</span></div>
+        `;
+        if (f && f.time && f.time.length > 1) {
+          const fc = document.createElement('div');
+          fc.className = 'weather-forecast';
+          for (let j = 1; j < Math.min(4, f.time.length); j++) {
+            const day = document.createElement('div');
+            day.className = 'day';
+            const d = new Date(f.time[j]);
+            day.innerHTML = `${d.toLocaleDateString([], { weekday: 'short' })}<span class="d-temp">${Math.round(f.temperature_2m_max[j])}°/${Math.round(f.temperature_2m_min[j])}°</span>`;
+            fc.appendChild(day);
+          }
+          block.appendChild(fc);
+        }
+      }
+      body.appendChild(block);
+    });
+  });
+}
+
+async function fetchWeather(city) {
+  try {
+    const u = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code&temperature_unit=fahrenheit&timezone=auto&forecast_days=4`;
+    const r = await fetch(u);
+    if (!r.ok) return null;
+    return await r.json();
+  } catch { return null; }
+}
+
+function weatherCodeText(code) {
+  // Open-Meteo WMO weather interpretation codes (abridged).
+  const map = {
+    0:'Clear',1:'Mostly clear',2:'Partly cloudy',3:'Overcast',
+    45:'Fog',48:'Fog',
+    51:'Light drizzle',53:'Drizzle',55:'Heavy drizzle',
+    61:'Light rain',63:'Rain',65:'Heavy rain',
+    71:'Light snow',73:'Snow',75:'Heavy snow',77:'Snow grains',
+    80:'Rain showers',81:'Heavy showers',82:'Violent showers',
+    85:'Snow showers',86:'Heavy snow showers',
+    95:'Thunderstorm',96:'Thunderstorm w/ hail',99:'Thunderstorm w/ hail'
+  };
+  return map[code] || '';
+}
+
+/* ---- To-do list ---- */
+function renderTodosWidget(p) {
+  const body = document.getElementById('widget-todos-body');
+  body.innerHTML = '';
+  const todos = p.widgets.todos || [];
+
+  const addRow = document.createElement('div');
+  addRow.className = 'todo-add';
+  addRow.innerHTML = '<input type="text" id="todo-input" placeholder="Add a to-do…" />';
+  const input = addRow.querySelector('input');
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && input.value.trim()) {
+      const text = input.value.trim();
+      input.value = '';
+      setState(d => {
+        const pp = d.personas.find(x => x.id === currentPersona().id);
+        pp.widgets.todos.unshift({ id: uid(), text, done: false });
+      });
+    }
+  });
+  body.appendChild(addRow);
+
+  const list = document.createElement('ul');
+  list.className = 'todo-list';
+  todos.forEach(t => {
+    const li = document.createElement('li');
+    li.className = 'todo-item' + (t.done ? ' done' : '');
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!t.done;
+    cb.addEventListener('change', () => {
+      setState(d => {
+        const pp = d.personas.find(x => x.id === currentPersona().id);
+        const tt = pp.widgets.todos.find(x => x.id === t.id);
+        if (tt) tt.done = cb.checked;
+      });
+    });
+    const text = document.createElement('span');
+    text.className = 'text';
+    text.textContent = t.text;
+    const del = document.createElement('button');
+    del.className = 'del';
+    del.textContent = '×';
+    del.addEventListener('click', () => {
+      setState(d => {
+        const pp = d.personas.find(x => x.id === currentPersona().id);
+        pp.widgets.todos = pp.widgets.todos.filter(x => x.id !== t.id);
+      });
+    });
+    li.appendChild(cb);
+    li.appendChild(text);
+    li.appendChild(del);
+    list.appendChild(li);
+  });
+  body.appendChild(list);
+
+  if (todos.some(t => t.done)) {
+    const clear = document.createElement('button');
+    clear.className = 'todo-clear';
+    clear.textContent = 'Clear completed';
+    clear.addEventListener('click', () => {
+      setState(d => {
+        const pp = d.personas.find(x => x.id === currentPersona().id);
+        pp.widgets.todos = pp.widgets.todos.filter(x => !x.done);
+      });
+    });
+    body.appendChild(clear);
+  }
+}
+
+/* ---- Sticky notes ---- */
+let _notesTimer = null;
+function renderNotesWidget(p) {
+  const ta = document.getElementById('notes-textarea');
+  ta.value = p.widgets.notes || '';
+  /* Debounce so we don't save on every keystroke. */
+  ta.oninput = () => {
+    if (_notesTimer) clearTimeout(_notesTimer);
+    _notesTimer = setTimeout(() => {
+      setState(d => {
+        const pp = d.personas.find(x => x.id === currentPersona().id);
+        pp.widgets.notes = ta.value;
+      });
+    }, 700);
+  };
+}
+
+/* ============================================================
+   Setup screen (first run on this browser)
+   ============================================================ */
+function showSetup() {
+  document.getElementById('setup').classList.remove('hidden');
+  document.getElementById('dashboard').classList.add('hidden');
+  document.getElementById('add-overlay').classList.add('hidden');
+
+  const modeRadios = document.querySelectorAll('input[name="setup-mode"]');
+  modeRadios.forEach(r => r.addEventListener('change', () => {
+    const v = document.querySelector('input[name="setup-mode"]:checked').value;
+    document.getElementById('setup-existing-gist').classList.toggle('hidden', v !== 'existing');
+  }));
+
+  document.getElementById('setup-go').onclick = setupGo;
+}
+
+async function setupGo() {
+  const errEl = document.getElementById('setup-error');
+  errEl.textContent = '';
+  const pat = document.getElementById('setup-pat').value.trim();
+  if (!pat) { errEl.textContent = 'Paste your GitHub token first.'; return; }
+  const mode = document.querySelector('input[name="setup-mode"]:checked').value;
+
+  state.pat = pat;
+
+  try {
+    if (mode === 'new') {
+      // Verify the token works AND create the gist.
+      const seed = {
+        title: 'StartDashboard',
+        searchEngine: 'google',
+        personas: makeSeedPersonas(),
+      };
+      const created = await ghRequest('/gists', {
+        method: 'POST',
+        body: {
+          description: 'StartDashboard data — Tom\'s personal home page',
+          public: false,
+          files: { [GIST_FILENAME]: { content: JSON.stringify(seed, null, 2) } }
+        }
+      });
+      state.gistId = created.id;
+      state.data = seed;
+      ensureSchema(state.data);
+    } else {
+      const gid = document.getElementById('setup-gist-id').value.trim();
+      if (!gid) { errEl.textContent = 'Paste the gist ID from your other browser.'; return; }
+      state.gistId = gid;
+      await loadFromGist();
+    }
+    // Persist to localStorage so we skip setup next time on this device.
+    localStorage.setItem(LS.PAT, state.pat);
+    localStorage.setItem(LS.GIST_ID, state.gistId);
+    // Pick a default persona for this device.
+    state.defaultPersonaId = state.data.personas[0].id;
+    localStorage.setItem(LS.DEFAULT_PERSONA, state.defaultPersonaId);
+    showDashboard();
+  } catch (e) {
+    errEl.textContent = 'Setup failed: ' + e.message;
+  }
+}
+
+/* ============================================================
+   Dashboard show / hide
+   ============================================================ */
+function showDashboard() {
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('add-overlay').classList.add('hidden');
+  document.getElementById('dashboard').classList.remove('hidden');
+  render();
+}
+
+/* ============================================================
+   Bookmarklet add overlay
+   ============================================================ */
+function showAddOverlay(url, titleHint) {
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('dashboard').classList.add('hidden');
+  document.getElementById('add-overlay').classList.remove('hidden');
+
+  document.getElementById('add-title-line').textContent = titleHint || url;
+  document.getElementById('add-url-preview').textContent = url;
+
+  const pickers = document.getElementById('persona-cat-pickers');
+  pickers.innerHTML = '';
+  state.data.personas.forEach(p => {
+    const block = document.createElement('div');
+    block.className = 'persona-pick-block';
+    block.innerHTML = '<div class="persona-name" style="color:' + p.accent + '">' + escapeHtml(p.name) + '</div>';
+    const row = document.createElement('div');
+    row.className = 'cat-buttons';
+    if (!p.categories.length) {
+      row.innerHTML = '<span style="color: var(--text-muted); font-size: 12px;">No categories yet</span>';
+    } else {
+      p.categories.forEach(c => {
+        const btn = document.createElement('button');
+        btn.className = 'cat-button';
+        btn.textContent = c.name;
+        btn.addEventListener('click', () => addBookmarkFromBookmarklet(p.id, c.id, url, titleHint));
+        row.appendChild(btn);
+      });
+    }
+    block.appendChild(row);
+    pickers.appendChild(block);
+  });
+
+  document.getElementById('add-cancel').onclick = () => {
+    window.close();
+  };
+}
+
+async function addBookmarkFromBookmarklet(personaId, catId, url, title) {
+  // We must save synchronously and then close. Don't use the debounced setState.
+  state.data.personas.find(p => p.id === personaId).categories.find(c => c.id === catId)
+    .bookmarks.push({ id: uid(), title: title || url, url });
+  setSyncStatus('saving', 'Saving…');
+  try {
+    await ghRequest('/gists/' + state.gistId, {
+      method: 'PATCH',
+      body: { files: { [GIST_FILENAME]: { content: JSON.stringify(state.data, null, 2) } } }
+    });
+    setSyncStatus('synced', 'Saved');
+    showToast('Added to ' + (state.data.personas.find(p => p.id === personaId).name) + ' › ' + (state.data.personas.find(p => p.id === personaId).categories.find(c => c.id === catId).name));
+    setTimeout(() => window.close(), 500);
+  } catch (e) {
+    showToast('Save failed: ' + e.message);
+    setSyncStatus('error', e.message);
+  }
+}
+
+/* ============================================================
+   Settings modal
+   ============================================================ */
+function openSettingsModal() {
+  const p = currentPersona();
+  document.getElementById('set-title').value = state.data.title;
+  document.getElementById('set-persona-name').value = p.name;
+  document.getElementById('set-persona-accent').value = normalizeHex(p.accent);
+  document.getElementById('set-clock-zones').value = (p.widgets.clock.zones || []).join(', ');
+  document.getElementById('set-weather-cities').value = (p.widgets.weather.cities || [])
+    .map(c => `${c.name}, ${c.lat}, ${c.lon}`).join('\n');
+  document.getElementById('set-search-engine').value = state.data.searchEngine || 'google';
+  document.getElementById('set-gist-id').textContent = state.gistId;
+  document.getElementById('set-bg-image-url').value =
+    (p.background && p.background.startsWith('url:')) ? p.background.slice(4) : '';
+
+  /* Build the default-persona dropdown */
+  const sel = document.getElementById('set-default-persona');
+  sel.innerHTML = '';
+  state.data.personas.forEach(pp => {
+    const opt = document.createElement('option');
+    opt.value = pp.id;
+    opt.textContent = pp.name;
+    if (pp.id === state.defaultPersonaId) opt.selected = true;
+    sel.appendChild(opt);
+  });
+
+  /* Build background preset thumbnails */
+  const grid = document.getElementById('bg-preset-grid');
+  grid.innerHTML = '';
+  BG_PRESETS.forEach(bp => {
+    const t = document.createElement('div');
+    t.className = 'bg-preset-thumb bg-' + bp.id + (p.background === bp.id ? ' selected' : '');
+    t.textContent = bp.name;
+    t.addEventListener('click', () => {
+      grid.querySelectorAll('.bg-preset-thumb').forEach(x => x.classList.remove('selected'));
+      t.classList.add('selected');
+      document.getElementById('set-bg-image-url').value = '';
+      t.dataset.selected = bp.id;
+      // Live-apply for preview
+      applyPersonaTheme(Object.assign({}, p, { background: bp.id }));
+    });
+    grid.appendChild(t);
+  });
+
+  document.getElementById('settings-modal').classList.remove('hidden');
+}
+
+function closeSettingsModal() {
+  document.getElementById('settings-modal').classList.add('hidden');
+  // Restore actual state in case of a live-preview change that the user canceled.
+  render();
+}
+
+function saveSettings() {
+  const newTitle = document.getElementById('set-title').value.trim() || 'StartDashboard';
+  const personaName = document.getElementById('set-persona-name').value.trim() || 'Untitled';
+  const accent = document.getElementById('set-persona-accent').value || '#22D3EE';
+  const zonesStr = document.getElementById('set-clock-zones').value.trim();
+  const citiesStr = document.getElementById('set-weather-cities').value.trim();
+  const searchEngine = document.getElementById('set-search-engine').value;
+  const defaultPersonaId = document.getElementById('set-default-persona').value;
+  const bgUrl = document.getElementById('set-bg-image-url').value.trim();
+  const selectedPreset = document.querySelector('#bg-preset-grid .bg-preset-thumb.selected')?.dataset?.selected;
+
+  const zones = zonesStr
+    ? zonesStr.split(',').map(s => s.trim()).filter(Boolean)
+    : [];
+  const cities = citiesStr
+    ? citiesStr.split('\n').map(line => {
+        const parts = line.split(',').map(s => s.trim());
+        if (parts.length < 3) return null;
+        const lat = parseFloat(parts[1]), lon = parseFloat(parts[2]);
+        if (isNaN(lat) || isNaN(lon)) return null;
+        return { name: parts[0], lat, lon };
+      }).filter(Boolean)
+    : [];
+
+  setState(d => {
+    d.title = newTitle;
+    d.searchEngine = searchEngine;
+    const p = d.personas.find(pp => pp.id === currentPersona().id);
+    p.name = personaName;
+    p.accent = accent;
+    if (bgUrl) p.background = 'url:' + bgUrl;
+    else if (selectedPreset) p.background = selectedPreset;
+    p.widgets.clock.zones = zones;
+    p.widgets.weather.cities = cities;
+  });
+
+  localStorage.setItem(LS.DEFAULT_PERSONA, defaultPersonaId);
+  state.defaultPersonaId = defaultPersonaId;
+
+  document.getElementById('settings-modal').classList.add('hidden');
+  showToast('Settings saved.');
+}
+
+/* ---- Bookmarklet code modal ---- */
+function openBookmarkletModal() {
+  const url = location.href.split('?')[0].split('#')[0];
+  // The bookmarklet opens a popup window at our URL with ?add=... params.
+  const js = `javascript:(function(){window.open('${url}?add='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title),'sdadd','width=520,height=600');})();`;
+  const link = document.getElementById('bookmarklet-link');
+  link.href = js;
+  document.getElementById('bookmarklet-modal').classList.remove('hidden');
+}
+
+/* ============================================================
+   Confirm dialog
+   ============================================================ */
+let _confirmCb = null;
+function openConfirm(title, body, cb) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-body').textContent = body;
+  document.getElementById('confirm-modal').classList.remove('hidden');
+  _confirmCb = cb;
+}
+function closeConfirm(go) {
+  document.getElementById('confirm-modal').classList.add('hidden');
+  if (go && _confirmCb) _confirmCb();
+  _confirmCb = null;
+}
+
+/* ============================================================
+   Search submission
+   ============================================================ */
+function handleSearchSubmit(e) {
+  e.preventDefault();
+  const q = document.getElementById('search-input').value.trim();
+  if (!q) return;
+  const engine = SEARCH_ENGINES[state.data.searchEngine] || SEARCH_ENGINES.google;
+  window.open(engine + encodeURIComponent(q), '_blank');
+  document.getElementById('search-input').value = '';
+}
+
+/* ============================================================
+   Toast (transient bottom-center notification)
+   ============================================================ */
+let _toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+/* ============================================================
+   Helpers
+   ============================================================ */
+function uid() {
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+}
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  }[c]));
+}
+function normalizeHex(c) {
+  if (!c) return '#22D3EE';
+  if (c.startsWith('#') && c.length === 7) return c;
+  return c;
+}
+
+/* ============================================================
+   Global event wiring
+   ============================================================ */
+document.getElementById('search-form').addEventListener('submit', handleSearchSubmit);
+document.getElementById('persona-add-btn').addEventListener('click', addNewPersona);
+document.getElementById('open-settings').addEventListener('click', openSettingsModal);
+document.getElementById('set-cancel').addEventListener('click', closeSettingsModal);
+document.getElementById('set-save').addEventListener('click', saveSettings);
+document.getElementById('set-delete-persona').addEventListener('click', () => {
+  confirmDeletePersona(currentPersona().id);
+});
+document.getElementById('set-copy-gist-id').addEventListener('click', () => {
+  navigator.clipboard.writeText(state.gistId).then(() => showToast('Gist ID copied.'));
+});
+document.getElementById('set-bookmarklet').addEventListener('click', openBookmarkletModal);
+document.getElementById('bookmarklet-close').addEventListener('click', () => {
+  document.getElementById('bookmarklet-modal').classList.add('hidden');
+});
+document.getElementById('set-reset-browser').addEventListener('click', () => {
+  openConfirm('Reset this browser?', 'Clears your token, gist ID, and default persona from THIS browser only. Your gist data is untouched. You can set up again with the same token.', () => {
+    localStorage.removeItem(LS.PAT);
+    localStorage.removeItem(LS.GIST_ID);
+    localStorage.removeItem(LS.DEFAULT_PERSONA);
+    location.reload();
+  });
+});
+document.getElementById('confirm-cancel').addEventListener('click', () => closeConfirm(false));
+document.getElementById('confirm-ok').addEventListener('click', () => closeConfirm(true));
+
+document.getElementById('sync-indicator').addEventListener('click', () => {
+  if (state.syncStatus === 'stale' || state.syncStatus === 'error') {
+    loadFromGist().catch(e => showToast('Reload failed: ' + e.message));
+  } else {
+    showToast(state.syncStatus === 'synced' ? 'In sync · last loaded ' + (state.lastLoadedAt ? formatTime(state.lastLoadedAt) : '—') : 'Saving in progress…');
+  }
+});
+
+/* Brand: double-click to rename dashboard. */
+document.getElementById('brand').addEventListener('dblclick', () => {
+  const cur = state.data.title;
+  const v = prompt('Dashboard title:', cur);
+  if (v && v.trim()) setState(d => { d.title = v.trim(); });
+});
+
+/* Periodic background freshness check — every 60s see if the gist has been
+   updated by another browser. Cheap HEAD-style check via gist metadata. */
+setInterval(async () => {
+  if (!state.pat || !state.gistId || state.syncStatus === 'saving') return;
+  try {
+    const head = await ghRequest('/gists/' + state.gistId);
+    if (state.loadedEtag && head.updated_at && head.updated_at !== state.loadedEtag) {
+      setSyncStatus('stale', 'Out of date — click to reload');
+    }
+  } catch { /* ignore transient errors */ }
+}, 60000);
+
+/* Re-render clock every minute even if the persona hasn't changed,
+   so the displayed time stays current. */
+setInterval(() => {
+  if (!state.data) return;
+  renderClockWidget(currentPersona());
+}, 60000);
+</script>
+</body>
+</html>
