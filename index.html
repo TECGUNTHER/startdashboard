@@ -610,7 +610,7 @@ header.dash-header {
 .category-menu-btn:hover { color: var(--text-primary); background: var(--bg-elev-2); }
 .bookmark-list { list-style: none; }
 .bookmark {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: flex-start; gap: 10px;
   padding: 6px 6px;
   border-radius: 6px;
   font-size: 13px;
@@ -624,19 +624,38 @@ header.dash-header {
   flex-shrink: 0;
   background-size: cover;
   background-position: center;
+  /* Nudged down a hair so it aligns with the title text baseline. */
+  margin-top: 2px;
 }
+.bookmark .bk-main { flex: 1; min-width: 0; }
 .bookmark .bk-title {
-  flex: 1;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   cursor: pointer;
+  display: block;
 }
-.bookmark .bk-title-input {
-  flex: 1; background: var(--bg-elev-2);
-  padding: 2px 6px; border-radius: 4px;
+.bookmark .bk-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  line-height: 1.4;
 }
+.bookmark .bk-desc:hover { color: var(--text-secondary); }
+.bookmark .bk-title-input,
+.bookmark .bk-desc-input {
+  width: 100%;
+  background: var(--bg-elev-2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: block;
+}
+.bookmark .bk-desc-input { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
 .bookmark .bk-actions {
   display: flex; gap: 2px;
   /* Action icons are dim by default so users discover they exist without
@@ -1267,7 +1286,6 @@ header.dash-header {
       <div style="margin-top: 6px;">
         <button class="btn" id="set-copy-gist-id" style="padding: 4px 10px; font-size: 12px;">Copy gist ID</button>
         <button class="btn" id="set-bookmarklet" style="padding: 4px 10px; font-size: 12px;">Bookmarklet code</button>
-        <button class="btn danger" id="set-reset-browser" style="padding: 4px 10px; font-size: 12px;">Reset this browser</button>
       </div>
     </div>
 
@@ -1275,8 +1293,25 @@ header.dash-header {
       <button class="btn" id="set-cancel">Close</button>
       <button class="btn primary" id="set-save">Save changes</button>
     </div>
-    <div style="margin-top: 14px; border-top: 1px solid var(--border); padding-top: 14px;">
-      <button class="btn danger" id="set-delete-persona" style="font-size: 12px;">Delete this persona</button>
+
+    <!-- Danger zone — destructive actions get their own section with explanatory
+         text so they're hard to click by accident. -->
+    <div style="margin-top: 18px; padding: 14px; border: 1px solid rgba(248, 113, 113, 0.25); border-radius: 8px; background: rgba(248, 113, 113, 0.04);">
+      <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--danger); margin-bottom: 10px;">Danger zone</div>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px;">
+        <div style="flex: 1;">
+          <div style="font-size: 13px; color: var(--text-primary); font-weight: 500;">Delete this persona</div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Removes the current persona — all its bookmarks, widgets, and settings — from every browser. The other personas are untouched.</div>
+        </div>
+        <button class="btn danger" id="set-delete-persona" style="font-size: 12px; flex-shrink: 0;">Delete persona</button>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding-top: 10px; border-top: 1px solid rgba(248, 113, 113, 0.15);">
+        <div style="flex: 1;">
+          <div style="font-size: 13px; color: var(--text-primary); font-weight: 500;">Reset setup on this browser</div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Forgets your token, gist ID, and default persona on <strong>this browser only</strong>. Your gist data is untouched. You'll go back through first-run setup. Use this if you want to switch the GitHub account this browser syncs from.</div>
+        </div>
+        <button class="btn danger" id="set-reset-browser" style="font-size: 12px; flex-shrink: 0;">Reset browser</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1311,6 +1346,15 @@ header.dash-header {
     <div class="city-search">
       <input type="text" id="widget-cfg-search" class="city-search-input" placeholder="Type a city name…" autocomplete="off" />
       <div id="widget-cfg-results" class="city-search-results hidden"></div>
+    </div>
+
+    <!-- Clock-specific extra: 12hr vs 24hr toggle. Hidden for other widgets. -->
+    <div id="widget-cfg-clock-extra" class="hidden" style="margin-top: 14px;">
+      <label style="margin-bottom: 6px;">Time format</label>
+      <div class="radio-row">
+        <label><input type="radio" name="cfg-hour12" value="true"> 12-hour (e.g. 3:42 PM)</label>
+        <label><input type="radio" name="cfg-hour12" value="false"> 24-hour (e.g. 15:42)</label>
+      </div>
     </div>
 
     <label>Currently added</label>
@@ -1549,6 +1593,8 @@ function ensurePersonaSchema(p) {
     c.bookmarks.forEach(b => {
       if (!b.id) b.id = uid();
       if (!b.title) b.title = b.url;
+      /* v1.4: optional description shown under the title. Default empty. */
+      if (typeof b.description !== 'string') b.description = '';
     });
   });
   if (!p.widgets) p.widgets = {};
@@ -1556,6 +1602,8 @@ function ensurePersonaSchema(p) {
     const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     p.widgets.clock = { zones: [{ name: localTz.split('/').pop().replace(/_/g, ' '), tz: localTz }] };
   }
+  /* v1.4: per-persona 12hr vs 24hr clock toggle. Default 12hr. */
+  if (typeof p.widgets.clock.hour12 !== 'boolean') p.widgets.clock.hour12 = true;
   /* Migrate older string-based zones (v1.0–v1.2 format) to {name,tz} objects.
      Backward compat: a persona saved by old code has e.g. zones: ['America/New_York'];
      we convert each entry to { name: 'New York', tz: 'America/New_York' }. */
@@ -1969,6 +2017,11 @@ function renderBookmark(b, parentCat) {
   } catch { /* invalid URL — leave blank */ }
   li.appendChild(fav);
 
+  /* Title + (optional) description sit in a stacked column so descriptions
+     wrap to a second line below the link without disturbing the action row. */
+  const main = document.createElement('span');
+  main.className = 'bk-main';
+
   const title = document.createElement('a');
   title.className = 'bk-title';
   title.href = b.url;
@@ -1976,16 +2029,35 @@ function renderBookmark(b, parentCat) {
   title.title = b.url;
   title.target = '_blank';
   title.rel = 'noopener';
-  /* Double-click on title enters rename mode without navigating. */
-  title.addEventListener('dblclick', (e) => { e.preventDefault(); beginRenameBookmark(b.id, parentCat.id, li, title); });
-  li.appendChild(title);
+  title.addEventListener('dblclick', (e) => { e.preventDefault(); beginRenameBookmark(b.id, parentCat.id, li); });
+  main.appendChild(title);
+
+  /* Description: only rendered if present. Double-click to edit inline.
+     When absent, the "add description" pencil shows in the action row. */
+  if (b.description) {
+    const desc = document.createElement('span');
+    desc.className = 'bk-desc';
+    desc.textContent = b.description;
+    desc.title = 'Double-click to edit description';
+    desc.addEventListener('dblclick', () => beginEditDescription(b.id, parentCat.id, li));
+    main.appendChild(desc);
+  }
+
+  li.appendChild(main);
 
   const actions = document.createElement('span');
   actions.className = 'bk-actions';
   const renameBtn = document.createElement('button');
   renameBtn.textContent = '✎';
   renameBtn.title = 'Rename';
-  renameBtn.addEventListener('click', () => beginRenameBookmark(b.id, parentCat.id, li, title));
+  renameBtn.addEventListener('click', () => beginRenameBookmark(b.id, parentCat.id, li));
+  /* Description button: pencil-on-paper glyph. Tooltip differs based on
+     whether a description already exists. */
+  const descBtn = document.createElement('button');
+  descBtn.textContent = '📝';
+  descBtn.style.fontSize = '11px';
+  descBtn.title = b.description ? 'Edit description' : 'Add description';
+  descBtn.addEventListener('click', () => beginEditDescription(b.id, parentCat.id, li));
   const moveBtn = document.createElement('button');
   moveBtn.textContent = '↗';
   moveBtn.title = 'Move to another persona';
@@ -2002,6 +2074,7 @@ function renderBookmark(b, parentCat) {
     });
   });
   actions.appendChild(renameBtn);
+  actions.appendChild(descBtn);
   actions.appendChild(moveBtn);
   actions.appendChild(delBtn);
   li.appendChild(actions);
@@ -2009,7 +2082,9 @@ function renderBookmark(b, parentCat) {
   return li;
 }
 
-function beginRenameBookmark(bkId, catId, li, titleEl) {
+function beginRenameBookmark(bkId, catId, li) {
+  const titleEl = li.querySelector('.bk-title');
+  if (!titleEl) return;
   const input = document.createElement('input');
   input.type = 'text';
   input.className = 'bk-title-input';
@@ -2023,6 +2098,38 @@ function beginRenameBookmark(bkId, catId, li, titleEl) {
       const c = p.categories.find(cc => cc.id === catId);
       const bk = c.bookmarks.find(bb => bb.id === bkId);
       if (bk) bk.title = v;
+    });
+  };
+  input.addEventListener('blur', commit, { once: true });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') { render(); }
+  });
+}
+
+/* Inline-edit a bookmark's optional description. Same pattern as rename:
+   double-click (on the description text) or click the 📝 icon swaps in an
+   <input>; Enter commits, Escape cancels. */
+function beginEditDescription(bkId, catId, li) {
+  const main = li.querySelector('.bk-main');
+  if (!main) return;
+  const existing = main.querySelector('.bk-desc');
+  const current = existing ? existing.textContent : '';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'bk-desc-input';
+  input.value = current;
+  input.placeholder = 'Add a short description (optional)…';
+  if (existing) existing.replaceWith(input);
+  else main.appendChild(input);
+  input.focus(); input.select();
+  const commit = () => {
+    const v = input.value.trim();
+    setState(d => {
+      const p = d.personas.find(pp => pp.id === currentPersona().id);
+      const c = p.categories.find(cc => cc.id === catId);
+      const bk = c.bookmarks.find(bb => bb.id === bkId);
+      if (bk) bk.description = v;
     });
   };
   input.addEventListener('blur', commit, { once: true });
@@ -2228,13 +2335,14 @@ function renderClockWidget(p) {
   if (!zones.length) {
     body.innerHTML = '<div style="color: var(--text-muted); font-size: 12px;">Add time zones in widget settings (⚙).</div>';
   }
+  const use12 = (p.widgets.clock.hour12 !== false);
   const update = () => {
     const now = new Date();
     body.innerHTML = '';
     zones.forEach(zone => {
       /* `zone` is now { name, tz }. Display the friendly name (Tom-set or
          migrated from the IANA's last segment) on the left, current time
-         in that IANA timezone on the right. */
+         in that IANA timezone on the right. 12hr vs 24hr is per-persona. */
       const row = document.createElement('div');
       row.className = 'clock-zone';
       const city = document.createElement('span');
@@ -2243,7 +2351,12 @@ function renderClockWidget(p) {
       const time = document.createElement('span');
       time.className = 'time';
       try {
-        const fmt = new Intl.DateTimeFormat([], { timeZone: zone.tz, hour: 'numeric', minute: '2-digit', hour12: true });
+        const fmt = new Intl.DateTimeFormat([], {
+          timeZone: zone.tz,
+          hour: use12 ? 'numeric' : '2-digit',
+          minute: '2-digit',
+          hour12: use12,
+        });
         time.textContent = fmt.format(now);
       } catch { time.textContent = '—'; }
       row.appendChild(city);
@@ -2957,6 +3070,23 @@ function openWidgetConfig(widgetName) {
   input.value = '';
   input.placeholder = placeholders[widgetName] || 'Search…';
   document.getElementById('widget-cfg-results').classList.add('hidden');
+
+  /* Clock-specific extras — show the 12/24 hour radio only for the clock. */
+  const clockExtra = document.getElementById('widget-cfg-clock-extra');
+  clockExtra.classList.toggle('hidden', widgetName !== 'clock');
+  if (widgetName === 'clock') {
+    const use12 = (currentPersona().widgets.clock.hour12 !== false);
+    document.querySelectorAll('input[name="cfg-hour12"]').forEach(r => {
+      r.checked = (r.value === String(use12));
+      r.onchange = () => {
+        const newVal = (r.value === 'true');
+        setState(d => {
+          d.personas.find(pp => pp.id === currentPersona().id).widgets.clock.hour12 = newVal;
+        });
+      };
+    });
+  }
+
   renderWidgetCfgList();
   document.getElementById('widget-cfg-modal').classList.remove('hidden');
   setTimeout(() => input.focus(), 50);
