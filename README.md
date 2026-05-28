@@ -1,5 +1,7 @@
 # StartDashboard
 
+> **Note:** This README is for the original author's own deployment under GitHub username `TECGUNTHER`. If you want to set up your own StartDashboard, see [INSTALL-FOR-OTHERS.md](INSTALL-FOR-OTHERS.md) instead — it's a self-contained walkthrough for any new user.
+
 > Tom's personal home page across every browser. One URL, identical view, synchronized in seconds.
 
 A single-file web app that becomes the home screen for every browser you use. Persona tabs along the top (Work / Personal / Investments / …), each its own self-contained dashboard with categories of bookmarks, widgets, background, and accent color. All data lives in one private GitHub gist on your account.

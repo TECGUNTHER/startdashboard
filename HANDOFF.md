@@ -118,12 +118,13 @@ Then he uses it for a few days before the next iteration.
 
 ```
 projects/personal-dashboard/
-├── index.html              — the entire app (HTML + CSS + JS in one file)
-├── README.md               — setup walkthrough (PAT, GitHub Pages deploy, bookmarklet)
-├── PROJECT-HUB.html        — project dashboard for Tom
-├── HANDOFF.md              — this file
+├── index.html               — the entire app (HTML + CSS + JS in one file)
+├── README.md                — Tom's own TECGUNTHER-specific setup walkthrough
+├── INSTALL-FOR-OTHERS.md    — clean install guide for someone else to fork and run their own
+├── PROJECT-HUB.html         — project dashboard for Tom
+├── HANDOFF.md               — this file
 ├── docs/
-│   ├── TECHNICAL.html      — architecture, decisions, file map, how-to-modify
+│   ├── TECHNICAL.html       — architecture, decisions, file map, how-to-modify
 │   └── USER-EXPERIENCE.html — features, screens, workflows, scope
 └── plans/
     └── 2026-05-27-personal-dashboard-v1.md  — approved build plan (v1.0 scope)
@@ -199,7 +200,8 @@ Then hard-reload the dashboard (Safari: Option+Cmd+R, Chrome: Cmd+Shift+R). GitH
 # What's in the Folder
 
 - `index.html` — the entire app
-- `README.md` — setup walkthrough
+- `README.md` — Tom's own setup walkthrough (TECGUNTHER-specific). The top of the README points third-party users at `INSTALL-FOR-OTHERS.md` instead.
+- `INSTALL-FOR-OTHERS.md` — clean install guide for anyone Tom shares the project with: fork → enable GitHub Pages → generate their own PAT → run their own copy with their own private gist. Self-contained; no Tom-specific references.
 - `PROJECT-HUB.html` — visual dashboard for this project (Tom's home base)
 - `HANDOFF.md` — this file
 - `docs/TECHNICAL.html` — architecture, decisions, file map, how-to-modify

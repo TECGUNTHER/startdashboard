@@ -69,7 +69,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h2>Architecture Overview</h2>
     <p class="section-lead">How the app is structured and how the pieces fit together.</p>
     <!-- TECH:ARCHITECTURE -->
-    <p>StartDashboard is a single HTML file. Everything &mdash; markup, styles, and behavior &mdash; lives in <code>index.html</code> (~3,750 lines as of v1.6). There is no build step, no framework, and no server. The page is served as a static asset (GitHub Pages in production; you can also double-click the file locally).</p>
+    <p>StartDashboard is a single HTML file. Everything &mdash; markup, styles, and behavior &mdash; lives in <code>index.html</code> (~3,860 lines as of v1.8). There is no build step, no framework, and no server. The page is served as a static asset (GitHub Pages in production; you can also double-click the file locally).</p>
     <p>The app has three runtime layers:</p>
     <ul>
       <li><strong>State.</strong> A single <code>state</code> object holds everything: the GitHub token, gist ID, default persona, and Twelve Data API key (all from localStorage on boot), plus the synced <code>state.data</code> object that mirrors the gist's JSON. All UI rendering reads from this object; all mutations go through <code>setState()</code> which re-renders and triggers a debounced save. The Settings save flow bypasses the debounce and awaits the save directly so fast reloads always see the latest state.</li>

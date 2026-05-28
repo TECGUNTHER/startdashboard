@@ -111,7 +111,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
       <span class="status-pill complete">Complete</span>
       <!-- /HUB:STATUS_OVERALL -->
       <!-- HUB:LAST_UPDATED -->
-      <span class="last-updated">2026-05-28 · Thu · evening</span>
+      <span class="last-updated">2026-05-28 · Thu · late evening</span>
       <!-- /HUB:LAST_UPDATED -->
     </div>
   </div>
@@ -139,6 +139,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
           <li><strong>v1.8 hotfix shipped:</strong> three small fixes on top of v1.7 &mdash; (1) saving Settings with the Twelve Data key field empty no longer wipes the stored key, (2) Crypto and Twelve Data widgets now retry once after 2 seconds on a cold-start failure instead of going straight to a red error, (3) active persona tab restyled to a soft fill with bold text (soft-accent background, primary text, accent outline) for a calmer look than the solid-accent slab from v1.7.</li>
           <li><strong>Settings API key field is now non-destructive.</strong> Empty trimmed value means &ldquo;no change&rdquo; &mdash; the only way to explicitly clear the key is Danger Zone &rarr; Reset browser. A code comment in <code>saveSettings</code> calls out the Safari <code>type=&quot;password&quot;</code> rationale so this doesn&rsquo;t get reverted.</li>
           <li><strong>Cold-start retry on finance widgets.</strong> An internal <code>doFetch(isRetry)</code> helper wraps the fetch + render body in <code>renderCryptoWidget</code> and <code>renderTwelveDataWidget</code>. First failure restores the &ldquo;Loading&hellip;&rdquo; placeholder and schedules one retry at exactly 2000ms; second failure shows the existing red error. Maximum one retry per widget per load.</li>
+          <li><strong>Install guide for third-party users added (<code>INSTALL-FOR-OTHERS.md</code>).</strong> Self-contained walkthrough for anyone who wants to fork the repo and run their own copy &mdash; their data goes to their own private gist on their own GitHub account, no shared state with anyone else. PROJECT-HUB now surfaces it as a fourth doc card; README has a small note at the top pointing newcomers there. Doc audit also ran clean &mdash; three small staleness fixes in TECHNICAL and UX (weather workflow, widget count, line-count claim).</li>
           <li><strong>Two new troubleshooting tips captured.</strong> (1) A widget that hangs on &ldquo;Loading&hellip;&rdquo; for ~2 seconds before resolving is the new retry doing its job, not a hang. (2) To explicitly clear the Twelve Data key, use Danger Zone &rarr; Reset browser &mdash; the Settings field can no longer remove it.</li>
         </ul>
         <!-- /HUB:RECENT_COMPLETED -->
@@ -174,6 +175,11 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <span class="icon">&#9993;</span>
         <div class="title">Handoff Doc</div>
         <div class="desc">Drop-in context for any LLM if you need a second opinion.</div>
+      </a>
+      <a class="doc-card" href="INSTALL-FOR-OTHERS.md">
+        <span class="icon">&#129309;</span>
+        <div class="title">Install for Others</div>
+        <div class="desc">Setup instructions for someone else to fork and run their own.</div>
       </a>
     </div>
     <!-- /HUB:DOC_LIBRARY -->
@@ -223,12 +229,13 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <!-- HUB:SESSION_LOG -->
     <article class="session-entry latest">
       <div class="date">2026-05-28 &middot; Thursday &middot; evening</div>
-      <div class="focus">v1.8 hotfix &mdash; API key persistence, cold-start retry on finance widgets, and a calmer active-tab style (three small fixes on top of v1.7).</div>
+      <div class="focus">v1.8 hotfix &mdash; API key persistence, cold-start retry on finance widgets, and a calmer active-tab style (three small fixes on top of v1.7), plus a new install guide for third-party users.</div>
       <h4>Completed</h4>
       <ul>
         <li><strong>Settings no longer wipes the Twelve Data API key when the field is left empty.</strong> In v1.7, <code>saveSettings</code> read the input, and on an empty trimmed value it called <code>localStorage.removeItem(LS.TWELVE_DATA_KEY)</code> and set <code>state.twelveDataKey = null</code> &mdash; meaning every time Tom opened Settings to change something else and hit Save, the API key got nuked (Safari's <code>type=&quot;password&quot;</code> fields don't reliably re-populate from autofill). v1.8 deletes that destructive <code>else</code> branch entirely: empty input means &ldquo;no change.&rdquo; Only a non-empty trimmed value updates the stored key. A comment above the block calls out the Safari rationale and points users at Danger Zone &rarr; Reset browser if they ever genuinely need to clear the key.</li>
         <li><strong>Cold-start retry on Crypto, Markets, and Watchlist.</strong> Refactored <code>renderCryptoWidget</code> and <code>renderTwelveDataWidget</code> to wrap the fetch + render body in an internal <code>doFetch(isRetry)</code> async helper. On the first failure, the widget restores its &ldquo;Loading prices&hellip;&rdquo; / &ldquo;Loading quotes&hellip;&rdquo; placeholder and schedules <code>setTimeout(() =&gt; doFetch(true), 2000)</code>. On the second failure (<code>isRetry === true</code>), it falls through to the existing <code>fin-error</code> message. Exactly one retry per widget per load, at 2000ms. Both Markets and Watchlist inherit this automatically since they both route through <code>renderTwelveDataWidget</code>. The <code>_tdCache</code> / <code>TD_CACHE_MS</code> logic in <code>fetchTwelveDataQuotes</code> is untouched &mdash; retry sits above that layer. Why this matters: Tom kept seeing red &ldquo;Could not load&rdquo; states on first load that resolved on a second manual reload &mdash; classic transient first-fetch flake on a cold tab.</li>
         <li><strong>Active persona tab restyled to a soft fill, not a solid slab.</strong> v1.7's solid <code>var(--accent)</code> fill with <code>var(--on-accent)</code> text was high-contrast but visually loud against the rest of the row. v1.8 keeps the <code>font-weight: 600</code> bolding but dials the colors back: background is now <code>var(--accent-soft)</code>, text is <code>var(--text-primary)</code>, border keeps <code>var(--accent)</code> for the outline. The active-tab dot reverted from <code>var(--on-accent)</code> back to <code>var(--accent)</code> (it now reads on the soft fill instead of the solid slab); <code>opacity: 1</code> on the dot is preserved. The comment above the rule was rewritten to describe the new soft-fill + accent-outline intent.</li>
+        <li><strong>Install guide for third-party users added.</strong> New file <code>INSTALL-FOR-OTHERS.md</code> at the project root &mdash; a self-contained walkthrough someone else can follow to fork the repo, enable GitHub Pages on their own fork, generate their own PAT, and run their own private StartDashboard with their own gist. README stays Tom-specific (with a note at the top pointing newcomers at the new file). Fourth doc card added to PROJECT-HUB's Documentation row. Doc audit also ran clean: fixed three small staleness issues &mdash; the v1.0 weather-widget workflow in UX (replaced with the v1.1+ city-search flow), the &ldquo;four widgets baked in&rdquo; line (it's been seven since v1.2), and the TECHNICAL line-count claim (3,750 &rarr; 3,860).</li>
       </ul>
       <h4>Decisions made</h4>
       <ul>
@@ -448,7 +455,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
 
 <footer>
   <div class="container">
-    Maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · evening</span>
+    Maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · late evening</span>
   </div>
 </footer>
 

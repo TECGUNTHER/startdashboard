@@ -158,7 +158,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
 
     <div class="screen">
       <h3>Main dashboard</h3>
-      <p>What you see day-to-day. Header on top (title, persona tabs, sync indicator, settings button). Search bar below that. Four widget cards in a row. Categories grid below, each category a card containing bookmarks. Background is whatever this persona has selected.</p>
+      <p>What you see day-to-day. Header on top (title, persona tabs, sync indicator, theme toggle, settings button). Search bar below that. A row of widget cards (up to seven per persona, configurable). Categories grid below, each category a card containing bookmarks. Background is whatever this persona has selected.</p>
     </div>
 
     <div class="screen">
@@ -262,9 +262,9 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <div class="workflow">
       <h3>Add a city to the weather widget</h3>
       <ol>
-        <li>Click the gear icon in the header to open Settings.</li>
-        <li>In the <strong>Weather &mdash; cities</strong> box, add a line like <code>San Francisco, 37.7749, -122.4194</code>.</li>
-        <li>Click Save changes. The widget refreshes with the new city.</li>
+        <li>Click the <strong>&#9881;</strong> icon on the Weather widget card (each widget has its own gear).</li>
+        <li>Type a city name in the search box (e.g. &ldquo;San Francisco&rdquo;) and pick a match from the dropdown. Coordinates are stored invisibly &mdash; no need to look up lat/lon.</li>
+        <li>The widget refreshes with the new city immediately. Clock works the same way for time zones (city &rarr; IANA timezone lookup via the same Open-Meteo endpoint).</li>
       </ol>
     </div>
 
@@ -296,7 +296,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <li><strong>Not real-time.</strong> Sync polls every 60 seconds in the background; saves are debounced about 2 seconds. Edit in two browsers at once and the most recent save wins.</li>
         <li><strong>Not a notes app.</strong> The Notes widget is a scratchpad, not a place to write long documents.</li>
         <li><strong>Not a task manager.</strong> The To-do widget is a quick checklist, not a project tracker.</li>
-        <li><strong>Not a widget marketplace</strong> &mdash; the four widgets are baked in. New widgets can be added later by editing the HTML file.</li>
+        <li><strong>Not a widget marketplace</strong> &mdash; the seven built-in widgets (Clock, Weather, To-do, Notes, Crypto, Markets, Watchlist) are baked into the file. New widgets can be added later by editing <code>index.html</code> directly.</li>
         <li><strong>Not a browser extension.</strong> The bookmarklet does the same job without per-browser build overhead.</li>
         <li><strong>Not a mobile-native app.</strong> The web page is responsive and works on mobile Safari; there's no App Store version.</li>
       </ul>
