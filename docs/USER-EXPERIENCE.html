@@ -51,7 +51,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h1>StartDashboard</h1>
     <p class="subtitle">A personal home page that travels with you across every browser and every device, with separate "channels" for different sides of your life.</p>
     <!-- UX:LAST_UPDATED -->
-    <span class="last-updated">Last updated: 2026-05-28 · v1.8</span>
+    <span class="last-updated">Last updated: 2026-05-28 · v1.9</span>
     <!-- /UX:LAST_UPDATED -->
   </div>
 </header>
@@ -95,21 +95,21 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     </div>
 
     <div class="feature">
-      <h3>Inline rename, drag-drop reorder</h3>
+      <h3>Inline rename, drag-to-reorder with grip handles</h3>
       <p class="one-liner">Organize without ever leaving the page.</p>
-      <p class="walkthrough">Double-click anything &mdash; persona tab, category title, bookmark name &mdash; to rename. Drag bookmarks between categories. Drag categories to reorder. Use the <strong>&#8599;</strong> icon on a bookmark to move it to a different persona.</p>
+      <p class="walkthrough">Double-click anything &mdash; persona tab, category title, bookmark name &mdash; to rename. To reorder, grab the <strong>&#10303;</strong> grip handle (as of v1.9, every draggable item shows one) and drag up or down; a blue line shows where the item will land when you let go. This works for categories, bookmarks, and the lists inside the widget config (your stock tickers, weather cities, and clock zones). You can drag a bookmark within its category or drop it into a different category. Use the <strong>&#8599;</strong> icon on a bookmark to move it to a different persona entirely.</p>
     </div>
 
     <div class="feature">
       <h3>Per-persona widgets — show, hide, configure</h3>
       <p class="one-liner">Each persona shows only the widgets it needs.</p>
-      <p class="walkthrough">Seven widgets are available: <strong>Clock</strong> (multi time zone, 12 or 24 hour), <strong>Weather</strong> (free Open-Meteo, no key needed), <strong>To-do list</strong>, <strong>Sticky notes</strong>, <strong>Crypto</strong> (free CoinGecko, no key), <strong>Markets</strong> (S&amp;P, Nasdaq, Dow via Twelve Data &mdash; needs a free API key), and <strong>Watchlist</strong> (your custom stocks, also Twelve Data). Each persona picks which widgets to show via Settings ⚙. An AI Education persona can have zero widgets; an Investments persona might show only Markets, Crypto, and Watchlist.</p>
+      <p class="walkthrough">Seven widgets are available: <strong>Clock</strong> (multi time zone, 12 or 24 hour), <strong>Weather</strong> (free Open-Meteo, no key needed), <strong>To-do list</strong>, <strong>Sticky notes</strong>, <strong>Crypto</strong> (free CoinGecko, no key), <strong>Markets</strong> (S&amp;P, Nasdaq, Dow via Finnhub &mdash; needs a free API key), and <strong>Watchlist</strong> (your custom stocks, also Finnhub). Each persona picks which widgets to show via Settings ⚙. An AI Education persona can have zero widgets; an Investments persona might show only Markets, Crypto, and Watchlist.</p>
     </div>
 
     <div class="feature">
       <h3>Finance widgets show dollar and percent change</h3>
       <p class="one-liner">Daily moves at a glance, in both formats.</p>
-      <p class="walkthrough">Crypto, Markets, and Watchlist rows all show the current price plus today's change in both dollars and percent. Green if up, red if down, color-coded for fast scanning. Quotes cache for 60 seconds to stay under Twelve Data's free-tier rate limits. On a cold tab open, a widget may sit on &ldquo;Loading&hellip;&rdquo; for up to about 2 seconds while a one-shot retry runs &mdash; that's the v1.8 cold-start retry catching a transient first-fetch flake before showing an error.</p>
+      <p class="walkthrough">Crypto, Markets, and Watchlist rows all show the current price plus today's change in both dollars and percent. Green if up, red if down, color-coded for fast scanning. As of v1.9, Markets and Watchlist are powered by <strong>Finnhub</strong> (free, 60 calls/min) instead of Twelve Data &mdash; this fixed the rate-limit errors that used to appear when tracking a dozen-plus symbols. You generate a free Finnhub key at finnhub.io/register (no credit card) and paste it into Settings once per browser. Stock prices are cached for 5 minutes and shared across all your tabs, so opening the dashboard in several tabs doesn't re-fetch over and over. If a single ticker can't load it shows &ldquo;&mdash;&rdquo; rather than breaking the whole widget; if the rate limit is ever hit, you'll see &ldquo;Rate limit reached &mdash; prices refresh shortly&rdquo; and the widget quietly refreshes a minute later.</p>
     </div>
 
     <div class="feature">
@@ -203,10 +203,11 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <div class="workflow">
       <h3>Set up the Markets / Watchlist widgets</h3>
       <ol>
-        <li>Open <strong>Settings ⚙</strong> on the dashboard. Scroll to the <strong>Twelve Data API key</strong> section.</li>
-        <li>Follow the inline four-step walkthrough: sign up at twelvedata.com/register (free, no credit card), verify email, copy your key from their dashboard, paste it in.</li>
+        <li>Open <strong>Settings ⚙</strong> on the dashboard. Scroll to the <strong>Finnhub API key</strong> section.</li>
+        <li>Follow the inline walkthrough: sign up at finnhub.io/register (free, no credit card, 60 calls/min), copy your key from their dashboard, paste it in.</li>
         <li>Click <strong>Save changes</strong>. The Markets widget should start showing prices within a few seconds.</li>
         <li>Click the Markets <strong>⚙</strong> to add tickers (defaults include SPY, QQQ, DIA). Watchlist works the same way for individual stocks like AAPL, NVDA.</li>
+        <li><em>Note:</em> as of v1.9 the dashboard uses Finnhub, not Twelve Data &mdash; the switch fixed the rate-limit errors that appeared with longer symbol lists. If you had an old Twelve Data key saved, it's simply ignored; paste a Finnhub key to get prices back.</li>
       </ol>
     </div>
 
@@ -251,9 +252,18 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     </div>
 
     <div class="workflow">
+      <h3>Reorder items inside a box (v1.9)</h3>
+      <ol>
+        <li>Find the <strong>&#10303;</strong> grip handle at the left of the item you want to move &mdash; it's on categories, bookmarks, and the lists in widget config (stock tickers, weather cities, clock zones).</li>
+        <li>Click and hold the grip, then drag up or down. A blue line shows where the item will drop.</li>
+        <li>Release. The new order saves automatically and sticks across reloads and your other browsers.</li>
+      </ol>
+    </div>
+
+    <div class="workflow">
       <h3>Reorganize bookmarks across categories</h3>
       <ol>
-        <li>Drag a bookmark from one category card and drop it onto another.</li>
+        <li>Grab the bookmark's <strong>&#10303;</strong> grip handle and drag it onto another category card; drop on the top or bottom half of a row to place it before or after that bookmark.</li>
         <li>The bookmark moves immediately. Sync saves the change ~2 seconds later.</li>
         <li>To move a bookmark to a different <em>persona</em>, hover the bookmark and click the &#8599; icon, then pick the target persona and category.</li>
       </ol>
@@ -308,7 +318,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
 
 <footer>
   <div class="container">
-    Generated and maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · v1.8 · evening</span>
+    Generated and maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · v1.9 · later evening</span>
   </div>
 </footer>
 

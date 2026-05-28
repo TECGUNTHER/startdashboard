@@ -653,6 +653,25 @@ header.dash-header {
   flex: 1;
 }
 .category-title:active { cursor: grabbing; }
+
+/* ---- Drag grip handles ----
+   Every draggable thing gets a visible "⠿" grip so it's obvious it can be
+   grabbed and dragged. Muted at rest, brightens on hover. */
+.grip {
+  cursor: grab;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1;
+  user-select: none;
+  flex-shrink: 0;
+  transition: color 0.12s;
+}
+.grip:hover { color: var(--text-primary); }
+.grip:active { cursor: grabbing; }
+.category-head .grip { margin-right: 2px; }
+/* Thin accent line showing where a dragged item will drop. */
+.drop-before { box-shadow: inset 0 2px 0 0 var(--accent); }
+.drop-after  { box-shadow: inset 0 -2px 0 0 var(--accent); }
 .category-title-input {
   font-size: 13px; font-weight: 600;
   color: var(--text-primary);
@@ -677,6 +696,14 @@ header.dash-header {
   transition: background 0.12s;
 }
 .bookmark:hover { background: var(--bg-elev-2); }
+/* Bookmark grip: dim at rest like the action icons, full strength on hover
+   so the row reads as draggable without shouting at rest. */
+.bookmark .grip {
+  opacity: 0.35;
+  margin-top: 1px;
+  font-size: 13px;
+}
+.bookmark:hover .grip { opacity: 1; }
 .bookmark .favicon {
   width: 16px; height: 16px;
   background: var(--bg-elev-2);
@@ -1194,7 +1221,9 @@ header.dash-header {
   margin-bottom: 4px;
   font-size: 13px;
 }
-.widget-cfg-list .item-name { color: var(--text-primary); }
+.widget-cfg-list li { gap: 8px; }
+.widget-cfg-list .grip { margin-right: 2px; }
+.widget-cfg-list .item-name { color: var(--text-primary); flex: 1; }
 .widget-cfg-list .item-right { display: flex; align-items: center; gap: 8px; }
 .widget-cfg-list .item-meta { font-family: 'JetBrains Mono'; font-size: 11px; color: var(--text-muted); }
 .widget-cfg-list .remove-btn {
@@ -1437,17 +1466,17 @@ body {
     <label>This persona — widgets shown</label>
     <div class="widget-toggle-grid" id="set-widget-toggles"></div>
 
-    <label>Twelve Data API key (for Markets &amp; Watchlist)</label>
+    <label>Finnhub API key (for Markets &amp; Watchlist)</label>
     <div style="font-size: 12px; color: var(--text-secondary); background: var(--bg-elev-2); padding: 10px 12px; border-radius: 8px; margin-bottom: 8px; line-height: 1.55;">
-      Markets and Watchlist need a free API key from Twelve Data — no credit card, 800 requests/day.
+      Markets and Watchlist need a free API key from Finnhub — no credit card, 60 calls/min.
       <ol style="margin: 8px 0 0 18px; padding: 0;">
-        <li>Open <a href="https://twelvedata.com/register" target="_blank" rel="noopener" style="color: var(--accent); border-bottom: 1px dotted var(--accent);">twelvedata.com/register</a></li>
+        <li>Open <a href="https://finnhub.io/register" target="_blank" rel="noopener" style="color: var(--accent); border-bottom: 1px dotted var(--accent);">finnhub.io/register</a></li>
         <li>Sign up, verify your email, log in</li>
-        <li>Your API key shows on the dashboard front page — copy it</li>
+        <li>Your API key shows on the dashboard under "API Key" — copy it</li>
         <li>Paste below and Save</li>
       </ol>
     </div>
-    <input type="password" id="set-twelvedata-key" class="mono" placeholder="Paste your Twelve Data API key…" autocomplete="off" />
+    <input type="password" id="set-finnhub-key" class="mono" placeholder="Paste your Finnhub API key…" autocomplete="off" />
 
     <p style="font-size: 12px; color: var(--text-muted); margin-top: 12px; padding: 8px 10px; background: var(--bg-elev-2); border-radius: 6px;">
       Configure individual widgets (cities for weather/clock, coins for crypto, tickers for markets/watchlist) via the small <strong>⚙</strong> icon on each widget card on the dashboard.
@@ -1590,10 +1619,19 @@ const LS = {
   PAT: 'sd_pat',
   GIST_ID: 'sd_gist_id',
   DEFAULT_PERSONA: 'sd_default_persona',
-  /* Twelve Data API key for the Markets & Watchlist widgets. Per-browser
+  /* Finnhub API key for the Markets & Watchlist widgets. Per-browser
      (not synced via gist) for the same reason the GitHub PAT is: it's a
-     credential, and the rate limit is per-key. */
+     credential, and the rate limit is per-key. Finnhub's free tier is
+     60 calls/min — much higher than Twelve Data's 8/min, which is why
+     we switched in v1.9. */
+  FINNHUB_KEY: 'sd_finnhub_key',
+  /* Old Twelve Data key. Kept defined only so any leftover value can still
+     be read for backward-compat; the app no longer uses Twelve Data. */
   TWELVE_DATA_KEY: 'sd_twelvedata_key',
+  /* Persisted stock-quote cache (symbol → {price, dollar, percent, t}).
+     Shared across tabs and reloads with a 5-minute freshness window so we
+     don't re-fetch the same prices on every render. */
+  QUOTE_CACHE: 'sd_quote_cache',
   /* Light/dark mode preference. Per-browser like the default persona —
      Tom can have one device light and another dark. */
   THEME: 'sd_theme',
@@ -1634,6 +1672,8 @@ const state = {
   pat: localStorage.getItem(LS.PAT) || null,
   gistId: localStorage.getItem(LS.GIST_ID) || null,
   defaultPersonaId: localStorage.getItem(LS.DEFAULT_PERSONA) || null,
+  finnhubKey: localStorage.getItem(LS.FINNHUB_KEY) || null,
+  /* Read once for backward-compat only; the app no longer fetches from Twelve Data. */
   twelveDataKey: localStorage.getItem(LS.TWELVE_DATA_KEY) || null,
   /* 'dark' (default) or 'light'. Drives the theme-toggle button glyph and
      the .light-mode class on <body>. */
@@ -2182,13 +2222,27 @@ function renderCategory(cat) {
   wrap.className = 'category';
   wrap.dataset.catId = cat.id;
 
-  /* Header: draggable title + ... menu */
+  /* Header: visible grip handle (the drag target) + title + ... menu.
+     The grip is what the user grabs to reorder categories. We keep the
+     title draggable too as a fallback, but the grip is the obvious affordance. */
   const head = document.createElement('div');
   head.className = 'category-head';
+
+  const grip = document.createElement('span');
+  grip.className = 'grip';
+  grip.textContent = '⠿';
+  grip.title = 'Drag to reorder this category';
+  grip.draggable = true;
+  grip.addEventListener('dragstart', (e) => {
+    e.dataTransfer.setData('application/x-category-id', cat.id);
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  head.appendChild(grip);
+
   const titleSpan = document.createElement('span');
   titleSpan.className = 'category-title';
   titleSpan.textContent = cat.name;
-  titleSpan.title = 'Drag to reorder · Double-click to rename';
+  titleSpan.title = 'Drag the grip to reorder · Double-click to rename';
   titleSpan.draggable = true;
   titleSpan.addEventListener('dragstart', (e) => {
     e.dataTransfer.setData('application/x-category-id', cat.id);
@@ -2252,6 +2306,42 @@ function renderBookmark(b, parentCat) {
     e.dataTransfer.setData('application/x-from-category', parentCat.id);
     e.dataTransfer.effectAllowed = 'move';
   });
+
+  /* When another bookmark is dragged over this row, show a drop indicator
+     and remember whether we're inserting before or after based on which half
+     of the row the cursor is in. The drop itself is handled by the parent
+     category (handleDropOnCategory), which reads these data-* hints. */
+  li.addEventListener('dragover', (e) => {
+    if (!e.dataTransfer.types.includes('application/x-bookmark-id')) return;
+    e.preventDefault();
+    e.stopPropagation(); // don't let the category-level "append" handler also fire
+    const rect = li.getBoundingClientRect();
+    const after = (e.clientY - rect.top) > rect.height / 2;
+    li.classList.toggle('drop-after', after);
+    li.classList.toggle('drop-before', !after);
+  });
+  li.addEventListener('dragleave', () => {
+    li.classList.remove('drop-before', 'drop-after');
+  });
+  li.addEventListener('drop', (e) => {
+    const bkId = e.dataTransfer.getData('application/x-bookmark-id');
+    if (!bkId) return; // not a bookmark drag — let it bubble to the category
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = li.getBoundingClientRect();
+    const after = (e.clientY - rect.top) > rect.height / 2;
+    li.classList.remove('drop-before', 'drop-after');
+    const fromCatId = e.dataTransfer.getData('application/x-from-category');
+    /* Insert relative to THIS bookmark (b.id) in THIS category. */
+    moveBookmark(bkId, fromCatId, parentCat.id, b.id, after);
+  });
+
+  /* Visible grip handle so the row is obviously draggable. */
+  const grip = document.createElement('span');
+  grip.className = 'grip';
+  grip.textContent = '⠿';
+  grip.title = 'Drag to reorder';
+  li.appendChild(grip);
 
   /* Favicon (loaded best-effort from Google's favicon service.
      If it fails the slot just shows the empty placeholder. */
@@ -2524,11 +2614,37 @@ function moveBookmark(bkId, fromCatId, toPersonaId, toCatId) {
 
 /* Handle a drop on a category: either an in-app bookmark/category move
    or an external URL drop from the browser's address bar. */
+/* Move a bookmark to a position relative to a target bookmark. Used by the
+   position-aware drop on a bookmark row. `beforeId` is the bookmark being
+   dropped onto; `after` decides whether we land just below it or just above.
+   Works both within a category (reorder) and across categories. */
+function moveBookmark(bkId, fromCatId, toCatId, beforeId, after) {
+  if (bkId === beforeId) return; // dropped on itself — no-op
+  setState(d => {
+    const p = d.personas.find(pp => pp.id === currentPersona().id);
+    const fromCat = p.categories.find(cc => cc.id === fromCatId);
+    const toCat = p.categories.find(cc => cc.id === toCatId);
+    if (!fromCat || !toCat) return;
+    const fromIdx = fromCat.bookmarks.findIndex(bb => bb.id === bkId);
+    if (fromIdx < 0) return;
+    const [bk] = fromCat.bookmarks.splice(fromIdx, 1);
+    /* Recompute the target index AFTER removal, since pulling the item out can
+       shift positions when reordering inside the same category. */
+    let tgtIdx = toCat.bookmarks.findIndex(bb => bb.id === beforeId);
+    if (tgtIdx < 0) { toCat.bookmarks.push(bk); return; }
+    if (after) tgtIdx += 1;
+    toCat.bookmarks.splice(tgtIdx, 0, bk);
+  });
+}
+
 function handleDropOnCategory(e, targetCatId) {
   const bkId = e.dataTransfer.getData('application/x-bookmark-id');
   const fromCatId = e.dataTransfer.getData('application/x-from-category');
   if (bkId) {
-    if (fromCatId === targetCatId) return; // no-op
+    /* Dropped on the category card itself (not on a specific bookmark row) —
+       append to the end. Within-category drops onto a bookmark row are handled
+       by the row's own drop handler via moveBookmark(). */
+    if (fromCatId === targetCatId) return; // no-op (same-category append is meaningless)
     setState(d => {
       const p = d.personas.find(pp => pp.id === currentPersona().id);
       const fromCat = p.categories.find(cc => cc.id === fromCatId);
@@ -2853,21 +2969,25 @@ async function renderCryptoWidget(p) {
 }
 
 /* ---- Markets widget ----
-   Uses Twelve Data quote endpoint. Needs an API key (stored per-browser
-   in localStorage as sd_twelvedata_key). Default symbols are ETFs that
-   track the major US indices so the free tier works without issue. */
+   Uses the Finnhub quote endpoint. Needs an API key (stored per-browser
+   in localStorage as sd_finnhub_key). Default symbols are ETFs that
+   track the major US indices. Finnhub's free tier is 60 calls/min. */
 function renderMarketsWidget(p) {
-  return renderTwelveDataWidget(p, 'markets', 'widget-markets-body', 'No markets yet. Defaults: SPY, QQQ, DIA.');
+  return renderStockWidget(p, 'markets', 'widget-markets-body', 'No markets yet. Defaults: SPY, QQQ, DIA.');
 }
 function renderWatchlistWidget(p) {
-  return renderTwelveDataWidget(p, 'watchlist', 'widget-watchlist-body', 'No symbols yet. Add stocks in widget settings (⚙).');
+  return renderStockWidget(p, 'watchlist', 'widget-watchlist-body', 'No symbols yet. Add stocks in widget settings (⚙).');
 }
 
-async function renderTwelveDataWidget(p, kind, bodyId, emptyMsg) {
+/* Tracks scheduled 60-second rate-limit refresh timers per widget body, so we
+   don't stack multiple pending refreshes if the user re-renders repeatedly. */
+const _rateLimitTimers = {};
+
+async function renderStockWidget(p, kind, bodyId, emptyMsg) {
   const body = document.getElementById(bodyId);
   const symbols = (p.widgets[kind] && p.widgets[kind].symbols) || [];
-  if (!state.twelveDataKey) {
-    body.innerHTML = '<div class="fin-empty">Add your <a href="https://twelvedata.com/account/api-keys" target="_blank" rel="noopener" style="color: var(--accent); border-bottom: 1px dotted var(--accent);">Twelve Data API key</a> in Settings (⚙).</div>';
+  if (!state.finnhubKey) {
+    body.innerHTML = '<div class="fin-empty">Add your <a href="https://finnhub.io/register" target="_blank" rel="noopener" style="color: var(--accent); border-bottom: 1px dotted var(--accent);">Finnhub API key</a> in Settings (⚙).</div>';
     return;
   }
   if (!symbols.length) {
@@ -2876,87 +2996,141 @@ async function renderTwelveDataWidget(p, kind, bodyId, emptyMsg) {
   }
   body.innerHTML = '<div class="fin-loading">Loading quotes…</div>';
 
-  /* Same cold-start resiliency pattern as the crypto widget: one transparent
-     retry after 2 seconds before surfacing an error. Twelve Data's free tier
-     occasionally fails the first request on a fresh tab; this clears it. */
-  const doFetch = async (isRetry) => {
-    try {
-      const data = await fetchTwelveDataQuotes(symbols);
-      body.innerHTML = '';
-      /* Twelve Data returns a single object for one symbol and a {symbol: data}
-         map for multiple — normalize to always-a-map. */
-      const norm = (symbols.length === 1 && data && data.symbol) ? { [data.symbol]: data } : data;
-      symbols.forEach(sym => {
-        const d = norm && norm[sym];
-        if (!d || d.code) {
-          const row = document.createElement('div');
-          row.className = 'fin-row';
-          row.innerHTML =
-            '<div class="fin-left"><span class="fin-sym">' + escapeHtml(sym) + '</span></div>' +
-            '<div class="fin-right"><span class="fin-price" style="color:var(--text-muted);">—</span>' +
-            '<span class="fin-change-line flat">no data</span></div>';
-          body.appendChild(row);
-          return;
-        }
-        const price = parseFloat(d.close);
-        const pct = parseFloat(d.percent_change);
-        /* Twelve Data returns absolute change directly (no derivation needed). */
-        const dollarChange = parseFloat(d.change);
-        const dir = pct > 0.01 ? 'up' : pct < -0.01 ? 'down' : 'flat';
-        const sign = pct > 0 ? '+' : '';
-        const friendly = MARKET_INDEX_LABELS[sym] || (d.name ? d.name.replace(/ Trust| ETF| SPDR/g, '').slice(0, 22) : '');
+  /* Paints the rows from a symbol → {price, dollar, percent} map. Symbols
+     missing from the map (a failed per-symbol fetch) show a quiet "—". */
+  const paint = (quotes) => {
+    body.innerHTML = '';
+    symbols.forEach(sym => {
+      const d = quotes && quotes[sym];
+      if (!d || !isFinite(d.price)) {
         const row = document.createElement('div');
         row.className = 'fin-row';
         row.innerHTML =
-          '<div class="fin-left">' +
-            '<span class="fin-sym">' + escapeHtml(sym) + '</span>' +
-            (friendly ? '<span class="fin-name">' + escapeHtml(friendly) + '</span>' : '') +
-          '</div>' +
-          '<div class="fin-right">' +
-            '<span class="fin-price">' + formatPrice(price) + '</span>' +
-            '<span class="fin-change-line ' + dir + '">' +
-              /* formatPrice now handles the negative sign itself, so we no
-                 longer prepend `sign` or run the `.replace('$-', '-$')` fix-up. */
-              (isFinite(dollarChange)
-                ? '<span class="fin-dollar">' + formatPrice(dollarChange) + '</span>'
-                : '') +
-              '<span class="fin-pct">' + (isFinite(pct) ? sign + pct.toFixed(2) : '—') + '%</span>' +
-            '</span>' +
-          '</div>';
+          '<div class="fin-left"><span class="fin-sym">' + escapeHtml(sym) + '</span></div>' +
+          '<div class="fin-right"><span class="fin-price" style="color:var(--text-muted);">—</span>' +
+          '<span class="fin-change-line flat">no data</span></div>';
         body.appendChild(row);
-      });
-    } catch (e) {
-      if (!isRetry) {
-        /* One automatic retry, 2-second backoff. Same rationale as crypto. */
-        body.innerHTML = '<div class="fin-loading">Loading quotes…</div>';
-        setTimeout(() => doFetch(true), 2000);
-      } else {
-        body.innerHTML = '<div class="fin-error">Quote load failed: ' + escapeHtml(e.message) + '</div>';
+        return;
       }
-    }
+      const price = d.price;
+      const pct = d.percent;
+      const dollarChange = d.dollar;
+      const dir = pct > 0.01 ? 'up' : pct < -0.01 ? 'down' : 'flat';
+      const sign = pct > 0 ? '+' : '';
+      const friendly = MARKET_INDEX_LABELS[sym] || '';
+      const row = document.createElement('div');
+      row.className = 'fin-row';
+      row.innerHTML =
+        '<div class="fin-left">' +
+          '<span class="fin-sym">' + escapeHtml(sym) + '</span>' +
+          (friendly ? '<span class="fin-name">' + escapeHtml(friendly) + '</span>' : '') +
+        '</div>' +
+        '<div class="fin-right">' +
+          '<span class="fin-price">' + formatPrice(price) + '</span>' +
+          '<span class="fin-change-line ' + dir + '">' +
+            (isFinite(dollarChange)
+              ? '<span class="fin-dollar">' + formatPrice(dollarChange) + '</span>'
+              : '') +
+            '<span class="fin-pct">' + (isFinite(pct) ? sign + pct.toFixed(2) : '—') + '%</span>' +
+          '</span>' +
+        '</div>';
+      body.appendChild(row);
+    });
   };
-  doFetch(false);
+
+  try {
+    const quotes = await fetchFinnhubQuotes(symbols);
+    paint(quotes);
+  } catch (e) {
+    /* On a rate-limit hit (HTTP 429) we deliberately do NOT retry right away —
+       hammering the API makes the limit worse. Show a friendly note and queue
+       a single automatic refresh 60 seconds out. */
+    if (e && e.isRateLimit) {
+      body.innerHTML = '<div class="fin-loading">Rate limit reached — prices refresh shortly.</div>';
+      if (_rateLimitTimers[bodyId]) clearTimeout(_rateLimitTimers[bodyId]);
+      _rateLimitTimers[bodyId] = setTimeout(() => {
+        _rateLimitTimers[bodyId] = null;
+        /* Re-render with the live persona/body in case things changed. */
+        renderStockWidget(currentPersona(), kind, bodyId, emptyMsg);
+      }, 60 * 1000);
+    } else {
+      body.innerHTML = '<div class="fin-error">Quote load failed: ' + escapeHtml(e.message) + '</div>';
+    }
+  }
 }
 
-/* In-memory cache of Twelve Data quotes, keyed by sorted symbol list.
-   Free tier is 8 requests/minute, so we cache for ~60s to avoid burning
-   the quota on every render (persona switch, widget settings close, etc.). */
-const _tdCache = new Map();
-const TD_CACHE_MS = 60 * 1000;
+/* ---- Persisted stock-quote cache ----
+   Quotes live in localStorage under sd_quote_cache as { SYM: {price, dollar,
+   percent, t} }. The 5-minute TTL is shared across tabs and reloads, so
+   switching personas or reopening the dashboard reuses fresh quotes instead
+   of spending API calls. */
+const QUOTE_CACHE_MS = 5 * 60 * 1000;
 
-/* Common Twelve Data quote fetch. Batches all symbols into a single call. */
-async function fetchTwelveDataQuotes(symbols) {
+function readQuoteCache() {
+  try { return JSON.parse(localStorage.getItem(LS.QUOTE_CACHE)) || {}; }
+  catch { return {}; }
+}
+function writeQuoteCache(cache) {
+  try { localStorage.setItem(LS.QUOTE_CACHE, JSON.stringify(cache)); }
+  catch { /* storage full or blocked — quotes just won't persist, no big deal */ }
+}
+
+/* Fetch quotes for a list of symbols from Finnhub.
+   Finnhub's free tier is one symbol per /quote call, so we fan out with
+   Promise.all. Fresh cached symbols (< 5 min) are reused and skipped; only
+   stale or missing symbols hit the network. Returns a symbol → {price, dollar,
+   percent} map with normalized field names so the render code stays clean.
+   A single per-symbol failure resolves to null (that symbol shows "—") rather
+   than killing the whole widget — UNLESS it's a 429, which we surface so the
+   widget can show the rate-limit message and schedule a refresh. */
+async function fetchFinnhubQuotes(symbols) {
   if (!symbols || !symbols.length) return {};
-  const key = symbols.slice().sort().join(',');
-  const cached = _tdCache.get(key);
-  if (cached && (Date.now() - cached.t < TD_CACHE_MS)) return cached.data;
-  const url = 'https://api.twelvedata.com/quote?symbol=' + encodeURIComponent(symbols.join(',')) + '&apikey=' + encodeURIComponent(state.twelveDataKey);
-  const r = await fetch(url);
-  if (!r.ok) throw new Error('HTTP ' + r.status);
-  const data = await r.json();
-  if (data && data.code && data.message) throw new Error(data.message);
-  _tdCache.set(key, { t: Date.now(), data });
-  return data;
+  const cache = readQuoteCache();
+  const now = Date.now();
+  const result = {};
+  const toFetch = [];
+
+  symbols.forEach(sym => {
+    const c = cache[sym];
+    if (c && isFinite(c.price) && (now - c.t < QUOTE_CACHE_MS)) {
+      result[sym] = { price: c.price, dollar: c.dollar, percent: c.percent };
+    } else {
+      toFetch.push(sym);
+    }
+  });
+
+  if (!toFetch.length) return result;
+
+  /* Fan out one /quote call per stale/missing symbol. */
+  let rateLimited = false;
+  await Promise.all(toFetch.map(async sym => {
+    try {
+      const url = 'https://finnhub.io/api/v1/quote?symbol=' + encodeURIComponent(sym) + '&token=' + encodeURIComponent(state.finnhubKey);
+      const r = await fetch(url);
+      if (r.status === 429) { rateLimited = true; return; }
+      if (!r.ok) return; // leave this symbol absent → renders as "—"
+      const data = await r.json();
+      /* Finnhub returns c=current, d=$ change, dp=% change. A symbol with no
+         data comes back as all zeros / null current price. */
+      if (data && isFinite(data.c) && data.c !== 0) {
+        const norm = { price: data.c, dollar: data.d, percent: data.dp };
+        result[sym] = norm;
+        cache[sym] = { ...norm, t: now };
+      }
+    } catch { /* network blip for this symbol — leave it absent */ }
+  }));
+
+  writeQuoteCache(cache);
+
+  /* If every requested symbol came back rate-limited (nothing usable from the
+     network and nothing fresh from cache), surface the 429 so the widget can
+     show the rate-limit message instead of a wall of "—". */
+  if (rateLimited && !Object.keys(result).length) {
+    const err = new Error('HTTP 429');
+    err.isRateLimit = true;
+    throw err;
+  }
+  return result;
 }
 
 /* Friendly labels for common ETFs that proxy major indices. */
@@ -3157,7 +3331,7 @@ function openSettingsModal() {
   document.getElementById('set-persona-accent').value = normalizeHex(p.accent);
   document.getElementById('set-search-engine').value = state.data.searchEngine || 'google';
   document.getElementById('set-gist-id').textContent = state.gistId;
-  document.getElementById('set-twelvedata-key').value = state.twelveDataKey || '';
+  document.getElementById('set-finnhub-key').value = state.finnhubKey || '';
   document.getElementById('set-bg-image-url').value =
     (p.background && p.background.startsWith('url:')) ? p.background.slice(4) : '';
 
@@ -3250,15 +3424,15 @@ async function saveSettings() {
   localStorage.setItem(LS.DEFAULT_PERSONA, defaultPersonaId);
   state.defaultPersonaId = defaultPersonaId;
 
-  /* Twelve Data API key — per-browser like the GitHub PAT, never synced.
+  /* Finnhub API key — per-browser like the GitHub PAT, never synced.
      Empty field means "no change" rather than "delete" — Safari sometimes
      clears type=password values on programmatic .value=... assignment, and
      accidentally wiping a credential on every Settings save would be hostile.
      Explicit clearing path is Danger Zone → Reset browser. */
-  const tdKey = document.getElementById('set-twelvedata-key').value.trim();
-  if (tdKey) {
-    localStorage.setItem(LS.TWELVE_DATA_KEY, tdKey);
-    state.twelveDataKey = tdKey;
+  const fhKey = document.getElementById('set-finnhub-key').value.trim();
+  if (fhKey) {
+    localStorage.setItem(LS.FINNHUB_KEY, fhKey);
+    state.finnhubKey = fhKey;
   }
 
   /* Apply immediately AND flush to the gist now (no 1.5s debounce) so a
@@ -3451,6 +3625,49 @@ function closeWidgetConfig() {
   _widgetCfgFor = null;
 }
 
+/* Makes a config-list <li> drag-to-reorder. Prepends a visible grip handle,
+   wires HTML5 drag with a position-aware drop, and calls reorderArray(from,to)
+   to actually move the item in the persona's data when the user drops.
+   `reorderArray` should splice the underlying array and save (via setState). */
+function makeCfgItemDraggable(li, index, reorderArray) {
+  li.draggable = true;
+  li.dataset.cfgIdx = String(index);
+
+  /* Visible grip prepended to the row. */
+  const grip = document.createElement('span');
+  grip.className = 'grip';
+  grip.textContent = '⠿';
+  grip.title = 'Drag to reorder';
+  li.insertBefore(grip, li.firstChild);
+
+  li.addEventListener('dragstart', (e) => {
+    e.dataTransfer.setData('application/x-cfg-idx', String(index));
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  li.addEventListener('dragover', (e) => {
+    if (!e.dataTransfer.types.includes('application/x-cfg-idx')) return;
+    e.preventDefault();
+    const rect = li.getBoundingClientRect();
+    const after = (e.clientY - rect.top) > rect.height / 2;
+    li.classList.toggle('drop-after', after);
+    li.classList.toggle('drop-before', !after);
+  });
+  li.addEventListener('dragleave', () => li.classList.remove('drop-before', 'drop-after'));
+  li.addEventListener('drop', (e) => {
+    e.preventDefault();
+    li.classList.remove('drop-before', 'drop-after');
+    const from = parseInt(e.dataTransfer.getData('application/x-cfg-idx'), 10);
+    if (isNaN(from) || from === index) return;
+    const rect = li.getBoundingClientRect();
+    const after = (e.clientY - rect.top) > rect.height / 2;
+    /* Compute the insertion index, accounting for the removed item shifting
+       earlier positions down by one. */
+    let to = after ? index + 1 : index;
+    if (from < to) to -= 1;
+    reorderArray(from, to);
+  });
+}
+
 /* Renders the "Currently added" list inside the modal. */
 function renderWidgetCfgList() {
   const ul = document.getElementById('widget-cfg-list');
@@ -3478,6 +3695,14 @@ function renderWidgetCfgList() {
         });
         renderWidgetCfgList();
       });
+      makeCfgItemDraggable(li, i, (from, to) => {
+        setState(d => {
+          const arr = d.personas.find(pp => pp.id === currentPersona().id).widgets.weather.cities;
+          const [m] = arr.splice(from, 1);
+          arr.splice(to, 0, m);
+        });
+        renderWidgetCfgList();
+      });
       ul.appendChild(li);
     });
   } else if (_widgetCfgFor === 'clock') {
@@ -3497,6 +3722,14 @@ function renderWidgetCfgList() {
       li.querySelector('.remove-btn').addEventListener('click', () => {
         setState(d => {
           d.personas.find(pp => pp.id === currentPersona().id).widgets.clock.zones.splice(i, 1);
+        });
+        renderWidgetCfgList();
+      });
+      makeCfgItemDraggable(li, i, (from, to) => {
+        setState(d => {
+          const arr = d.personas.find(pp => pp.id === currentPersona().id).widgets.clock.zones;
+          const [m] = arr.splice(from, 1);
+          arr.splice(to, 0, m);
         });
         renderWidgetCfgList();
       });
@@ -3522,10 +3755,21 @@ function renderWidgetCfgList() {
         });
         renderWidgetCfgList();
       });
+      makeCfgItemDraggable(li, i, (from, to) => {
+        setState(d => {
+          const arr = d.personas.find(pp => pp.id === currentPersona().id).widgets.crypto.coins;
+          const [m] = arr.splice(from, 1);
+          arr.splice(to, 0, m);
+        });
+        renderWidgetCfgList();
+      });
       ul.appendChild(li);
     });
   } else if (_widgetCfgFor === 'markets' || _widgetCfgFor === 'watchlist') {
-    const symbols = p.widgets[_widgetCfgFor].symbols || [];
+    /* Capture which list ('markets'/'watchlist') so the per-item handlers
+       below don't depend on the mutable _widgetCfgFor global. */
+    const kind = _widgetCfgFor;
+    const symbols = p.widgets[kind].symbols || [];
     if (!symbols.length) {
       ul.innerHTML = '<li class="widget-cfg-empty">No symbols yet — search above to add one, or type one in directly and press Enter.</li>';
       return;
@@ -3540,7 +3784,15 @@ function renderWidgetCfgList() {
         '</span>';
       li.querySelector('.remove-btn').addEventListener('click', () => {
         setState(d => {
-          d.personas.find(pp => pp.id === currentPersona().id).widgets[_widgetCfgFor].symbols.splice(i, 1);
+          d.personas.find(pp => pp.id === currentPersona().id).widgets[kind].symbols.splice(i, 1);
+        });
+        renderWidgetCfgList();
+      });
+      makeCfgItemDraggable(li, i, (from, to) => {
+        setState(d => {
+          const arr = d.personas.find(pp => pp.id === currentPersona().id).widgets[kind].symbols;
+          const [m] = arr.splice(from, 1);
+          arr.splice(to, 0, m);
         });
         renderWidgetCfgList();
       });
@@ -3695,21 +3947,27 @@ async function doCryptoSearch(q, resultsEl) {
   }
 }
 
-/* Twelve Data symbol search. Falls back to "just press Enter to add the raw
+/* Finnhub symbol search. Falls back to "just press Enter to add the raw
    ticker" if no key is set or the search fails. */
 async function doStockSearch(q, resultsEl) {
   resultsEl.classList.remove('hidden');
-  if (!state.twelveDataKey) {
-    resultsEl.innerHTML = '<div class="city-search-status">Add your Twelve Data API key in Settings (⚙) to enable search. Or type a ticker and press Enter to add it directly.</div>';
+  if (!state.finnhubKey) {
+    resultsEl.innerHTML = '<div class="city-search-status">Add your Finnhub API key in Settings (⚙) to enable search. Or type a ticker and press Enter to add it directly.</div>';
     return;
   }
   resultsEl.innerHTML = '<div class="city-search-status">Searching…</div>';
   try {
-    const url = 'https://api.twelvedata.com/symbol_search?symbol=' + encodeURIComponent(q) + '&outputsize=12';
+    const url = 'https://finnhub.io/api/v1/search?q=' + encodeURIComponent(q) + '&token=' + encodeURIComponent(state.finnhubKey);
     const r = await fetch(url);
     const data = await r.json();
     resultsEl.innerHTML = '';
-    const items = (data && data.data) ? data.data : [];
+    let items = (data && Array.isArray(data.result)) ? data.result : [];
+    /* Light filter: keep common stocks AND ETFs (so SPY/QQQ/DIA still show),
+       and drop the dotted multi-exchange variants (e.g. "AAPL.MX") in favor
+       of the plain US symbol when both appear. We don't over-filter — Finnhub
+       tags ETFs as "ETP" or leaves type blank, so we only exclude obvious
+       non-equity types if a cleaner match exists. */
+    items = items.filter(it => it.symbol && !it.symbol.includes('.')).slice(0, 12);
     if (!items.length) {
       resultsEl.innerHTML = '<div class="city-search-status">No matches. Tip: press Enter to add the ticker directly.</div>';
       return;
@@ -3719,8 +3977,8 @@ async function doStockSearch(q, resultsEl) {
       btn.className = 'city-search-result';
       btn.innerHTML =
         '<div class="primary">' + escapeHtml(item.symbol) + '</div>' +
-        '<div class="secondary">' + escapeHtml(item.instrument_name || '') + '</div>' +
-        '<div class="meta">' + escapeHtml(item.exchange || '') + (item.country ? ' &middot; ' + escapeHtml(item.country) : '') + '</div>';
+        '<div class="secondary">' + escapeHtml(item.description || '') + '</div>' +
+        '<div class="meta">' + escapeHtml(item.type || '') + '</div>';
       btn.addEventListener('click', () => {
         addSymbolToWidget(item.symbol);
         document.getElementById('widget-cfg-search').value = '';

@@ -24,7 +24,7 @@
 **Name:** StartDashboard
 **Folder:** `projects/personal-dashboard/` in Tom's `tom-workspace`
 **Current status:** Complete (in active use; iterating on polish)
-**Current phase:** Complete (with v1.8 hotfix shipped)
+**Current phase:** Complete (with v1.9 shipped)
 **Last updated:** 2026-05-28
 **Live URL:** https://tecgunther.github.io/startdashboard/
 **Code repo:** https://github.com/TECGUNTHER/startdashboard
@@ -39,36 +39,32 @@ A single-file web app that becomes Tom's home page across every browser and devi
 - To-do list
 - Sticky notes
 - Crypto (CoinGecko, no key — shows price + dollar + percent change)
-- Markets (Twelve Data — defaults to SPY/QQQ/DIA for S&P/Nasdaq/Dow)
-- Watchlist (Twelve Data — Tom's custom stocks)
+- Markets (Finnhub — defaults to SPY/QQQ/DIA for S&P/Nasdaq/Dow)
+- Watchlist (Finnhub — Tom's custom stocks)
 
 ---
 
 # Where We Are
 
-## Most recent session (2026-05-28 — v1.8 hotfix)
+## Most recent session (2026-05-28 — v1.9)
 
-A three-bug hotfix on top of v1.7, surfaced by Tom after a day of real use.
+A significant release with three changes:
 
-- **Settings no longer wipes the Twelve Data API key when the field is left empty.** v1.7's `saveSettings` treated an empty trimmed input as "clear the stored key" — meaning every time Tom opened Settings for an unrelated change and hit Save, the API key got nuked (Safari's `type="password"` field can't reliably re-populate from autofill, so the field reads empty even when the key is stored). v1.8 deletes that destructive `else` branch: empty input means "no change." Only a non-empty trimmed value updates the stored key. To explicitly clear the key, go to Danger Zone → Reset browser. A code comment in `saveSettings` documents the Safari rationale.
-- **Cold-start retry on Crypto, Markets, and Watchlist.** Refactored `renderCryptoWidget` and `renderTwelveDataWidget` to wrap the fetch + render body in an internal `doFetch(isRetry)` async helper. On first failure, the widget restores its "Loading…" placeholder and schedules `setTimeout(() => doFetch(true), 2000)`. On second failure, it falls through to the existing `fin-error` red message. Exactly one retry per widget per load, at 2000ms. Both Markets and Watchlist inherit this since they both route through `renderTwelveDataWidget`. The existing `_tdCache` / `TD_CACHE_MS` logic in `fetchTwelveDataQuotes` is untouched — retry sits above the cache layer.
-- **Active persona tab restyled from solid slab to soft fill.** v1.7's solid `var(--accent)` with `var(--on-accent)` text was high-contrast but visually loud. v1.8 keeps `font-weight: 600` but softens the colors: background `var(--accent-soft)`, text `var(--text-primary)`, border `var(--accent)` (unchanged) for an accent outline. The active-tab dot reverted from `--on-accent` back to `--accent`. Same discoverability win, calmer look.
+- **Migrated stock data from Twelve Data to Finnhub.** Twelve Data's free tier was 8 price lookups/min, and Tom's ~12 tracked symbols routinely exceeded that, producing chronic HTTP 429 ("too many requests") errors. Finnhub's free tier is 60 calls/min (no credit card). The old `fetchTwelveDataQuotes` was replaced with `fetchFinnhubQuotes(symbols)` — one `/quote` call per symbol fanned out via `Promise.all`, normalized from Finnhub's `c`/`d`/`dp` fields into the existing `{price, dollar, percent}` shape. Symbol search moved to Finnhub's `/search` endpoint. A failed symbol degrades to "—" instead of killing the widget. The shared stock render function was renamed `renderTwelveDataWidget` → `renderStockWidget`. The old Twelve Data key is still read for backward-compat but unused. **Tom must paste a free Finnhub key (finnhub.io/register) into Settings.**
+- **Added a shared 5-minute price cache.** Replaced the old per-tab in-memory cache (`_tdCache`) with a localStorage-backed cache (`sd_quote_cache`, 5-min TTL) shared across all tabs and reloads, so opening multiple tabs no longer multiplies API calls. Only stale/missing symbols hit the network. On a rate limit with nothing cached, the widget shows "Rate limit reached — prices refresh shortly" and refreshes once 60s later (the v1.8 immediate 2s retry was dropped for stocks because it made rate-limiting worse).
+- **Overhauled drag-to-reorder with visible grip handles.** The old HTML5 drag was undiscoverable — Tom couldn't tell what to grab. Now categories, bookmarks, and every config list (stock tickers, weather cities, clock zones) show a draggable ⠿ grip handle; an accent line shows where the item will drop. Bookmark drops are position-aware (top/bottom half of a row) via a new `moveBookmark()` helper handling within- and cross-category moves. Config lists use a shared `makeCfgItemDraggable()` helper.
 
 ## Sessions before that
 
-- **v1.7 hotfix (2026-05-28, late afternoon):** Negative finance prices were rendering with 4 decimals (`-89.4463 → -$89.4463`) — `formatPrice()` rewritten to branch on `Math.abs()` and re-apply the sign at output. Bookmark description popover spacing bumped to 28px to leave room for Safari/Chromium's native ellipsis-truncation tooltip. Active persona tab styled solid `var(--accent)` to fix the "no tab selected on first frame" bug (the visual was right but loud — see v1.8 for the softening pass).
-- **v1.6 (earlier 2026-05-28):** Light/dark theme toggle in the header (☀ ↔ 🌙, persists per browser), all finance prices trimmed to 2 decimals (sub-cent altcoins keep 4), bookmark hover popover restructured with URL on a small monospace footer line, "Default persona on this browser/device" surfaced as a focal block at the top of Settings, CSS palette tokenized (`--modal-bg`, `--input-bg`, `--popover-bg`, `--on-accent`) so the whole light skin is one override block. First build to run the real subagent flow.
-- **v1.5 (2026-05-28):** Bookmark description redesign (hover popover, multi-line edit modal), dollar + percent change on Crypto/Markets/Watchlist, Twelve Data API key inline walkthrough, full doc refresh (HANDOFF/TECHNICAL/UX had been stale at v1.0).
+- **v1.8 hotfix (2026-05-28, evening):** Empty Settings key field no longer wipes the stored API key ("no change," not "clear"). Finance widgets gained a one-shot cold-start retry at 2s. Active persona tab restyled from a solid-accent slab to a calmer soft-accent fill + accent outline + bold text. New `INSTALL-FOR-OTHERS.md` install guide. (Note: v1.9 dropped the stock-widget retry; crypto kept it.)
+- **v1.7 hotfix (2026-05-28, late afternoon):** Negative finance prices fixed to 2 decimals (`formatPrice()` branches on `Math.abs()` and re-applies the sign). Bookmark description popover spacing bumped to 28px to clear Safari's native ellipsis tooltip. Active persona tab made solid-accent to fix "no tab selected on first frame" (softened in v1.8).
+- **v1.6 (earlier 2026-05-28):** Light/dark theme toggle (persists per browser), finance prices trimmed to 2 decimals, bookmark URL moved into the hover popover, "Default persona on this device" surfaced at top of Settings, CSS palette tokenized. First build to run the real subagent flow.
 
 ## Immediate next step
 
-Tom pushes v1.8 to GitHub, hard-reloads Safari + Chrome, and smoke-tests the three fixes:
-
-1. Open Settings, leave the Twelve Data key field empty, save — reopen Settings and confirm the key dots are still there; finance quotes still load.
-2. Open the page on a cold tab and confirm Crypto resolves cleanly even if the first CoinGecko call hits a network hiccup — at most a brief "Loading prices…" for ~2 seconds, then real data; no red error. Same for Markets/Watchlist.
-3. Confirm the active persona tab now reads as a soft fill (soft-accent background + bold primary text + accent outline), not the solid-accent slab from v1.7.
-
-Then he uses it for a few days before the next iteration.
+1. **Generate a free Finnhub API key** at finnhub.io/register (no credit card) and paste it into Settings — the field is now labeled Finnhub. Without it, Markets/Watchlist show an "add your Finnhub key" prompt.
+2. **Push v1.9 to GitHub** (single-file commit of `index.html`), wait ~60s for Pages, hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R).
+3. **Smoke-test:** (a) Markets/Watchlist load with no 429/rate-limit errors; (b) the ⠿ grip handles are visible on categories, bookmarks, and config lists, and dragging reorders and sticks after reload; (c) a bookmark dragged into another category lands where dropped.
 
 ---
 
@@ -78,26 +74,24 @@ Then he uses it for a few days before the next iteration.
 - **Per-browser Personal Access Tokens stored in localStorage** — avoids OAuth in a static page. Each browser gets its own token; losing a device means revoking one token, not all.
 - **Per-persona widgets, backgrounds, accent colors, and visibility** — the whole point of personas is mental separation. Each persona is fully independent.
 - **Per-device default persona** (localStorage) — Tom's work Mac opens to Work, iPhone opens to Personal. Not synced through the gist.
-- **Per-device theme choice** (localStorage, v1.6) — same pattern as the default persona and the GitHub PAT. Light vs dark is a per-environment preference (laptop in bright sun vs dark study), not a per-account one.
-- **Light mode replaces the persona background with a single clean light surface** (v1.6) — not per-persona light gradients. The per-persona gradient system was designed for dark; making each persona also pick a light gradient would double Tom's config burden for marginal benefit. The persona accent color is preserved in both themes.
-- **CSS palette tokenized for theming** (v1.6) — added `--modal-bg`, `--input-bg`, `--popover-bg`, `--on-accent` tokens. The whole `body.light-mode` skin is one override block instead of dozens of per-component overrides. Future themes are cheap to add.
-- **Light palette pulled from `agent-system/agents/briefs/hub-design-brief.md`** (v1.6) — keeps the dashboard's light mode visually consistent with the rest of Tom's workspace documents (PROJECT-HUB, MASTER-HUB, TECHNICAL, UX).
+- **Per-device theme choice** (localStorage, v1.6) — light vs dark is a per-environment preference, not a per-account one.
+- **Light mode replaces the persona background with a single clean light surface** (v1.6) — not per-persona light gradients (would double config burden). Persona accent color is preserved in both themes.
+- **CSS palette tokenized for theming** (v1.6) — the whole `body.light-mode` skin is one override block. Future themes are cheap.
 - **Bookmarklet over a browser extension** — one JavaScript snippet that works everywhere; no per-browser build burden.
 - **Backgrounds: CSS-only presets + image URL only (no upload)** — image upload would bloat the gist with base64 on every save.
-- **Twelve Data for stocks (free tier with API key)**, **CoinGecko for crypto (free, no key)** — picked over Yahoo Finance because Yahoo's chart endpoint blocks browser requests via CORS.
+- **Finnhub for stocks, replacing Twelve Data (v1.9)** — Twelve Data's free tier was 8 calls/min; Tom's ~12 symbols blew past it and hit chronic HTTP 429s. Finnhub's free tier is 60/min (also free, no credit card). Both are REST APIs, so this was a swap with no new dependency. CoinGecko (crypto, no key) is unchanged.
+- **Shared 5-minute localStorage quote cache (v1.9)** — replaced the old per-tab in-memory cache. Multiple tabs/reloads were multiplying API calls toward the rate limit; a shared 5-min cache means only stale/missing symbols hit the network.
+- **On a 429, back off 60 seconds instead of retrying immediately (v1.9)** — v1.8's 2-second retry made rate-limiting worse by piling on more calls under the limit. One delayed refresh recovers cleanly. Per-symbol failures degrade to "—" instead of retrying.
+- **Visible ⠿ grip handles for drag-to-reorder (v1.9)** — bare HTML5 drag had no affordance; Tom literally couldn't find what to grab. An explicit grip on categories, bookmarks, and config-list items makes the drag target obvious; a drop-indicator line shows where it'll land.
 - **API key per-browser in localStorage (parallel to GitHub PAT)** — rate limits are per-key; don't sync credentials through a gist.
-- **Markets uses ETF proxies (SPY, QQQ, DIA)** for major indices since the actual indices (^GSPC etc.) need higher Twelve Data tiers.
-- **Clock zones stored as {name, tz} objects (since v1.3)** — allows multiple cities in the same timezone (Atlanta + NYC both EST) to render as separate rows.
-- **Bookmark descriptions as hover popover (since v1.5)** — keeps the row clean at rest; full text appears with a 0.5s delay so it doesn't pop on every mouseover.
-- **Bookmark URL shown inside the description popover, not in a `title` tooltip** (v1.6) — the browser's native URL tooltip was overlapping the description popover. Removing `title` and showing the URL on a small monospace footer line below the description gives one cohesive hover artifact instead of two competing ones.
-- **`formatPrice` shows 2 decimals everywhere ≥ $0.01, 4 decimals below** (v1.6) — Tom wants prices that look like prices, not scientific notation. Sub-cent visibility is preserved for tiny altcoins.
-- **Negative-aware formatters branch on `Math.abs()` and re-apply the sign at output** (v1.7) — comparing the raw value to a positive threshold lets negatives fall through to the wrong branch. Any future number formatter that handles negatives should follow the same pattern.
-- **Accommodate the browser's native truncation tooltip, don't try to suppress it** (v1.7) — Safari and some Chromium builds show a native tooltip for ellipsis-truncated text that can't be reliably suppressed cross-browser. Popovers near truncated text leave a 28px gap so the native tooltip doesn't overlap.
-- **Active persona tab uses soft-accent fill + accent outline + bold primary text** (v1.8) — v1.7's solid-accent slab solved the discoverability bug ("no tab selected on first frame") but was visually loud. Soft fill + bold text + the existing accent border keeps the discoverability win without overshooting. `font-weight: 600` does as much of the lifting as color now.
-- **Empty Settings input means "no change" for credentials** (v1.8) — saving Settings should never be accidentally destructive. Safari's `type="password"` fields can't reliably re-populate from autofill, so an empty read is ambiguous; treating it as "clear" punished Tom every time he opened Settings for an unrelated change. The only way to explicitly clear the Twelve Data key is now Danger Zone → Reset browser, where destructive intent is unambiguous. Reusable principle for any future credential UI.
-- **Finance widgets retry once after 2 seconds on initial-load failure** (v1.8) — Tom kept seeing red "Could not load" states on cold tab open that resolved on manual reload — a classic transient-flake symptom. One retry at 2s is the sweet spot: two would mask real outages too long; zero leaves manual-reload friction in place. Retry sits above the `_tdCache` layer, so cached quotes are still respected.
-- **Last-write-wins on sync conflicts** — single-user app; full conflict resolution is overkill. A toast warns when another browser has updated.
-- **iPhone slim mode deferred indefinitely** — Tom's phone is inbound-link-driven; he doesn't browse outbound on it.
+- **Markets uses ETF proxies (SPY, QQQ, DIA)** for major indices since the actual indices need higher API tiers.
+- **Clock zones stored as {name, tz} objects (since v1.3)** — allows multiple cities in the same timezone to render as separate rows.
+- **Bookmark descriptions as hover popover (since v1.5)** — keeps the row clean; full text appears after a 0.5s delay.
+- **`formatPrice` shows 2 decimals ≥ $0.01, 4 below; negative-aware formatters branch on `Math.abs()` and re-apply the sign (v1.6/v1.7)** — prices that look like prices; negatives don't fall through to the wrong branch.
+- **Active persona tab uses soft-accent fill + accent outline + bold text (v1.8)** — v1.7's solid slab fixed discoverability but was visually loud; the soft fill keeps the win without overshooting.
+- **Empty Settings input means "no change" for credentials (v1.8)** — saving Settings should never be accidentally destructive. Safari's `type="password"` fields can't reliably re-populate from autofill, so an empty read is ambiguous. Explicit clear is Danger Zone → Reset browser.
+- **Last-write-wins on sync conflicts** — single-user app; a toast warns when another browser has updated.
+- **iPhone slim mode deferred indefinitely** — Tom's phone is inbound-link-driven.
 
 ---
 
@@ -109,16 +103,16 @@ Then he uses it for a few days before the next iteration.
   - GitHub REST API (gist read/write) — `api.github.com`
   - Open-Meteo (free weather + geocoding, no key) — `api.open-meteo.com` + `geocoding-api.open-meteo.com`
   - CoinGecko (free crypto prices + search, no key) — `api.coingecko.com`
-  - Twelve Data (stock quotes + symbol search, free tier with key) — `api.twelvedata.com`
+  - **Finnhub** (stock quotes + symbol search, free tier with key, 60 calls/min) — `finnhub.io/api/v1/quote` + `finnhub.io/api/v1/search` *(replaced Twelve Data in v1.9)*
   - Google Favicon service (best-effort bookmark icons) — `www.google.com/s2/favicons`
-- **Storage:** One private GitHub gist on Tom's account (`TECGUNTHER`); per-browser localStorage holds the GitHub PAT, gist ID, default persona, Twelve Data API key, and theme choice.
+- **Storage:** One private GitHub gist on Tom's account (`TECGUNTHER`); per-browser localStorage holds the GitHub PAT, gist ID, default persona, Finnhub API key, theme choice, and a shared 5-minute stock-quote cache. (The legacy Twelve Data key is still read for backward-compat but unused.)
 - **Hosting:** GitHub Pages (free static), public repo at `github.com/TECGUNTHER/startdashboard`
 
 ## File structure (key files only)
 
 ```
 projects/personal-dashboard/
-├── index.html               — the entire app (HTML + CSS + JS in one file)
+├── index.html               — the entire app (HTML + CSS + JS in one file, ~4,120 lines)
 ├── README.md                — Tom's own TECGUNTHER-specific setup walkthrough
 ├── INSTALL-FOR-OTHERS.md    — clean install guide for someone else to fork and run their own
 ├── PROJECT-HUB.html         — project dashboard for Tom
@@ -140,7 +134,7 @@ projects/personal-dashboard/
 - **Code repo:** https://github.com/TECGUNTHER/startdashboard
 - **GitHub Pages settings:** https://github.com/TECGUNTHER/startdashboard/settings/pages
 - **GitHub tokens** (to revoke/regenerate): https://github.com/settings/tokens
-- **Twelve Data signup:** https://twelvedata.com/register
+- **Finnhub signup:** https://finnhub.io/register
 - **Find your gist ID:** open the dashboard → Settings (⚙) → Sync → Gist ID
 
 ## Port: none (static page served by GitHub Pages)
@@ -157,7 +151,7 @@ git push -u origin main
 
 Then in GitHub: **Settings → Pages → Deploy from a branch → main / (root)**.
 
-Generate a Personal Access Token at `github.com/settings/tokens?type=beta` with `gist` read/write scope. Paste into the dashboard's setup screen.
+Generate a Personal Access Token at `github.com/settings/tokens` with `gist` read/write scope, and paste it into the dashboard's setup screen. For the stock widgets, generate a free Finnhub key at `finnhub.io/register` and paste it into Settings.
 
 ## To launch
 
@@ -185,23 +179,21 @@ Then hard-reload the dashboard (Safari: Option+Cmd+R, Chrome: Cmd+Shift+R). GitH
 - **Cross-browser changes not showing** → Reload the other browser. Background poll is 60s; manual reload is instant.
 - **Bookmarklet popup blocked** → Allow popups for `tecgunther.github.io` in browser settings.
 - **Weather "Could not load"** → Transient Open-Meteo issue, or invalid lat/lon coords.
-- **Markets/Watchlist say "Add Twelve Data API key"** → Open Settings ⚙ → see walkthrough → paste key.
-- **(v1.6) Persona gradient still shows behind the light surface after toggling** → indicates the persona-class wasn't removed before `bg-light-surface` was added. Fix is in `applyPersonaTheme()`.
-- **(v1.6) Light mode looks unreadable on one specific element** → most likely a hardcoded color was missed during the tokenization pass. Search for `#11111A`, `#0A0A12`, `#0A0A0F`, or `rgba(0, 0, 0` and check whether that element needs to become a token.
-- **(v1.7) Negative price renders with 4 decimals** → `formatPrice()` must branch on `Math.abs(n)`, not raw `n`. If the bug ever returns, it's because someone reverted the sign-stripping pattern in `formatPrice()` or re-introduced a positive-only threshold comparison.
-- **(v1.7) Description popover sits behind a translucent tooltip on long bookmark titles** → that's the browser's native ellipsis tooltip. Don't try to suppress it; the popover gap (`.bookmark .bk-desc-popover { margin-top: 28px }`) is sized to leave room. If the popover is hugging the row again, the margin got shrunk.
-- **(v1.7) Active persona tab not highlighted on first frame** → check `render()`: `const p = currentPersona()` must be called before `renderPersonaTabs()`. `currentPersona()` lazily initializes `state.currentPersonaId`, so reversing the order leaves the first frame without an active tab.
-- **(v1.8) Twelve Data API key got wiped after saving Settings** → shouldn't happen anymore. `saveSettings` no longer treats an empty trimmed key field as "clear." If it ever does happen again, someone re-introduced the destructive `else` branch in `saveSettings` — restore the v1.8 behavior (empty means "no change," only a non-empty value writes).
-- **(v1.8) A finance widget shows "Loading…" for ~2 seconds before resolving** → that's the new cold-start retry doing its job. The first fetch failed transiently; the widget is auto-retrying once at 2s before falling through to the existing red error. Not a hang.
-- **(v1.8) Need to explicitly clear the Twelve Data API key** → Settings → Danger Zone → Reset browser. The Settings field can no longer remove it (empty means "no change") — specifically because Safari's password-type field can't reliably re-populate from autofill, so an empty read used to be ambiguous and accidentally destructive.
+- **Markets/Watchlist say "Add your Finnhub API key" (v1.9)** → Stock widgets use Finnhub now, not Twelve Data. Generate a free key at finnhub.io/register and paste it into Settings. The old Twelve Data key is ignored.
+- **"Rate limit reached — prices refresh shortly" (v1.9)** → Every tracked symbol got rate-limited with nothing cached. The widget backs off and auto-refreshes once after 60s. No action needed (Finnhub free tier = 60 calls/min).
+- **A single stock row shows "—" (v1.9)** → That one symbol's quote call failed (bad ticker or transient error). The rest of the widget still renders; the dash means "no data for this symbol," not a widget-wide failure.
+- **Crypto widget hangs on "Loading…" for ~2 seconds (v1.8)** → CoinGecko's cold-start retry doing its job (one retry at 2s before a red error). Stocks no longer do this immediate retry as of v1.9.
+- **Twelve Data key got wiped after saving Settings (v1.8)** → shouldn't happen; `saveSettings` no longer treats an empty key field as "clear." (Now applies to the Finnhub key field.)
+- **(v1.6) Persona gradient still shows behind the light surface after toggling** → the persona-class wasn't removed before `bg-light-surface` was added. Fix is in `applyPersonaTheme()`.
+- **(v1.7) Negative price renders with 4 decimals** → `formatPrice()` must branch on `Math.abs(n)`, not raw `n`.
 
 ---
 
 # What's in the Folder
 
 - `index.html` — the entire app
-- `README.md` — Tom's own setup walkthrough (TECGUNTHER-specific). The top of the README points third-party users at `INSTALL-FOR-OTHERS.md` instead.
-- `INSTALL-FOR-OTHERS.md` — clean install guide for anyone Tom shares the project with: fork → enable GitHub Pages → generate their own PAT → run their own copy with their own private gist. Self-contained; no Tom-specific references.
+- `README.md` — Tom's own setup walkthrough (TECGUNTHER-specific). The top points third-party users at `INSTALL-FOR-OTHERS.md`.
+- `INSTALL-FOR-OTHERS.md` — clean install guide for anyone Tom shares the project with: fork → enable GitHub Pages → generate their own PAT → run their own copy with their own private gist.
 - `PROJECT-HUB.html` — visual dashboard for this project (Tom's home base)
 - `HANDOFF.md` — this file
 - `docs/TECHNICAL.html` — architecture, decisions, file map, how-to-modify
@@ -234,11 +226,11 @@ Then hard-reload the dashboard (Safari: Option+Cmd+R, Chrome: Cmd+Shift+R). GitH
 - Workspace's persistent documents (PROJECT-HUB, MASTER-HUB, TECHNICAL, UX) use a light/restrained aesthetic. The dashboard *app itself* (`index.html`) is dark/modern/tech by default, with a v1.6 light-mode option that pulls from the same workspace palette. Don't mix the visual systems in either direction.
 - Tom is the only user. No multi-user features, no sharing model.
 - All data lives on Tom's GitHub account. Don't add third-party services without checking first.
-- He prefers per-persona settings over global settings — matches the persona-as-channel mental model. **Exception:** theme (light/dark) is a per-browser global, not per-persona — flipping themes in one persona affects all of them in that browser. Same pattern as the default persona and the GitHub PAT.
+- He prefers per-persona settings over global. **Exceptions:** theme (light/dark) and credentials (GitHub PAT, Finnhub key) are per-browser globals stored in localStorage, not synced through the gist.
 
 ## Multi-agent flow (as of v1.6)
 
-- For major changes Tom now expects the actual multi-agent flow: **Design Agent** plans, Tom approves, **Build Agent** subagent writes code and returns a standard Agent Report, **Documentation Agent** subagent updates docs from that report. v1.1 through v1.5 were done by one Claude playing all roles; v1.6 was the first build to use real subagents, and v1.7's and v1.8's hotfixes followed the same pattern. Tom called this out explicitly and wants it to be the pattern going forward.
+- For major changes Tom expects the actual multi-agent flow: **Design Agent** plans, Tom approves, **Build Agent** subagent writes code and returns a standard Agent Report, **Documentation Agent** subagent updates docs from that report. v1.1–v1.5 were done by one Claude playing all roles; v1.6 onward use real subagents. Tom wants this to be the pattern going forward.
 
 ## What he's likely to want next
 

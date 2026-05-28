@@ -111,7 +111,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
       <span class="status-pill complete">Complete</span>
       <!-- /HUB:STATUS_OVERALL -->
       <!-- HUB:LAST_UPDATED -->
-      <span class="last-updated">2026-05-28 · Thu · late evening</span>
+      <span class="last-updated">2026-05-28 · Thu · later evening</span>
       <!-- /HUB:LAST_UPDATED -->
     </div>
   </div>
@@ -136,11 +136,11 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <h3>Recently completed</h3>
         <!-- HUB:RECENT_COMPLETED -->
         <ul>
-          <li><strong>v1.8 hotfix shipped:</strong> three small fixes on top of v1.7 &mdash; (1) saving Settings with the Twelve Data key field empty no longer wipes the stored key, (2) Crypto and Twelve Data widgets now retry once after 2 seconds on a cold-start failure instead of going straight to a red error, (3) active persona tab restyled to a soft fill with bold text (soft-accent background, primary text, accent outline) for a calmer look than the solid-accent slab from v1.7.</li>
-          <li><strong>Settings API key field is now non-destructive.</strong> Empty trimmed value means &ldquo;no change&rdquo; &mdash; the only way to explicitly clear the key is Danger Zone &rarr; Reset browser. A code comment in <code>saveSettings</code> calls out the Safari <code>type=&quot;password&quot;</code> rationale so this doesn&rsquo;t get reverted.</li>
-          <li><strong>Cold-start retry on finance widgets.</strong> An internal <code>doFetch(isRetry)</code> helper wraps the fetch + render body in <code>renderCryptoWidget</code> and <code>renderTwelveDataWidget</code>. First failure restores the &ldquo;Loading&hellip;&rdquo; placeholder and schedules one retry at exactly 2000ms; second failure shows the existing red error. Maximum one retry per widget per load.</li>
-          <li><strong>Install guide for third-party users added (<code>INSTALL-FOR-OTHERS.md</code>).</strong> Self-contained walkthrough for anyone who wants to fork the repo and run their own copy &mdash; their data goes to their own private gist on their own GitHub account, no shared state with anyone else. PROJECT-HUB now surfaces it as a fourth doc card; README has a small note at the top pointing newcomers there. Doc audit also ran clean &mdash; three small staleness fixes in TECHNICAL and UX (weather workflow, widget count, line-count claim).</li>
-          <li><strong>Two new troubleshooting tips captured.</strong> (1) A widget that hangs on &ldquo;Loading&hellip;&rdquo; for ~2 seconds before resolving is the new retry doing its job, not a hang. (2) To explicitly clear the Twelve Data key, use Danger Zone &rarr; Reset browser &mdash; the Settings field can no longer remove it.</li>
+          <li><strong>v1.9 shipped &mdash; three big changes.</strong> (1) Stock data moved from Twelve Data to <strong>Finnhub</strong>, which fixes the chronic rate-limit (HTTP 429) errors Tom kept hitting. (2) A shared <strong>5-minute price cache</strong> that all browser tabs and reloads draw from, so quotes don&rsquo;t re-fetch constantly. (3) A <strong>drag-to-reorder overhaul</strong> &mdash; everything draggable now has a visible &ldquo;grip&rdquo; handle (the &#10303; dots) you can grab.</li>
+          <li><strong>Finnhub replaces Twelve Data for Markets and Watchlist.</strong> Twelve Data&rsquo;s free tier allowed only 8 price lookups a minute, and Tom&rsquo;s ~12 symbols blew past that &mdash; hence the constant 429 errors. Finnhub&rsquo;s free tier allows 60 a minute. Tom needs to generate a free Finnhub key (no credit card) at finnhub.io/register and paste it into Settings; the old Twelve Data key is just ignored. If one symbol fails to load it now shows &ldquo;&mdash;&rdquo; instead of breaking the whole widget.</li>
+          <li><strong>Shared price cache + smarter rate-limit handling.</strong> Prices are now cached for 5 minutes and shared across every tab and reload, so opening the dashboard in three tabs no longer triggers three rounds of API calls. If the rate limit is ever hit, the widget shows &ldquo;Rate limit reached &mdash; prices refresh shortly&rdquo; and quietly refreshes once 60 seconds later instead of hammering the API.</li>
+          <li><strong>Visible drag handles everywhere.</strong> The old drag-to-reorder was invisible &mdash; Tom couldn&rsquo;t tell what to grab. Now categories, bookmarks, and every list inside the widget config (stock tickers, weather cities, clock zones) show a &#10303; grip handle. Grab it, drag up or down, and a blue line shows where the item will land. Reordering works within a box and across boxes (e.g. moving a bookmark to another category).</li>
+          <li><strong>No dependencies added.</strong> Both Twelve Data and Finnhub are free REST APIs &mdash; this was a swap, not a new install. Crypto (CoinGecko) is unchanged.</li>
         </ul>
         <!-- /HUB:RECENT_COMPLETED -->
       </div>
@@ -148,9 +148,9 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <h3>What's next</h3>
         <!-- HUB:WHATS_NEXT -->
         <ul>
-          <li><strong>Push v1.8 to GitHub</strong> (single-file commit of <code>index.html</code>), wait ~60s for GitHub Pages to refresh.</li>
-          <li><strong>Hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R)</strong> and smoke-test the three fixes: (1) open Settings, leave the Twelve Data key field empty, save &mdash; reopen Settings and confirm the key dots are still there; quotes still load. (2) Open the page on a cold tab and confirm Crypto resolves cleanly even if the first CoinGecko call coincides with a network hiccup &mdash; you should see at most a brief &ldquo;Loading prices&hellip;&rdquo; for ~2 seconds, not a red error. Same for Markets/Watchlist. (3) Confirm the active persona tab now reads as a soft fill (accent-soft background + bold primary text + accent outline), not the solid-accent slab from v1.7.</li>
-          <li>Then use it for a few days before the next iteration &mdash; let real-use friction surface the next round of fixes.</li>
+          <li><strong>Generate a free Finnhub API key</strong> at <a href="https://finnhub.io/register">finnhub.io/register</a> (no credit card) and paste it into the dashboard&rsquo;s Settings &mdash; the field is now labeled Finnhub, not Twelve Data. Without it, Markets and Watchlist show an &ldquo;add your Finnhub key&rdquo; prompt.</li>
+          <li><strong>Push v1.9 to GitHub</strong> (single-file commit of <code>index.html</code>), wait ~60s for GitHub Pages to refresh, then hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R).</li>
+          <li><strong>Smoke-test the three changes:</strong> (1) Markets and Watchlist load with no 429 / rate-limit errors. (2) The &#10303; grip handles are visible on categories, bookmarks, and the config lists &mdash; grab one and confirm dragging up/down reorders and that the new order sticks after a reload. (3) Reorder a bookmark into a different category and confirm it lands where you dropped it.</li>
         </ul>
         <!-- /HUB:WHATS_NEXT -->
       </div>
@@ -219,6 +219,8 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <li><strong>Sync indicator turns red</strong> &middot; Click it to reload from the gist. If still failing, the token may have expired &mdash; regenerate and reset this browser in Settings.</li>
         <li><strong>Bookmarklet popup blocked</strong> &middot; Allow popups for <code>tecgunther.github.io</code> in browser settings.</li>
         <li><strong>Changes not appearing across browsers</strong> &middot; Reload the other browser. Sync polls every ~60s; reload is instant.</li>
+        <li><strong>Markets / Watchlist say "Add your Finnhub API key"</strong> &middot; As of v1.9, stock widgets use Finnhub, not Twelve Data. Generate a free key at <a href="https://finnhub.io/register">finnhub.io/register</a> and paste it into Settings. The old Twelve Data key is ignored.</li>
+        <li><strong>"Rate limit reached" on Markets / Watchlist</strong> &middot; Finnhub&rsquo;s free tier is 60 calls/min. The widget backs off and auto-refreshes once after 60 seconds &mdash; no action needed.</li>
       </ul>
     </div>
     <!-- /HUB:HOW_TO_RUN -->
@@ -228,6 +230,30 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h2>Session Log</h2>
     <!-- HUB:SESSION_LOG -->
     <article class="session-entry latest">
+      <div class="date">2026-05-28 &middot; Thursday &middot; later evening</div>
+      <div class="focus">v1.9 &mdash; migrated stock data from Twelve Data to Finnhub (fixes the chronic rate-limit errors), added a shared 5-minute price cache, and overhauled drag-to-reorder with visible grip handles.</div>
+      <h4>Completed</h4>
+      <ul>
+        <li><strong>Finnhub replaces Twelve Data for all stock data.</strong> Why: Twelve Data&rsquo;s free tier caps at 8 price lookups per minute, and Tom&rsquo;s ~12 tracked symbols routinely blew past that &mdash; producing the constant HTTP 429 (&ldquo;too many requests&rdquo;) errors he was seeing. Finnhub&rsquo;s free tier allows 60 calls a minute (no credit card). The old <code>fetchTwelveDataQuotes</code> was removed and replaced with <code>fetchFinnhubQuotes(symbols)</code>, which makes one <code>/quote</code> call per symbol (fanned out in parallel) and normalizes Finnhub&rsquo;s <code>c</code>/<code>d</code>/<code>dp</code> fields into the dashboard&rsquo;s existing price/dollar/percent shape. If one symbol fails it shows &ldquo;&mdash;&rdquo; rather than killing the whole widget. Symbol search moved to Finnhub&rsquo;s <code>/search</code> endpoint; the ETF proxies (SPY/QQQ/DIA) still appear. The Settings field, its inline walkthrough, and all empty-state messages now point at Finnhub (finnhub.io/register). The old Twelve Data key is still read for backward-compat but is no longer used by anything.</li>
+        <li><strong>Shared 5-minute price cache.</strong> Replaced the old per-tab in-memory quote cache with a localStorage-backed cache (<code>sd_quote_cache</code>, 5-minute TTL) that every tab and reload draws from. Only stale or missing symbols hit the network &mdash; opening the dashboard in three tabs no longer triggers three rounds of API calls. Helpers <code>readQuoteCache()</code> / <code>writeQuoteCache()</code> manage it.</li>
+        <li><strong>Smarter rate-limit handling.</strong> If every symbol is rate-limited with nothing cached, the widget shows &ldquo;Rate limit reached &mdash; prices refresh shortly&rdquo; and schedules a single refresh 60 seconds later. The v1.8 immediate 2-second retry was dropped for stocks &mdash; it actually made rate-limiting worse. (Crypto / CoinGecko keeps its v1.8 single retry and was otherwise left alone.)</li>
+        <li><strong>Drag-to-reorder overhaul with visible grip handles.</strong> The old HTML5 drag was undiscoverable &mdash; nothing showed Tom what to grab. Now categories, bookmarks, and every config list (stock tickers, weather cities, clock zones) prepend a draggable &#10303; grip handle (a grab cursor, brightens on hover). A blue drop-indicator line shows where the item will land. Bookmark drops are position-aware (drop on the top or bottom half of a row to insert before/after) via a new <code>moveBookmark()</code> helper that handles both within-category and cross-category moves; dropping on empty category space still appends. Config-list reordering is handled by a new shared <code>makeCfgItemDraggable()</code> helper.</li>
+      </ul>
+      <h4>Decisions made</h4>
+      <ul>
+        <li><strong>Finnhub over Twelve Data</strong> &mdash; 60 calls/min vs 8 on the free tier. Tom&rsquo;s symbol count made Twelve Data&rsquo;s limit a constant source of 429s; Finnhub clears that headroom. Both are free, so no cost change.</li>
+        <li><strong>Shared localStorage quote cache, not per-tab in-memory</strong> &mdash; multiple tabs and reloads were multiplying API calls. A 5-minute cache shared across tabs cuts that down and keeps Tom comfortably under the rate limit.</li>
+        <li><strong>On 429, back off 60 seconds instead of retrying immediately</strong> &mdash; v1.8&rsquo;s 2-second retry made rate-limiting worse by piling on more calls. One delayed refresh is gentler and recovers cleanly.</li>
+        <li><strong>Visible &#10303; grip handles</strong> &mdash; bare HTML5 drag had no affordance; Tom literally couldn&rsquo;t find anything to grab. An explicit grip makes the drag target obvious.</li>
+        <li><strong>Per-symbol graceful degradation</strong> &mdash; dropped the stock widget&rsquo;s cold-start retry; a single failed symbol now shows &ldquo;&mdash;&rdquo; instead of taking down the widget. Skipped adding a localStorage cache for crypto to keep this change focused.</li>
+      </ul>
+      <h4>Tom action required</h4>
+      <ul>
+        <li>Generate a free Finnhub key at <a href="https://finnhub.io/register">finnhub.io/register</a> and paste it into Settings. The old Twelve Data key is ignored.</li>
+      </ul>
+    </article>
+
+    <article class="session-entry">
       <div class="date">2026-05-28 &middot; Thursday &middot; evening</div>
       <div class="focus">v1.8 hotfix &mdash; API key persistence, cold-start retry on finance widgets, and a calmer active-tab style (three small fixes on top of v1.7), plus a new install guide for third-party users.</div>
       <h4>Completed</h4>
@@ -455,7 +481,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
 
 <footer>
   <div class="container">
-    Maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · late evening</span>
+    Maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · later evening</span>
   </div>
 </footer>
 
