@@ -70,12 +70,16 @@ a { color: inherit; text-decoration: none; }
    This sits behind everything. The class on #background is swapped at runtime
    to match the current persona's chosen background (see "Background presets"
    section below). When an image URL is used we set inline styles instead.
+
+   Do NOT set `background:` on this ID rule. ID-level specificity (1,0,0)
+   would override the .bg-* class rules (0,1,0), making every preset
+   render as the same solid color. The body's background acts as the
+   pre-class fallback color.
 */
 #background {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background: var(--bg);
   transition: opacity 0.4s ease;
 }
 #background::after {
@@ -1245,11 +1249,9 @@ header.dash-header {
     <label>Twelve Data API key (for Markets &amp; Watchlist)</label>
     <input type="password" id="set-twelvedata-key" class="mono" placeholder="Paste your Twelve Data API key…" autocomplete="off" />
 
-    <label>Clock — time zones (comma-separated IANA names)</label>
-    <input type="text" id="set-clock-zones" class="mono" placeholder="e.g. America/New_York, Europe/London, Asia/Tokyo" />
-
-    <label>Weather — cities (one per line: "Name, lat, lon")</label>
-    <textarea id="set-weather-cities" class="mono" rows="3" placeholder="New York, 40.7128, -74.0060"></textarea>
+    <p style="font-size: 12px; color: var(--text-muted); margin-top: 12px; padding: 8px 10px; background: var(--bg-elev-2); border-radius: 6px;">
+      Configure individual widgets (cities for weather/clock, coins for crypto, tickers for markets/watchlist) via the small <strong>⚙</strong> icon on each widget card on the dashboard.
+    </p>
 
     <label>Search engine</label>
     <select id="set-search-engine">
@@ -1550,7 +1552,23 @@ function ensurePersonaSchema(p) {
     });
   });
   if (!p.widgets) p.widgets = {};
-  if (!p.widgets.clock)   p.widgets.clock   = { zones: [Intl.DateTimeFormat().resolvedOptions().timeZone] };
+  if (!p.widgets.clock) {
+    const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    p.widgets.clock = { zones: [{ name: localTz.split('/').pop().replace(/_/g, ' '), tz: localTz }] };
+  }
+  /* Migrate older string-based zones (v1.0–v1.2 format) to {name,tz} objects.
+     Backward compat: a persona saved by old code has e.g. zones: ['America/New_York'];
+     we convert each entry to { name: 'New York', tz: 'America/New_York' }. */
+  if (Array.isArray(p.widgets.clock.zones)) {
+    p.widgets.clock.zones = p.widgets.clock.zones.map(z => {
+      if (typeof z === 'string') {
+        return { name: z.split('/').pop().replace(/_/g, ' '), tz: z };
+      }
+      return z;
+    });
+  } else {
+    p.widgets.clock.zones = [];
+  }
   if (!p.widgets.weather) p.widgets.weather = { cities: [] };
   if (!Array.isArray(p.widgets.todos)) p.widgets.todos = [];
   if (typeof p.widgets.notes !== 'string') p.widgets.notes = '';
@@ -2214,15 +2232,18 @@ function renderClockWidget(p) {
     const now = new Date();
     body.innerHTML = '';
     zones.forEach(zone => {
+      /* `zone` is now { name, tz }. Display the friendly name (Tom-set or
+         migrated from the IANA's last segment) on the left, current time
+         in that IANA timezone on the right. */
       const row = document.createElement('div');
       row.className = 'clock-zone';
       const city = document.createElement('span');
       city.className = 'city';
-      city.textContent = zone.split('/').pop().replace(/_/g, ' ');
+      city.textContent = zone.name || zone.tz;
       const time = document.createElement('span');
       time.className = 'time';
       try {
-        const fmt = new Intl.DateTimeFormat([], { timeZone: zone, hour: 'numeric', minute: '2-digit', hour12: true });
+        const fmt = new Intl.DateTimeFormat([], { timeZone: zone.tz, hour: 'numeric', minute: '2-digit', hour12: true });
         time.textContent = fmt.format(now);
       } catch { time.textContent = '—'; }
       row.appendChild(city);
@@ -2677,9 +2698,6 @@ function openSettingsModal() {
   document.getElementById('set-title').value = state.data.title;
   document.getElementById('set-persona-name').value = p.name;
   document.getElementById('set-persona-accent').value = normalizeHex(p.accent);
-  document.getElementById('set-clock-zones').value = (p.widgets.clock.zones || []).join(', ');
-  document.getElementById('set-weather-cities').value = (p.widgets.weather.cities || [])
-    .map(c => `${c.name}, ${c.lat}, ${c.lon}`).join('\n');
   document.getElementById('set-search-engine').value = state.data.searchEngine || 'google';
   document.getElementById('set-gist-id').textContent = state.gistId;
   document.getElementById('set-twelvedata-key').value = state.twelveDataKey || '';
@@ -2743,12 +2761,10 @@ function closeSettingsModal() {
   render();
 }
 
-function saveSettings() {
+async function saveSettings() {
   const newTitle = document.getElementById('set-title').value.trim() || 'StartDashboard';
   const personaName = document.getElementById('set-persona-name').value.trim() || 'Untitled';
   const accent = document.getElementById('set-persona-accent').value || '#22D3EE';
-  const zonesStr = document.getElementById('set-clock-zones').value.trim();
-  const citiesStr = document.getElementById('set-weather-cities').value.trim();
   const searchEngine = document.getElementById('set-search-engine').value;
   const defaultPersonaId = document.getElementById('set-default-persona').value;
   const bgUrl = document.getElementById('set-bg-image-url').value.trim();
@@ -2757,19 +2773,6 @@ function saveSettings() {
   const selectedPreset = document.querySelector('#bg-preset-grid .bg-preset-thumb.selected')?.dataset?.selected
     || currentPersona().background;
 
-  const zones = zonesStr
-    ? zonesStr.split(',').map(s => s.trim()).filter(Boolean)
-    : [];
-  const cities = citiesStr
-    ? citiesStr.split('\n').map(line => {
-        const parts = line.split(',').map(s => s.trim());
-        if (parts.length < 3) return null;
-        const lat = parseFloat(parts[1]), lon = parseFloat(parts[2]);
-        if (isNaN(lat) || isNaN(lon)) return null;
-        return { name: parts[0], lat, lon };
-      }).filter(Boolean)
-    : [];
-
   /* Per-persona widget visibility: an unchecked checkbox means "hide this
      widget on this persona." Collect the unchecked ones. */
   const newHidden = [];
@@ -2777,24 +2780,20 @@ function saveSettings() {
     if (!cb.checked) newHidden.push(cb.dataset.widgetToggle);
   });
 
-  setState(d => {
-    d.title = newTitle;
-    d.searchEngine = searchEngine;
-    const p = d.personas.find(pp => pp.id === currentPersona().id);
-    p.name = personaName;
-    p.accent = accent;
-    if (bgUrl) p.background = 'url:' + bgUrl;
-    else if (selectedPreset) p.background = selectedPreset;
-    p.widgets.clock.zones = zones;
-    p.widgets.weather.cities = cities;
-    p.hiddenWidgets = newHidden;
-  });
+  /* Mutate state directly (skip the debounce so we can save+await below). */
+  state.data.title = newTitle;
+  state.data.searchEngine = searchEngine;
+  const p = state.data.personas.find(pp => pp.id === currentPersona().id);
+  p.name = personaName;
+  p.accent = accent;
+  if (bgUrl) p.background = 'url:' + bgUrl;
+  else if (selectedPreset) p.background = selectedPreset;
+  p.hiddenWidgets = newHidden;
 
   localStorage.setItem(LS.DEFAULT_PERSONA, defaultPersonaId);
   state.defaultPersonaId = defaultPersonaId;
 
-  /* Twelve Data API key — per-browser like the GitHub PAT, never synced
-     through the gist. */
+  /* Twelve Data API key — per-browser like the GitHub PAT, never synced. */
   const tdKey = document.getElementById('set-twelvedata-key').value.trim();
   if (tdKey) {
     localStorage.setItem(LS.TWELVE_DATA_KEY, tdKey);
@@ -2804,8 +2803,18 @@ function saveSettings() {
     state.twelveDataKey = null;
   }
 
+  /* Apply immediately AND flush to the gist now (no 1.5s debounce) so a
+     fast reload always sees the new state. */
+  render();
+  if (state.saveTimer) { clearTimeout(state.saveTimer); state.saveTimer = null; }
   document.getElementById('settings-modal').classList.add('hidden');
-  showToast('Settings saved.');
+  showToast('Saving…');
+  try {
+    await saveToGist();
+    showToast('Settings saved.');
+  } catch (e) {
+    showToast('Save failed: ' + e.message);
+  }
 }
 
 /* ---- Bookmarklet code modal ---- */
@@ -3003,12 +3012,11 @@ function renderWidgetCfgList() {
       return;
     }
     zones.forEach((z, i) => {
-      const friendly = z.split('/').pop().replace(/_/g, ' ');
       const li = document.createElement('li');
       li.innerHTML =
-        '<span class="item-name">' + escapeHtml(friendly) + '</span>' +
+        '<span class="item-name">' + escapeHtml(z.name || z.tz) + '</span>' +
         '<span class="item-right">' +
-          '<span class="item-meta">' + escapeHtml(z) + '</span>' +
+          '<span class="item-meta">' + escapeHtml(z.tz) + '</span>' +
           '<button class="remove-btn" title="Remove">&times;</button>' +
         '</span>';
       li.querySelector('.remove-btn').addEventListener('click', () => {
@@ -3152,9 +3160,14 @@ async function doCitySearch(q, resultsEl) {
           '<div class="secondary">' + escapeHtml(where) + (localTime ? ' &middot; currently ' + localTime : '') + '</div>' +
           '<div class="meta">' + escapeHtml(tz) + '</div>';
         btn.addEventListener('click', () => {
+          /* Add as { name, tz } so two cities in the same timezone (e.g.
+             Atlanta and New York both America/New_York) show as separate
+             rows in the clock widget. De-dupe only on exact name + tz match. */
+          const entry = { name: item.name, tz };
           setState(d => {
             const pp = d.personas.find(x => x.id === currentPersona().id);
-            if (!pp.widgets.clock.zones.includes(tz)) pp.widgets.clock.zones.push(tz);
+            const dupe = pp.widgets.clock.zones.some(z => z.name === entry.name && z.tz === entry.tz);
+            if (!dupe) pp.widgets.clock.zones.push(entry);
           });
           document.getElementById('widget-cfg-search').value = '';
           resultsEl.classList.add('hidden');
