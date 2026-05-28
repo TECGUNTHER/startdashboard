@@ -13,7 +13,8 @@
 - Senior Director of Pre-Sales Solutions Engineering. Technology sales, collaboration platforms (UCaaS, CCaaS, Webex, contact center).
 - Not a professional developer. Technically fluent. Cannot interpret raw stack traces or developer jargon without translation.
 - Communicates in plain English. Hates marketing language, filler phrases, and over-explanation. Prefers concrete language ("added a Q4 toggle") to corporate language ("implemented quarterly filtering").
-- Often returns to projects after long gaps. Needs orientation, not assumed context.
+- Default browser on his Mac is Safari (not Chrome). His phone browsing is mostly inbound link-taps from text/email/social — not outbound surfing.
+- When testing a freshly built thing, his strong preference is: log UX issues as Open Items, continue testing, batch-fix at the end. Don't stop to fix each one individually mid-test.
 
 ---
 
@@ -21,91 +22,141 @@
 
 **Name:** StartDashboard
 **Folder:** `projects/personal-dashboard/` in Tom's `tom-workspace`
-**Current status:** In Progress (built; deployment pending)
-**Current phase:** Documented
-**Last updated:** 2026-05-27
+**Current status:** Complete (in active use; iterating on polish)
+**Current phase:** Complete (with v1.5 polish round shipped)
+**Last updated:** 2026-05-28
+**Live URL:** https://tecgunther.github.io/startdashboard/
+**Code repo:** https://github.com/TECGUNTHER/startdashboard
+**In use on:** Safari (Mac), Chrome (Mac), Safari (iPhone)
 
 **What it does (plain English):**
-A single-file web app that becomes Tom's home page across every browser and device. A tab bar at the top lets him switch between "personas" (Work, Personal, Investments, anything he creates). Each persona is its own complete dashboard with its own bookmarks, widgets, background, and accent color. Data lives in one private GitHub gist on his account, so opening the same URL in Chrome on his Mac and Safari on his iPhone shows the same view, synced within seconds. The aesthetic is dark and modern (Linear/Vercel/Raycast as reference points), and he can swap backgrounds from a library of 8 CSS-only presets or paste any image URL.
+A single-file web app that becomes Tom's home page across every browser and device. A tab bar at the top lets him switch between "personas" (Work, Personal, Investments, anything he creates). Each persona is its own complete dashboard with its own bookmarks (in categories), widgets, background, and accent color. Data lives in one private GitHub gist on his account, so opening the same URL in Chrome on his Mac and Safari on his iPhone shows the same view, synced within seconds. Aesthetic is dark and modern (Linear/Vercel/Raycast as references).
+
+**Available widgets (per-persona, can be shown or hidden individually):**
+- Clock (multi time zone, 12/24hr toggle)
+- Weather (Open-Meteo, no key)
+- To-do list
+- Sticky notes
+- Crypto (CoinGecko, no key — shows price + dollar + percent change)
+- Markets (Twelve Data — defaults to SPY/QQQ/DIA for S&P/Nasdaq/Dow)
+- Watchlist (Twelve Data — Tom's custom stocks)
 
 ---
 
 # Where We Are
 
-## Most recent session (2026-05-27)
+## Most recent session (2026-05-27 through 2026-05-28 — one big build-and-iterate run)
 
-- Approved the build plan after two rounds of design input (personas and customizable backgrounds were added during planning, on Tom's prompting).
-- Built `index.html` — the single-file dashboard with persona tabs, GitHub gist sync, four widgets (clock, weather, todos, notes), 8 CSS-only background presets, drag-drop bookmark adds, and a bookmarklet popup flow.
-- Built the four workspace-level templates (`PROJECT-HUB`, `MASTER-HUB`, `TECHNICAL`, `UX`) since this is the first project in Tom's workspace.
-- Generated `PROJECT-HUB.html`, `docs/TECHNICAL.html`, `docs/USER-EXPERIENCE.html`, and this `HANDOFF.md`.
-- Created `MASTER-HUB.html` at the workspace root with this project as the first card.
+### v1.0 (2026-05-27 afternoon/evening)
+Designed, built, deployed end-to-end. Got it live at the GitHub Pages URL, set up Safari + Chrome on the Mac, set up Safari on iPhone, verified cross-browser sync (rename + drag-drop round-trip).
 
-## Sessions before that
+### v1.1 (same evening)
+Polish round driven by real-usage gaps discovered during setup:
+- Wired widget gear icons (they were placeholder buttons in v1.0)
+- City search via Open-Meteo geocoding replaces manual lat/lon + IANA timezone strings
+- Cross-persona add banner (popup adds to one persona; main window views another → banner offers "Switch to X")
+- Bookmark action icons (✎📝↗×) visible at low opacity by default instead of hover-only
 
-- None — this is the first session on this project.
+### v1.2 (late evening)
+Big expansion driven by Tom's Investments persona idea:
+- Per-persona widget visibility (hide individual widgets per persona; AI Education persona can have zero widgets)
+- Crypto widget (CoinGecko)
+- Markets widget (Twelve Data — needs API key, free tier)
+- Watchlist widget (Twelve Data, same key)
+- 60-second client cache on Twelve Data quotes to stay under free-tier rate limits
+- 12-hour clock (was 24-hour)
+- Bug fixes: background save flow, cross-add Switch button reload
+
+### v1.3 (2026-05-28)
+Three bugs Tom found during use:
+- **Background CSS specificity bug** — `#background { background: var(--bg) }` had been overriding every `.bg-*` class rule since v1.0; users never actually saw Midnight Mesh / Aurora / Synthwave gradients. Removed the conflicting rule.
+- Clock zones changed from string[] to {name, tz}[] so two cities in the same timezone (Atlanta + NYC) show as separate rows
+- Removed duplicate Clock/Weather config from main Settings (widget gear is now the only path)
+- `saveSettings` now flushes to gist immediately (await) instead of relying on the 1.5s debounce
+
+### v1.4
+- Per-persona 12hr/24hr clock toggle (under the clock widget's ⚙)
+- Bookmark descriptions (optional, one-line under title — superseded in v1.5)
+- "Danger zone" block in Settings for destructive actions (Delete persona, Reset browser) with explanatory subtext
+
+### v1.5 (current)
+- Bookmark description redesigned: hidden by default, hover-revealed flyout popover (0.5s delay), edit via modal with multi-line auto-growing textarea (room for reminders, asterisks, line breaks)
+- Crypto/Markets/Watchlist widgets show **dollar change + percent change** (CoinGecko's percent is used to derive dollar; Twelve Data returns dollar directly)
+- Twelve Data API key walkthrough added inline in Settings (4-step setup guide right above the input)
+- HANDOFF.md / TECHNICAL.html / USER-EXPERIENCE.html refreshed (had been stuck at v1.0)
 
 ## Immediate next step
 
-Tom needs to deploy the repo to GitHub Pages and run first-time setup in his primary browser. Specifically:
-1. `git init` in `projects/personal-dashboard/`, push to `github.com/TECGUNTHER/startdashboard`, enable GitHub Pages from `main` / root.
-2. Generate a Personal Access Token with `gist` scope at `github.com/settings/tokens`.
-3. Visit `https://tecgunther.github.io/startdashboard/`, paste the token, choose "First browser — create a new gist."
-4. Test the bookmarklet on a real site to confirm the round-trip works.
-5. Repeat steps 2 and 3 on Safari and on iPhone, choosing "I already set up another browser" and pasting the gist ID from the first browser.
+Tom is using it daily. Next iteration is whatever real-use friction he surfaces. Currently no concrete next-task in the queue.
 
 ---
 
 # Key Decisions Made (and Why)
 
-- **GitHub gist as the data backend** — durable, free, no third-party service to outlive Tom's GitHub account. Chosen over Supabase, jsonbin, and iCloud-folder-based sync. The latter failed because Safari can't write back to local files.
-- **Personal Access Token per browser, stored in localStorage** — avoids OAuth complexity in a static page. Each browser gets its own token; losing a device means revoking one token, not all of them.
-- **Per-persona widgets, backgrounds, and accent colors** — the whole point of personas is mental separation. Sharing widgets across personas would blur the lines between Work and Personal. Each persona is fully independent.
-- **Per-device default persona via localStorage** — Tom wants his work Mac to open to Work and his iPhone to open to Personal. The default is a per-device preference, not a synced setting.
-- **Bookmarklet over a browser extension** — one piece of JavaScript that works in every browser, forever. A browser extension means three separate builds and ongoing maintenance.
-- **Backgrounds: 8 CSS-only presets + image URL only** — image upload would bloat the gist with base64 on every save. URL-based images work well and keep the gist small.
-- **Last-write-wins on sync conflicts** — real conflict resolution is overkill for a single-user app. A toast warns Tom if another browser has updated since he loaded, and the most recent save wins.
-- **No automatic bookmark import from existing browser bookmarks** — bookmarks come over manually as Tom uses the bookmarklet. Adding JSON import is straightforward later if needed.
+- **GitHub gist as the data backend** — durable, free, no third-party service to outlive Tom's GitHub account. Chosen over Supabase / jsonbin / iCloud-folder sync (Safari can't write back to local files).
+- **Per-browser Personal Access Tokens stored in localStorage** — avoids OAuth in a static page. Each browser gets its own token; losing a device means revoking one token, not all.
+- **Per-persona widgets, backgrounds, accent colors, and visibility** — the whole point of personas is mental separation. Each persona is fully independent.
+- **Per-device default persona** (localStorage) — Tom's work Mac opens to Work, iPhone opens to Personal. Not synced through the gist.
+- **Bookmarklet over a browser extension** — one JavaScript snippet that works everywhere; no per-browser build burden.
+- **Backgrounds: CSS-only presets + image URL only (no upload)** — image upload would bloat the gist with base64 on every save.
+- **Twelve Data for stocks (free tier with API key)**, **CoinGecko for crypto (free, no key)** — picked over Yahoo Finance because Yahoo's chart endpoint blocks browser requests via CORS.
+- **API key per-browser in localStorage (parallel to GitHub PAT)** — rate limits are per-key; don't sync credentials through a gist.
+- **Markets uses ETF proxies (SPY, QQQ, DIA)** for major indices since the actual indices (^GSPC etc.) need higher Twelve Data tiers.
+- **Clock zones stored as {name, tz} objects (since v1.3)** — allows multiple cities in the same timezone (Atlanta + NYC both EST) to render as separate rows.
+- **Bookmark descriptions as hover popover (since v1.5)** — keeps the row clean at rest; full text appears with a 0.5s delay so it doesn't pop on every mouseover.
+- **Last-write-wins on sync conflicts** — single-user app; full conflict resolution is overkill. A toast warns when another browser has updated.
+- **iPhone slim mode deferred indefinitely** — Tom's phone is inbound-link-driven; he doesn't browse outbound on it.
 
 ---
 
 # The Stack
 
-- **Language(s):** HTML, CSS, JavaScript (vanilla, no framework)
+- **Language(s):** HTML, CSS, JavaScript (vanilla, no framework, no build step)
 - **Frameworks / Libraries:** None
-- **Data sources:** GitHub REST API (private gist holds the JSON data)
-- **External APIs:** Open-Meteo (free weather, no key required); Google's favicon service (best-effort icons for bookmark rows)
-- **Storage:** One private GitHub gist on Tom's account (`TECGUNTHER`); per-browser localStorage holds the PAT, gist ID, and default persona
+- **External APIs:**
+  - GitHub REST API (gist read/write) — `api.github.com`
+  - Open-Meteo (free weather + geocoding, no key) — `api.open-meteo.com` + `geocoding-api.open-meteo.com`
+  - CoinGecko (free crypto prices + search, no key) — `api.coingecko.com`
+  - Twelve Data (stock quotes + symbol search, free tier with key) — `api.twelvedata.com`
+  - Google Favicon service (best-effort bookmark icons) — `www.google.com/s2/favicons`
+- **Storage:** One private GitHub gist on Tom's account (`TECGUNTHER`); per-browser localStorage holds the GitHub PAT, gist ID, default persona, and Twelve Data API key.
+- **Hosting:** GitHub Pages (free static), public repo at `github.com/TECGUNTHER/startdashboard`
 
 ## File structure (key files only)
 
 ```
 projects/personal-dashboard/
-├── index.html              — the entire app (HTML + CSS + JS in one file, ~1,800 lines)
-├── README.md               — setup walkthrough
+├── index.html              — the entire app (HTML + CSS + JS in one file, ~3,650 lines)
+├── README.md               — setup walkthrough (PAT, GitHub Pages deploy, bookmarklet)
 ├── PROJECT-HUB.html        — project dashboard for Tom
 ├── HANDOFF.md              — this file
 ├── docs/
-│   ├── TECHNICAL.html      — architecture, decisions, file map
-│   └── USER-EXPERIENCE.html — what the app does, plain English
+│   ├── TECHNICAL.html      — architecture, decisions, file map, how-to-modify
+│   └── USER-EXPERIENCE.html — features, screens, workflows, scope
 └── plans/
-    └── 2026-05-27-personal-dashboard-v1.md  — approved build plan
+    └── 2026-05-27-personal-dashboard-v1.md  — approved build plan (v1.0 scope)
 ```
 
 ---
 
 # How to Run It
 
+## Key URLs
+
+- **Live dashboard:** https://tecgunther.github.io/startdashboard/
+- **Code repo:** https://github.com/TECGUNTHER/startdashboard
+- **GitHub Pages settings:** https://github.com/TECGUNTHER/startdashboard/settings/pages
+- **GitHub tokens** (to revoke/regenerate): https://github.com/settings/tokens
+- **Twelve Data signup:** https://twelvedata.com/register
+- **Find your gist ID:** open the dashboard → Settings (⚙) → Sync → Gist ID
+
 ## Port: none (static page served by GitHub Pages)
 
-## One-time setup
-
-Deploy `index.html` to GitHub Pages under `github.com/TECGUNTHER/startdashboard`:
+## One-time setup (already done, but for reference)
 
 ```
 cd projects/personal-dashboard
-git init
-git add .
-git commit -m "Initial StartDashboard"
+git init && git add . && git commit -m "Initial StartDashboard"
 git branch -M main
 git remote add origin https://github.com/TECGUNTHER/startdashboard.git
 git push -u origin main
@@ -113,7 +164,7 @@ git push -u origin main
 
 Then in GitHub: **Settings → Pages → Deploy from a branch → main / (root)**.
 
-Generate a Personal Access Token at `github.com/settings/tokens?type=beta` with `gist` read/write scope.
+Generate a Personal Access Token at `github.com/settings/tokens?type=beta` with `gist` read/write scope. Paste into the dashboard's setup screen.
 
 ## To launch
 
@@ -121,34 +172,47 @@ Generate a Personal Access Token at `github.com/settings/tokens?type=beta` with 
 open https://tecgunther.github.io/startdashboard/
 ```
 
-For local-only preview (no sync), just double-click `index.html`.
+For local-only preview, double-click `index.html`.
+
+## Iteration loop (when making code changes)
+
+```
+cd ~/Documents/tom-workspace/projects/personal-dashboard
+git add index.html
+git commit -m "vX.Y: short description"
+git push
+```
+
+Then hard-reload the dashboard (Safari: Option+Cmd+R, Chrome: Cmd+Shift+R). GitHub Pages takes ~30–60s to update.
 
 ## Troubleshooting (known issues)
 
-- **"Bad credentials" on first run** → PAT was pasted wrong or is missing the `gist` scope. Regenerate.
-- **Sync indicator turns red ⚠** → Click it to reload from the gist. If still failing, the token may have expired; reset this browser in Settings.
+- **"Bad credentials" on first run** → PAT wrong or missing `gist` scope. Regenerate.
+- **Sync indicator turns red ⚠** → Click it to reload from gist. If still failing, token may have expired; reset this browser in Settings → Danger Zone.
+- **Cross-browser changes not showing** → Reload the other browser. Background poll is 60s; manual reload is instant.
 - **Bookmarklet popup blocked** → Allow popups for `tecgunther.github.io` in browser settings.
-- **Changes not appearing across browsers** → Reload the other browser (Cmd+R). Background poll is 60s, but reload is instant.
-- **Weather "Could not load"** → Transient Open-Meteo issue, or invalid lat/lon coordinates in Settings.
+- **Weather "Could not load"** → Transient Open-Meteo issue, or invalid lat/lon coords.
+- **Markets/Watchlist say "Add Twelve Data API key"** → Open Settings ⚙ → see walkthrough → paste key.
 
 ---
 
 # What's in the Folder
 
 - `index.html` — the entire app
-- `README.md` — setup walkthrough (PAT, GitHub Pages deploy, bookmarklet install)
-- `PROJECT-HUB.html` — visual dashboard for this project (Tom's home base for the project)
+- `README.md` — setup walkthrough
+- `PROJECT-HUB.html` — visual dashboard for this project (Tom's home base)
 - `HANDOFF.md` — this file
-- `docs/TECHNICAL.html` — architecture, dependencies, decisions, file map, how-to-modify
-- `docs/USER-EXPERIENCE.html` — what the app does, features, workflows, scope
-- `plans/2026-05-27-personal-dashboard-v1.md` — the approved build plan (read-only history)
+- `docs/TECHNICAL.html` — architecture, decisions, file map, how-to-modify
+- `docs/USER-EXPERIENCE.html` — what the app does, plain English
+- `plans/2026-05-27-personal-dashboard-v1.md` — the approved build plan (v1.0 scope; later versions tracked via session log)
 
 ---
 
 # Open Items
 
-- **Question** — Does mobile Safari's drag-drop from address bar behave the same as desktop? Worth a quick check on iPhone after first deploy. (added 2026-05-27)
-- **Feature** — Optionally add a "Custom embed" widget for pasting iframes (calendar, RSS, etc.) once the basics are working. (added 2026-05-27)
+- **(Low priority)** iPhone slim mode — deferred indefinitely (Tom's phone is inbound-link-driven, not outbound surfing).
+- **(Question)** Mobile Safari drag-drop behavior on iPhone — only matters if Tom starts managing bookmarks on phone.
+- **(Future feature)** Custom embed widget for pasting iframes (calendar, RSS, etc.) — only when Tom has a specific use case.
 
 ---
 
@@ -160,31 +224,27 @@ For local-only preview (no sync), just double-click `index.html`.
 - One question at a time. Don't stack three at once.
 - Lead with the answer. He reads executive briefs all day.
 - No filler enthusiasm. Skip "Great question!", "Happy to help!"
+- Be honest about limits. If something isn't working or isn't built, say so directly.
 
 ## Project-specific quirks
 
-- Tom prefers single-file HTML when possible. This whole app is one file by design.
-- The workspace's persistent documents (PROJECT-HUB, MASTER-HUB, TECHNICAL, UX) follow a light, restrained aesthetic. The dashboard *app itself* is dark/modern/tech. Don't mix the two — keep the dark theme inside `index.html` and the light theme in the hub/doc files.
-- Tom is the only user. No multi-user features, no sharing model, no admin layer.
-- All data lives on his GitHub account. Don't add third-party services without checking first.
+- Single-file HTML by design — don't suggest splitting into modules unless there's a real reason.
+- Workspace's persistent documents (PROJECT-HUB, MASTER-HUB, TECHNICAL, UX) use a light/restrained aesthetic. The dashboard *app itself* (`index.html`) is dark/modern/tech. Don't mix the two.
+- Tom is the only user. No multi-user features, no sharing model.
+- All data lives on Tom's GitHub account. Don't add third-party services without checking first.
+- He prefers per-persona settings over global settings — matches the persona-as-channel mental model.
 
 ## What he's likely to want next
 
-After deploying and running through the first-time setup, he's most likely to:
-1. Hit something that doesn't work in practice (a bookmarklet popup, a sync edge case) and ask for help diagnosing.
-2. Want to tune the visual look — different backgrounds, accent colors, a specific widget layout.
-3. Add the "Investments" persona he mentioned during planning.
-4. Eventually request the deferred features: custom embed widget, image upload for backgrounds, recently-added widget, bookmark-import flow.
+- More polish based on actual use (he iterates fast when he finds friction).
+- Eventually: a Custom embed widget for arbitrary iframes (calendar, RSS).
+- Maybe: more financial widgets (international markets, futures, FX) if he leans further into Investments.
 
 ---
 
 # Deeper Reference
 
-If you need more detail than this document provides:
-
-- **Architecture, dependencies, technical decisions:** see `docs/TECHNICAL.html`
-- **What the app does, screens, user workflows:** see `docs/USER-EXPERIENCE.html`
-- **Project state and history:** see `PROJECT-HUB.html`
-- **Build plans (history of what was planned and built):** see `plans/`
-
-All files are in the project root or its subfolders.
+- **Architecture, dependencies, technical decisions:** `docs/TECHNICAL.html`
+- **What the app does, screens, user workflows:** `docs/USER-EXPERIENCE.html`
+- **Project state and history:** `PROJECT-HUB.html`
+- **Build plans:** `plans/`

@@ -108,10 +108,10 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h1>StartDashboard</h1>
     <div class="header-meta">
       <!-- HUB:STATUS_OVERALL -->
-      <span class="status-pill in-progress">In Progress</span>
+      <span class="status-pill complete">Complete</span>
       <!-- /HUB:STATUS_OVERALL -->
       <!-- HUB:LAST_UPDATED -->
-      <span class="last-updated">2026-05-27 · Wed · 4:00 PM EDT</span>
+      <span class="last-updated">2026-05-28 · Thu</span>
       <!-- /HUB:LAST_UPDATED -->
     </div>
   </div>
@@ -126,8 +126,8 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
       <div class="phase done">Research</div>
       <div class="phase done">Design</div>
       <div class="phase done">Build</div>
-      <div class="phase active" aria-current="step">Documented</div>
-      <div class="phase pending">Complete</div>
+      <div class="phase done">Documented</div>
+      <div class="phase done">Complete</div>
       <!-- /HUB:PHASE_TRACKER -->
     </nav>
 
@@ -136,10 +136,9 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <h3>Recently completed</h3>
         <!-- HUB:RECENT_COMPLETED -->
         <ul>
-          <li>Approved build plan for StartDashboard v1 (personas, sync, widgets, backgrounds, bookmarklet).</li>
-          <li>Built the dashboard app — single-file <code>index.html</code>, ~1,800 lines of vanilla HTML/CSS/JS.</li>
-          <li>Wrote setup README with token generation, GitHub Pages deploy steps, and troubleshooting.</li>
-          <li>Stood up the four workspace templates (PROJECT-HUB, MASTER-HUB, TECHNICAL, UX).</li>
+          <li><strong>v1.2 shipped:</strong> per-persona widget visibility, three new finance widgets (Crypto via CoinGecko, Markets + Watchlist via Twelve Data), 12-hour clock, background save fixed, cross-add Switch now reloads the gist.</li>
+          <li>v1.1 shipped earlier this session &mdash; wired widget gears, city search, cross-add banner, visible bookmark actions.</li>
+          <li>Live across three browsers and verified cross-browser sync (rename + drag-drop) round-trips Safari ↔ Chrome.</li>
         </ul>
         <!-- /HUB:RECENT_COMPLETED -->
       </div>
@@ -147,9 +146,9 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <h3>What's next</h3>
         <!-- HUB:WHATS_NEXT -->
         <ul>
-          <li>Tom deploys the repo to GitHub Pages and runs the first-time setup in Chrome.</li>
-          <li>Test the bookmarklet on a real site; confirm the gist sync round-trips.</li>
-          <li>Repeat setup in Safari to verify cross-browser sync, then on iPhone.</li>
+          <li><strong>Push v1.2 to GitHub</strong>, hard-reload, paste your Twelve Data API key in Settings ⚙.</li>
+          <li>Smoke-test: widget toggles, Markets shows S&amp;P/Nasdaq/Dow, Crypto search works, build the Investments persona using these widgets.</li>
+          <li>Then use it on the Mac for a week before the next iteration.</li>
         </ul>
         <!-- /HUB:WHATS_NEXT -->
       </div>
@@ -183,8 +182,18 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h2>How to Run This App</h2>
     <!-- HUB:HOW_TO_RUN -->
     <div class="run-block">
-      <h3>One-time setup</h3>
-      <p>Deploy <code>index.html</code> to GitHub Pages under your account (<code>TECGUNTHER</code>). Detailed steps live in <a href="README.md">README.md</a> &mdash; one git push and one toggle in GitHub Settings.</p>
+      <h3>Key URLs</h3>
+      <ul>
+        <li><strong>Live dashboard:</strong> <a href="https://tecgunther.github.io/startdashboard/">https://tecgunther.github.io/startdashboard/</a></li>
+        <li><strong>GitHub repo</strong> (for code edits): <a href="https://github.com/TECGUNTHER/startdashboard">github.com/TECGUNTHER/startdashboard</a></li>
+        <li><strong>GitHub Pages settings:</strong> <a href="https://github.com/TECGUNTHER/startdashboard/settings/pages">github.com/TECGUNTHER/startdashboard/settings/pages</a></li>
+        <li><strong>Personal Access Tokens</strong> (to revoke or regenerate): <a href="https://github.com/settings/tokens">github.com/settings/tokens</a></li>
+        <li><strong>Find your gist ID:</strong> open the dashboard &rarr; <strong>Settings (&#9881;)</strong> &rarr; <strong>Sync &rarr; Gist ID</strong></li>
+      </ul>
+    </div>
+    <div class="run-block">
+      <h3>One-time setup (already done)</h3>
+      <p>The project is deployed and the first browser is set up. To repeat this whole sequence on a fresh machine, see <a href="README.md">README.md</a>.</p>
       <pre class="cmd">git init &amp;&amp; git add . &amp;&amp; git commit -m "Initial StartDashboard"</pre>
       <pre class="cmd">git remote add origin https://github.com/TECGUNTHER/startdashboard.git &amp;&amp; git push -u origin main</pre>
       <p>Then in GitHub: <strong>Settings &rarr; Pages &rarr; Deploy from a branch &rarr; main / (root)</strong>.</p>
@@ -212,8 +221,105 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h2>Session Log</h2>
     <!-- HUB:SESSION_LOG -->
     <article class="session-entry latest">
+      <div class="date">2026-05-28 &middot; Thursday &middot; later afternoon</div>
+      <div class="focus">v1.5 polish &mdash; description redesign, dollar-change on finance widgets, API key walkthrough, doc refresh.</div>
+      <h4>Completed</h4>
+      <ul>
+        <li><strong>Bookmark description redesigned per Tom's spec.</strong> Hidden by default (accent dot signals presence). Hover popover with full text, 0.5s show delay, instant hide. Edit via modal with multi-line auto-growing textarea &mdash; room for reminders, asterisks, line breaks. Cmd+Enter saves.</li>
+        <li><strong>Crypto widget shows dollar change</strong> alongside percent. Derived from CoinGecko's percent + current price (CoinGecko doesn't return absolute change).</li>
+        <li><strong>Markets and Watchlist show dollar change</strong> alongside percent. Twelve Data returns this directly.</li>
+        <li><strong>Twelve Data API key walkthrough</strong> added inline in Settings &mdash; four-step setup guide with link to signup, right above the input.</li>
+        <li><strong>Documentation refresh.</strong> <code>HANDOFF.md</code> rewritten to v1.5 state (was stuck at v1.0). <code>docs/TECHNICAL.html</code> updated: new widgets in stack, all v1.1&ndash;v1.5 decisions captured, current gist schema documented, how-to-modify expanded. <code>docs/USER-EXPERIENCE.html</code> updated: new features (descriptions, finance widgets, dollar change), new workflows (description edit, Twelve Data setup).</li>
+      </ul>
+      <h4>Decisions made</h4>
+      <ul>
+        <li>Description popover with asymmetric timing: 0.5s show delay (so it doesn't pop on brief mouseovers), 0s hide delay (so it disappears immediately when hover ends).</li>
+        <li>For CoinGecko dollar change, derive previous price from <code>current / (1 + pct/100)</code> rather than the cheaper <code>current * pct/100</code> &mdash; tiny accuracy bump at no cost.</li>
+        <li>Confirmed honestly to Tom: this multi-agent system runs as one Claude playing all roles in a single session. Documentation Agent's job is being done by me when I make doc edits per the documentation-agent.md spec. Tom asked &mdash; doc files brought current as proof.</li>
+      </ul>
+    </article>
+
+    <article class="session-entry">
+      <div class="date">2026-05-28 &middot; Thursday &middot; afternoon</div>
+      <div class="focus">v1.4 polish &mdash; 12/24hr clock toggle, bookmark descriptions, Danger zone for destructive Settings actions.</div>
+      <h4>Completed</h4>
+      <ul>
+        <li><strong>Per-persona 12hr/24hr clock toggle.</strong> Lives under the clock widget's ⚙. Default 12hr; flip to 24hr per persona.</li>
+        <li><strong>Bookmark descriptions.</strong> Each bookmark can have an optional one-line description below the title. Always visible when set. Edit via the 📝 icon in the action row, or double-click an existing description. Same inline-edit pattern as rename.</li>
+        <li><strong>Settings → Danger zone.</strong> Delete persona and Reset browser moved into a visually-distinct block with explanatory subtext, so they're harder to click by accident. Confirm dialogs unchanged (still required before destruction).</li>
+      </ul>
+      <h4>Decisions made</h4>
+      <ul>
+        <li>Bookmark description visibility: always show when set, never show a placeholder when empty &mdash; keeps long lists clean. Add via 📝 action icon.</li>
+        <li>Clock toggle scoped per-persona (not global) &mdash; consistent with how every other widget setting is scoped.</li>
+      </ul>
+    </article>
+
+    <article class="session-entry">
+      <div class="date">2026-05-28 &middot; Thursday</div>
+      <div class="focus">v1.3 hotfix &mdash; the background bug that was lurking since v1.0, plus clock zone duplicates and a duplicate Settings UI.</div>
+      <h4>Completed</h4>
+      <ul>
+        <li><strong>Background rendering bug fixed (CSS specificity).</strong> <code>#background { background: var(--bg) }</code> was overriding every <code>.bg-*</code> class rule due to ID-vs-class specificity. Result: every preset rendered as the same solid dark color since v1.0. Tom never actually saw Midnight Mesh, Aurora, Synthwave, etc. — they exist now. Removed the conflicting rule.</li>
+        <li><strong>Clock zone duplicates bug fixed.</strong> Zones were stored as IANA strings, so adding "Atlanta" silently failed if NYC was already there (same TZ). Migrated to <code>{ name, tz }</code> objects so two cities sharing a timezone render as separate rows. Backward-compat: old string-format zones auto-migrate on load.</li>
+        <li><strong>Removed duplicate Clock/Weather config from main Settings.</strong> The original "comma-separated IANA names" and "Name, lat, lon" fields competed with the widget-gear search UIs added in v1.1. One way to configure each widget now: its ⚙ icon. Main Settings panel got a one-line pointer instead.</li>
+        <li><strong>saveSettings now flushes immediately</strong> (await instead of relying on the 1.5s debounce). Fast reloads no longer risk missing the save.</li>
+      </ul>
+      <h4>Decisions made</h4>
+      <ul>
+        <li>Schema migration is invisible to Tom &mdash; old gists with string zones load cleanly and re-save in the new shape on first edit.</li>
+        <li>Clock allows duplicate timezones with different city labels (Atlanta + NYC both EST is fine); de-dupe only on exact name + tz match.</li>
+      </ul>
+    </article>
+
+    <article class="session-entry">
+      <div class="date">2026-05-27 &middot; Wednesday &middot; late evening</div>
+      <div class="focus">v1.2 expansion &mdash; per-persona widget visibility, three finance widgets, 3 bug fixes.</div>
+      <h4>Completed</h4>
+      <ul>
+        <li><strong>Per-persona widget visibility.</strong> Each persona can independently show/hide any widget via Settings ⚙. Default: Work and Personal hide the new finance widgets; new personas show everything.</li>
+        <li><strong>Crypto widget</strong> (CoinGecko, no API key). Search any coin by name or symbol; shows price + 24h % change.</li>
+        <li><strong>Markets widget</strong> (Twelve Data). Defaults to SPY / QQQ / DIA for S&amp;P / Nasdaq / Dow. Pretty-prints friendly names.</li>
+        <li><strong>Watchlist widget</strong> (Twelve Data). Add any stock by ticker or via search.</li>
+        <li>60-second client cache on Twelve Data quotes so the free 8-req/min limit isn't burned by re-renders.</li>
+        <li><strong>Bug fix:</strong> 12-hour clock (was 24-hr).</li>
+        <li><strong>Bug fix:</strong> background save was silently failing if no thumbnail was clicked in settings — now reads the current background as fallback and properly marks the pre-selected thumb.</li>
+        <li><strong>Bug fix:</strong> cross-add banner Switch button now reloads the gist before switching personas, so the just-added bookmark appears immediately (no manual refresh needed).</li>
+        <li>File grew from ~2,860 to ~3,360 lines. Still single file, still no framework.</li>
+      </ul>
+      <h4>Decisions made</h4>
+      <ul>
+        <li>Twelve Data API key stored per-browser in localStorage (parallel to GitHub PAT) &mdash; rate limits are per-key, and we shouldn't sync credentials through the gist.</li>
+        <li>Markets uses ETF proxies (SPY, QQQ, DIA) for indices &mdash; the actual indices (^GSPC etc.) sometimes need higher Twelve Data tiers.</li>
+        <li>Crypto uses CoinGecko's free public API directly &mdash; no key, no rate-limit headaches for personal use.</li>
+        <li>Widget visibility is per-persona, not global &mdash; matches the persona-as-channel mental model.</li>
+        <li>For Markets/Watchlist, the search input also supports "type ticker, press Enter" so tickers Twelve Data search doesn't surface (rare indices) can still be added directly.</li>
+      </ul>
+    </article>
+
+    <article class="session-entry">
+      <div class="date">2026-05-27 &middot; Wednesday &middot; evening</div>
+      <div class="focus">v1.1 polish round &mdash; fixed the four Open Items surfaced during cross-browser testing.</div>
+      <h4>Completed</h4>
+      <ul>
+        <li><strong>Wired widget gear icons.</strong> The ⚙ buttons on Weather and Clock cards previously did nothing (handler oversight). Now open a per-widget config modal.</li>
+        <li><strong>Replaced lat/lon and IANA inputs with city search.</strong> Both widgets now use the free Open-Meteo geocoding endpoint. Type a city, pick a match, coordinates / timezone stored invisibly.</li>
+        <li><strong>Cross-persona bookmark add banner.</strong> When the bookmarklet popup writes a bookmark to a persona other than the one you're viewing, the main window now shows a banner: <em>Just added "X" to Personal › Daily [Switch to Personal] [Dismiss]</em>. Driven by a `storage` event on `localStorage`.</li>
+        <li><strong>Bookmark action icons visible by default.</strong> The ✎ / ↗ / × icons on every bookmark row are now dim (opacity 0.4) by default and brighten on hover &mdash; no more hover-only invisibility.</li>
+        <li>File grew from ~2,000 to ~2,860 lines. All vanilla, single file.</li>
+        <li>Touch-specific affordances (long-press on iPhone) deferred indefinitely &mdash; Tom's phone is inbound-link-driven, not bookmark-management-driven.</li>
+      </ul>
+      <h4>Decisions made</h4>
+      <ul>
+        <li>Single shared widget-config modal (not separate modals per widget) &mdash; keeps the file smaller and the UX consistent.</li>
+        <li>Used Open-Meteo's geocoding endpoint for both widgets, including for clock timezone lookup &mdash; one API surface instead of two.</li>
+        <li>Banner uses last-write-wins via `localStorage`, no acknowledgment from main window required. Dismiss clears the key so it doesn't re-appear on next reload.</li>
+      </ul>
+    </article>
+
+    <article class="session-entry">
       <div class="date">2026-05-27 &middot; Wednesday</div>
-      <div class="focus">Designed, built, and documented StartDashboard v1 end-to-end.</div>
+      <div class="focus">Designed, built, documented, and deployed StartDashboard v1 end-to-end.</div>
       <h4>Completed</h4>
       <ul>
         <li>Drafted and revised the build plan after two rounds of input (added personas + customizable backgrounds based on Tom's feedback during planning).</li>
@@ -222,6 +328,13 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <li>Wrote README with setup steps, troubleshooting, and privacy notes.</li>
         <li>Generated PROJECT-HUB, TECHNICAL, UX, and HANDOFF docs.</li>
         <li>Created MASTER-HUB.html at workspace root with this project as the first card.</li>
+        <li><strong>Deployed to GitHub Pages.</strong> Created public repo at <code>github.com/TECGUNTHER/startdashboard</code>, pushed all 7 files (52.66 KiB), enabled Pages from <code>main</code> / root. Live URL: <a href="https://tecgunther.github.io/startdashboard/">tecgunther.github.io/startdashboard</a>.</li>
+        <li><strong>Ran first-time setup in Safari</strong> (Tom's default browser). Generated a classic PAT with <code>gist</code> scope, pasted it, created a fresh private gist, picked Work as the default persona. Dashboard rendered as expected (Midnight Mesh background, Work + Personal tabs, seeded Daily/Tools categories).</li>
+        <li><strong>Installed and tested bookmarklet on Safari.</strong> Two real-site adds round-tripped to the gist. Discovered the cross-persona-add visibility gap (added an Open Item, deferred for batch fix).</li>
+        <li><strong>Set up Chrome on the Mac</strong> with a separate PAT, joined the existing gist via gist ID. Existing data loaded correctly.</li>
+        <li><strong>Verified cross-browser sync.</strong> Bookmark rename and drag-to-another-category round-tripped between Safari and Chrome.</li>
+        <li><strong>Discovered the rename-affordance gap.</strong> Rename works via double-click or hover-pencil, but neither is discoverable. Added Open Item for batch fix.</li>
+        <li><strong>Set up iPhone Safari</strong> with its own PAT, joined the same gist. All data appeared as expected.</li>
       </ul>
       <h4>Decisions made</h4>
       <ul>
@@ -239,16 +352,23 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h2>Open Items</h2>
     <!-- HUB:OPEN_ITEMS -->
     <div class="open-item">
+      <span class="type-tag feature">UX Fix (low priority)</span>
+      <div class="body">
+        <strong>iPhone slim mode.</strong> On phones, ~600px of widgets push the first bookmark below the fold. Proposed fix (same file, no fork): on small viewports, reorder categories above widgets, collapse widgets to a horizontal scroll row or hidden behind a toggle, swap to a solid background, enlarge tap targets, compact persona tabs, and add a web app manifest so "Add to Home Screen" feels native-app fullscreen.
+        <div class="added">Added: 2026-05-27 &middot; <strong>deferred indefinitely</strong> &mdash; Tom's phone browsing is mostly inbound link-taps, not outbound surfing. Revisit only if usage patterns change.</div>
+      </div>
+    </div>
+    <div class="open-item">
       <span class="type-tag question">Question</span>
       <div class="body">
-        Does mobile Safari's drag-drop from address bar behave the same as desktop? Worth a quick check on iPhone after first deploy.
+        Does mobile Safari's drag-drop from address bar behave the same as desktop? Worth a quick check on iPhone if you ever start managing bookmarks from there.
         <div class="added">Added: 2026-05-27</div>
       </div>
     </div>
     <div class="open-item">
       <span class="type-tag feature">Feature</span>
       <div class="body">
-        Optional &mdash; add a "Custom embed" widget for pasting iframes (calendar, RSS, etc.) once Tom has the basics working.
+        Optional &mdash; add a "Custom embed" widget for pasting iframes (calendar, RSS, etc.) once Tom has a specific use in mind.
         <div class="added">Added: 2026-05-27</div>
       </div>
     </div>
@@ -259,7 +379,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
 
 <footer>
   <div class="container">
-    Maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-27 4:00 PM EDT</span>
+    Maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28</span>
   </div>
 </footer>
 

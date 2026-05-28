@@ -57,7 +57,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h1>StartDashboard</h1>
     <p class="subtitle">A single-file, cross-browser personal dashboard with GitHub-gist sync.</p>
     <!-- TECH:LAST_UPDATED -->
-    <span class="last-updated">Last updated: 2026-05-27</span>
+    <span class="last-updated">Last updated: 2026-05-28 · v1.5</span>
     <!-- /TECH:LAST_UPDATED -->
   </div>
 </header>
@@ -69,14 +69,15 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h2>Architecture Overview</h2>
     <p class="section-lead">How the app is structured and how the pieces fit together.</p>
     <!-- TECH:ARCHITECTURE -->
-    <p>StartDashboard is a single HTML file. Everything &mdash; markup, styles, and behavior &mdash; lives in <code>index.html</code>. There is no build step, no framework, and no server. The page is served as a static asset (GitHub Pages in production; you can also double-click the file locally).</p>
+    <p>StartDashboard is a single HTML file. Everything &mdash; markup, styles, and behavior &mdash; lives in <code>index.html</code> (~3,650 lines as of v1.5). There is no build step, no framework, and no server. The page is served as a static asset (GitHub Pages in production; you can also double-click the file locally).</p>
     <p>The app has three runtime layers:</p>
     <ul>
-      <li><strong>State.</strong> A single <code>state</code> object holds everything: the GitHub token (read from localStorage on boot), the gist ID, the device's default persona, and the synced <code>state.data</code> object that mirrors the gist's JSON. All UI rendering reads from this object; all mutations go through a small <code>setState()</code> wrapper that re-renders and triggers a debounced save.</li>
-      <li><strong>Sync.</strong> Reads and writes go to the GitHub REST API at <code>api.github.com/gists/:id</code>. Loading is a single GET; saving is a single PATCH that replaces the JSON file's content. Saves are debounced ~1.5 seconds after the last edit so rapid changes coalesce. A 60-second background poll checks <code>updated_at</code> on the gist and surfaces a "stale" indicator if another browser updated it.</li>
-      <li><strong>Render.</strong> Vanilla DOM manipulation. The whole dashboard re-renders on persona switch (it's cheap &mdash; there are few enough elements). Per-widget render functions handle clock (re-rendered every 30 seconds), weather (fetched from Open-Meteo on render), todos, and the notes textarea.</li>
+      <li><strong>State.</strong> A single <code>state</code> object holds everything: the GitHub token, gist ID, default persona, and Twelve Data API key (all from localStorage on boot), plus the synced <code>state.data</code> object that mirrors the gist's JSON. All UI rendering reads from this object; all mutations go through <code>setState()</code> which re-renders and triggers a debounced save. The Settings save flow bypasses the debounce and awaits the save directly so fast reloads always see the latest state.</li>
+      <li><strong>Sync.</strong> Reads/writes go to the GitHub REST API at <code>api.github.com/gists/:id</code>. Loading is a single GET; saving is a single PATCH. Background poll every 60s checks <code>updated_at</code> and surfaces a "stale" indicator if another browser updated. A cross-window <code>localStorage</code> message (<code>sd_last_added</code>) lets the bookmarklet popup notify the main dashboard about a fresh addition, surfacing a "Switch to X persona" banner when the add went somewhere the user isn't currently viewing.</li>
+      <li><strong>Render.</strong> Vanilla DOM manipulation. The whole dashboard re-renders on persona switch. Per-widget render functions: clock (re-rendered every 30s), weather (fetched from Open-Meteo on render), todos, sticky notes, crypto (CoinGecko, fetched on render), markets and watchlist (Twelve Data, with a 60s in-memory cache to stay under the free tier's 8-req/min limit).</li>
     </ul>
     <p>The bookmarklet adds bookmarks via a separate code path. When the URL contains <code>?add=&lt;url&gt;&amp;title=&lt;title&gt;</code>, the page renders only a compact "Pick a persona + category" overlay, writes synchronously to the gist, and closes its window. The main dashboard is never instantiated in that mode.</p>
+    <p>Per-persona widget visibility (<code>persona.hiddenWidgets</code>) controls which widget cards render. A persona can have zero widgets (the entire row collapses), or any subset of the seven available widgets. Each persona also has its own background, accent color, search engine config, and clock format (12hr vs 24hr).</p>
     <!-- /TECH:ARCHITECTURE -->
   </section>
 
@@ -90,7 +91,9 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
       <li><span class="name">Google Fonts</span><span class="why">Inter (UI) + JetBrains Mono (code/timestamps). Loaded with <code>display=swap</code>. The only external CSS dependency.</span></li>
       <li><span class="name">GitHub REST API</span><span class="why">Backend-as-a-database via private gists. Free, durable, no third-party service to outlive Tom's GitHub account.</span></li>
       <li><span class="name">GitHub Pages</span><span class="why">Free static hosting at <code>tecgunther.github.io/startdashboard/</code>. One URL works on any browser, any device.</span></li>
-      <li><span class="name">Open-Meteo</span><span class="why">Free weather API; no key required. Picked over OpenWeatherMap and Tomorrow.io because it has no auth surface to manage.</span></li>
+      <li><span class="name">Open-Meteo</span><span class="why">Free weather API AND geocoding (city search). No key required. Used by Weather widget for forecasts and by the Clock widget config to map city names to IANA timezones.</span></li>
+      <li><span class="name">CoinGecko</span><span class="why">Free public crypto prices and coin search. No key required. Used by the Crypto widget. Quote endpoint also returns 24h percent change (dollar change derived client-side).</span></li>
+      <li><span class="name">Twelve Data</span><span class="why">Stock quotes and symbol search. Free tier with API key (800 req/day, 8 req/min, no credit card). Used by Markets and Watchlist widgets. Picked over Yahoo Finance because Yahoo blocks browser requests via CORS.</span></li>
       <li><span class="name">Google Favicon service</span><span class="why">Best-effort favicon images for bookmark rows (<code>www.google.com/s2/favicons</code>). Easy to patch out if Tom prefers privacy.</span></li>
     </ul>
     <!-- /TECH:STACK -->
@@ -121,38 +124,68 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <!-- TECH:DECISIONS -->
     <div class="decision">
       <h3>GitHub gist as the data backend, not a third-party service</h3>
-      <p>StartMe-style services bring ads and lock-in. Supabase or jsonbin work but add a dependency on a free tier that may go away. GitHub gists are durable as long as Tom's GitHub account exists, free, and use auth Tom already understands.</p>
+      <p>StartMe-style services bring ads and lock-in. Supabase or jsonbin work but add a dependency on a free tier that may go away. GitHub gists are durable as long as Tom's GitHub account exists.</p>
       <p class="meta">decided 2026-05-27 during plan revision</p>
     </div>
     <div class="decision">
       <h3>Personal Access Token per browser, stored in localStorage</h3>
-      <p>Avoids the complexity of OAuth flows in a single static page. Each browser gets its own token; if a device is lost, only that one token needs to be revoked. The token is sent only to <code>api.github.com</code>.</p>
+      <p>Avoids OAuth complexity in a static page. Each browser gets its own token; losing a device means revoking one token. Token sent only to <code>api.github.com</code>.</p>
       <p class="meta">decided 2026-05-27</p>
     </div>
     <div class="decision">
-      <h3>Per-persona widgets, backgrounds, and accent colors</h3>
-      <p>The whole point of personas is mental separation between Work and Personal. Sharing widgets across personas would blur that. Each persona is fully independent.</p>
-      <p class="meta">decided 2026-05-27 after Tom raised the persona concept</p>
+      <h3>Per-persona widgets, backgrounds, accent colors, and visibility</h3>
+      <p>The whole point of personas is mental separation. Each persona is fully independent. v1.2 added <code>persona.hiddenWidgets</code> so a persona can opt out of any widget entirely (e.g. an "AI Education" persona with zero widgets, just categories).</p>
+      <p class="meta">decided 2026-05-27 (personas) and 2026-05-27 evening (per-persona widget visibility)</p>
     </div>
     <div class="decision">
-      <h3>Per-device default persona via localStorage (not in the gist)</h3>
-      <p>Tom wants his work Mac to open to Work and his iPhone to open to Personal. The default persona is a per-device preference, not a synced setting. Stored as <code>sd_default_persona</code> in localStorage.</p>
-      <p class="meta">decided 2026-05-27</p>
+      <h3>Per-device default persona + Twelve Data API key (localStorage, not gist)</h3>
+      <p>Work Mac opens to Work; iPhone opens to Personal. Default persona is a per-device preference. The Twelve Data API key is also per-browser (parallel to the GitHub PAT) because rate limits are per-key and we shouldn't sync credentials through the gist.</p>
+      <p class="meta">decided 2026-05-27 (default persona) and 2026-05-27 evening (TD key)</p>
     </div>
     <div class="decision">
       <h3>Bookmarklet over a browser extension</h3>
-      <p>A browser extension means three separate builds (Chrome, Safari, Firefox) and ongoing maintenance as their extension formats evolve. A bookmarklet is one piece of JavaScript that works in every browser, forever.</p>
+      <p>One JavaScript snippet works in every browser, forever. A browser extension means three separate builds and ongoing maintenance.</p>
       <p class="meta">decided 2026-05-27 during planning</p>
     </div>
     <div class="decision">
-      <h3>Backgrounds: 8 CSS-only presets + image URL only (no upload in v1)</h3>
-      <p>Image upload would mean storing base64 in the gist, which bloats the JSON on every save. URL-based images work well and keep the gist small. Upload can be added later if Tom wants it.</p>
+      <h3>Backgrounds: CSS-only presets + image URL (no upload)</h3>
+      <p>Image upload would mean storing base64 in the gist, bloating the JSON on every save. URL-based images keep the gist small.</p>
       <p class="meta">decided 2026-05-27</p>
     </div>
     <div class="decision">
       <h3>Last-write-wins on sync conflicts</h3>
-      <p>Real conflict resolution is overkill for a single-user app. If Tom edits in two browsers simultaneously, a toast warns him and the most recent save wins. The 60-second background poll surfaces stale state proactively.</p>
+      <p>Single-user app; full conflict resolution is overkill. Two-browser conflict surfaces a toast; most recent save wins. 60s background poll detects gist updates from other browsers.</p>
       <p class="meta">decided 2026-05-27</p>
+    </div>
+    <div class="decision">
+      <h3>Cross-window message via localStorage for bookmarklet-add visibility (v1.1)</h3>
+      <p>When the bookmarklet popup adds a bookmark to a persona other than the one the main window is viewing, the addition is invisible until reload. v1.1 fixed this by writing <code>sd_last_added</code> to localStorage; the main window's <code>storage</code> event listener surfaces a banner with "Switch to [persona]". The Switch button (v1.3) reloads the gist before switching so the just-added bookmark is in memory.</p>
+      <p class="meta">decided 2026-05-27 evening</p>
+    </div>
+    <div class="decision">
+      <h3>City search (Open-Meteo geocoding) instead of manual lat/lon and IANA strings (v1.1)</h3>
+      <p>Original Weather config asked for "Name, lat, lon"; Clock asked for IANA timezone strings. Neither is usable by a normal person. v1.1 added a search-based widget config that hits Open-Meteo's free geocoding endpoint &mdash; type a city, pick a match, coordinates/timezone stored invisibly. Same endpoint serves both widgets.</p>
+      <p class="meta">decided 2026-05-27 evening</p>
+    </div>
+    <div class="decision">
+      <h3>Twelve Data + ETF proxies for Markets (v1.2)</h3>
+      <p>Twelve Data is the only free-tier US stock API that works reliably from browsers (Yahoo Finance blocks CORS). Markets widget defaults to SPY/QQQ/DIA (ETFs that track S&amp;P/Nasdaq/Dow) because the actual indices need a paid tier. 60-second client cache on quotes prevents burning the 8-req/min free limit on re-renders.</p>
+      <p class="meta">decided 2026-05-27 late evening</p>
+    </div>
+    <div class="decision">
+      <h3>Clock zones as {name, tz} objects instead of bare IANA strings (v1.3)</h3>
+      <p>Original schema stored zones as <code>['America/New_York', ...]</code>. Adding "Atlanta" silently failed if NYC was already there (same TZ). Migrated to <code>[{name, tz}, ...]</code> so two cities sharing a timezone render as separate rows. Backward compat: old string format auto-migrates on load.</p>
+      <p class="meta">decided 2026-05-28</p>
+    </div>
+    <div class="decision">
+      <h3>Background CSS rule: don't set <code>background:</code> on #background (v1.3 hotfix)</h3>
+      <p>Original CSS had <code>#background { background: var(--bg) }</code> which overrode every <code>.bg-aurora</code> / <code>.bg-synthwave</code> / etc. due to ID-vs-class specificity. The gradients never rendered &mdash; the page was always solid fallback color from v1.0 through v1.2. Removed the conflicting declaration so the class can paint. Body's <code>background: var(--bg)</code> serves as the pre-class fallback.</p>
+      <p class="meta">decided 2026-05-28 (hotfix after Tom reported "backgrounds don't change")</p>
+    </div>
+    <div class="decision">
+      <h3>Bookmark descriptions: hover popover + multi-line modal edit (v1.5)</h3>
+      <p>v1.4 made descriptions always-visible inline below the title. v1.5 hides them by default to keep rows clean; an accent dot signals presence, hover reveals the full text in a popover (0.5s show delay, instant hide). Edit opens a modal with an auto-growing textarea for long reminders / asterisks / line breaks.</p>
+      <p class="meta">decided 2026-05-28</p>
     </div>
     <!-- /TECH:DECISIONS -->
   </section>
@@ -168,13 +201,45 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
       <li><strong>GitHub repository</strong> at <code>github.com/TECGUNTHER/startdashboard</code> with GitHub Pages enabled (Settings &rarr; Pages &rarr; main / root).</li>
       <li><strong>GitHub Personal Access Token</strong> with <code>gist</code> scope. Generated once per browser. Pasted into the dashboard's first-run setup screen.</li>
       <li><strong>One private gist</strong> on Tom's GitHub account. Created automatically by the dashboard on first-run setup if Tom picks "First browser &mdash; create a new gist".</li>
+      <li><strong>(Optional) Twelve Data API key</strong> for the Markets and Watchlist widgets. Free tier, no credit card. Pasted into Settings ⚙ on each browser that needs those widgets. Inline walkthrough in Settings as of v1.5.</li>
     </ul>
-    <h3>Per-browser localStorage keys (set during first-run setup)</h3>
+    <h3>Per-browser localStorage keys</h3>
     <ul>
-      <li><code>sd_pat</code> &mdash; GitHub Personal Access Token (this browser only)</li>
+      <li><code>sd_pat</code> &mdash; GitHub Personal Access Token</li>
       <li><code>sd_gist_id</code> &mdash; ID of the gist storing this dashboard's data</li>
       <li><code>sd_default_persona</code> &mdash; ID of the persona this device opens to by default</li>
+      <li><code>sd_twelvedata_key</code> &mdash; Twelve Data API key (optional; only needed for Markets/Watchlist)</li>
+      <li><code>sd_last_added</code> &mdash; transient breadcrumb dropped by the bookmarklet popup so the main window can surface a "Switch to persona X" banner. Cleared by Dismiss or after 5 minutes.</li>
     </ul>
+    <h3>Gist JSON shape (synced state.data)</h3>
+    <pre class="tree">{
+  "title": "StartDashboard",
+  "searchEngine": "google",
+  "personas": [
+    {
+      "id": "work",
+      "name": "Work",
+      "accent": "#22D3EE",
+      "background": "midnight-mesh",      // preset id, "url:&lt;url&gt;", or "color:#hex"
+      "categories": [
+        { "id": "abc", "name": "Daily",
+          "bookmarks": [
+            { "id": "x1", "title": "Email", "url": "...", "description": "" }
+          ] }
+      ],
+      "widgets": {
+        "clock":     { "zones": [{ "name": "New York", "tz": "America/New_York" }], "hour12": true },
+        "weather":   { "cities": [{ "name": "...", "lat": 0, "lon": 0 }] },
+        "todos":     [{ "id": "...", "text": "...", "done": false }],
+        "notes":     "...",
+        "crypto":    { "coins": [{ "id": "bitcoin", "symbol": "btc", "name": "Bitcoin" }] },
+        "markets":   { "symbols": ["SPY", "QQQ", "DIA"] },
+        "watchlist": { "symbols": ["AAPL"] }
+      },
+      "hiddenWidgets": ["crypto", "markets", "watchlist"]
+    }
+  ]
+}</pre>
     <h3>Full step-by-step setup</h3>
     <p>See <a href="../README.md">README.md</a> in the project root.</p>
     <!-- /TECH:DEPENDENCIES -->
@@ -214,15 +279,17 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <p class="section-lead">"If you want to change X, look in Y." A quick map for future edits.</p>
     <!-- TECH:HOW_TO_MODIFY -->
     <ul class="modify-map">
-      <li><strong>Add a new background preset.</strong> Add a CSS class <code>.bg-&lt;name&gt;</code> in the <code>&lt;style&gt;</code> block of <code>index.html</code> (search for "Background presets") and add a matching entry to <code>BG_PRESETS</code> in the script.</li>
-      <li><strong>Add a new widget.</strong> Add a <code>&lt;div class="widget"&gt;</code> entry to the <code>widgets-row</code> section, then write a <code>render&lt;Name&gt;Widget(persona)</code> function and call it from <code>renderWidgets()</code>.</li>
-      <li><strong>Change the dark color palette.</strong> CSS custom properties live at the top of the <code>:root</code> block in <code>index.html</code>.</li>
-      <li><strong>Change the gist filename.</strong> Constant <code>GIST_FILENAME</code> in the script. Changing this on an existing setup will silently break sync &mdash; only change before first deploy.</li>
-      <li><strong>Disable the favicon service</strong> for privacy. Search for <code>s2/favicons</code> in <code>index.html</code> and either remove the block or replace with your own service.</li>
-      <li><strong>Change the search engine list.</strong> The <code>SEARCH_ENGINES</code> object near the top of the script holds URL templates.</li>
-      <li><strong>Change the bookmarklet popup size.</strong> The bookmarklet JavaScript is generated in <code>openBookmarkletModal()</code>; the <code>width=520,height=600</code> values are inline there.</li>
-      <li><strong>Adjust the save debounce.</strong> The 1500ms timeout in <code>setState()</code>.</li>
-      <li><strong>Adjust the stale-check interval.</strong> The 60000ms interval at the very bottom of the script.</li>
+      <li><strong>Add a new background preset.</strong> Add a CSS class <code>.bg-&lt;name&gt;</code> in the <code>&lt;style&gt;</code> block (search "Background presets") and a matching entry to <code>BG_PRESETS</code> in the script.</li>
+      <li><strong>Add a new widget.</strong> Add a <code>&lt;div class="widget" data-widget="&lt;name&gt;"&gt;</code> in the <code>widgets-row</code> section, append the name to <code>ALL_WIDGETS</code> and <code>WIDGET_LABELS</code>, write a <code>render&lt;Name&gt;Widget(persona)</code> function, call it from <code>renderWidgets()</code>, and (if it needs config) extend <code>openWidgetConfig</code>, <code>renderWidgetCfgList</code>, and <code>dispatchWidgetSearch</code>.</li>
+      <li><strong>Change the dark color palette.</strong> CSS custom properties at the top of the <code>:root</code> block.</li>
+      <li><strong>Change the gist filename.</strong> Constant <code>GIST_FILENAME</code>. Don't change after first deploy — silently breaks sync.</li>
+      <li><strong>Disable the favicon service.</strong> Search <code>s2/favicons</code> and remove the block or swap for another source.</li>
+      <li><strong>Change the search engine list.</strong> The <code>SEARCH_ENGINES</code> object near the top of the script.</li>
+      <li><strong>Change the bookmarklet popup size.</strong> Generated in <code>openBookmarkletModal()</code>; <code>width=520,height=600</code> values are inline.</li>
+      <li><strong>Adjust the Twelve Data quote cache.</strong> <code>TD_CACHE_MS</code> at the top of the TD section. Lower = fresher, but more API calls.</li>
+      <li><strong>Adjust cross-add banner timeout.</strong> The 5-minute window in <code>checkRecentAddition()</code>.</li>
+      <li><strong>Adjust hover-popover show delay.</strong> The <code>transition-delay: 0.5s</code> in <code>.bookmark:hover .bk-desc-popover</code>.</li>
+      <li><strong>Replace Twelve Data with another stock API.</strong> Rewrite <code>fetchTwelveDataQuotes()</code> and <code>doStockSearch()</code>; key fields used downstream are <code>symbol</code>, <code>close</code>, <code>change</code>, <code>percent_change</code>, and (optionally) <code>name</code>.</li>
     </ul>
     <!-- /TECH:HOW_TO_MODIFY -->
   </section>
@@ -249,7 +316,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
 
 <footer>
   <div class="container">
-    Generated and maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-27</span>
+    Generated and maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · v1.5</span>
   </div>
 </footer>
 

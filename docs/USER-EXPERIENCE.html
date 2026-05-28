@@ -51,7 +51,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h1>StartDashboard</h1>
     <p class="subtitle">A personal home page that travels with you across every browser and every device, with separate "channels" for different sides of your life.</p>
     <!-- UX:LAST_UPDATED -->
-    <span class="last-updated">Last updated: 2026-05-27</span>
+    <span class="last-updated">Last updated: 2026-05-28 · v1.5</span>
     <!-- /UX:LAST_UPDATED -->
   </div>
 </header>
@@ -89,27 +89,39 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     </div>
 
     <div class="feature">
+      <h3>Bookmark descriptions on hover</h3>
+      <p class="one-liner">Add your own notes without cluttering the row.</p>
+      <p class="walkthrough">Click the <strong>📝</strong> icon on any bookmark to open a multi-line editor with room for reminders, asterisks, line breaks &mdash; whatever you'd jot down. The description stays hidden by default; an accent dot next to the title signals that there's more to read. Hover over the bookmark for half a second and a popover appears with the full description text.</p>
+    </div>
+
+    <div class="feature">
       <h3>Inline rename, drag-drop reorder</h3>
       <p class="one-liner">Organize without ever leaving the page.</p>
       <p class="walkthrough">Double-click anything &mdash; persona tab, category title, bookmark name &mdash; to rename. Drag bookmarks between categories. Drag categories to reorder. Use the <strong>&#8599;</strong> icon on a bookmark to move it to a different persona.</p>
     </div>
 
     <div class="feature">
-      <h3>Per-persona widgets</h3>
-      <p class="one-liner">Quick utilities, scoped to each persona.</p>
-      <p class="walkthrough">Four widgets sit above the categories: a <strong>clock</strong> showing time across any zones you add, <strong>weather</strong> for any cities you list (uses the free Open-Meteo API &mdash; no key needed), a <strong>to-do list</strong>, and a freeform <strong>sticky notes</strong> pad. Each persona has its own instance of every widget, so the work persona's to-dos never appear under personal.</p>
+      <h3>Per-persona widgets — show, hide, configure</h3>
+      <p class="one-liner">Each persona shows only the widgets it needs.</p>
+      <p class="walkthrough">Seven widgets are available: <strong>Clock</strong> (multi time zone, 12 or 24 hour), <strong>Weather</strong> (free Open-Meteo, no key needed), <strong>To-do list</strong>, <strong>Sticky notes</strong>, <strong>Crypto</strong> (free CoinGecko, no key), <strong>Markets</strong> (S&amp;P, Nasdaq, Dow via Twelve Data &mdash; needs a free API key), and <strong>Watchlist</strong> (your custom stocks, also Twelve Data). Each persona picks which widgets to show via Settings ⚙. An AI Education persona can have zero widgets; an Investments persona might show only Markets, Crypto, and Watchlist.</p>
+    </div>
+
+    <div class="feature">
+      <h3>Finance widgets show dollar and percent change</h3>
+      <p class="one-liner">Daily moves at a glance, in both formats.</p>
+      <p class="walkthrough">Crypto, Markets, and Watchlist rows all show the current price plus today's change in both dollars and percent. Green if up, red if down, color-coded for fast scanning. Quotes cache for 60 seconds to stay under Twelve Data's free-tier rate limits.</p>
     </div>
 
     <div class="feature">
       <h3>Custom backgrounds and accent colors</h3>
       <p class="one-liner">Make each persona feel distinct.</p>
-      <p class="walkthrough">Choose from 8 built-in dark backgrounds (Midnight Mesh, Aurora, Synthwave, Carbon Grid, Deep Space, Liquid Glass, Tokyo Night, Terminal, Monochrome) &mdash; all CSS-only, no images to load. Or paste any image URL (an Unsplash link works great). Pick an accent color and it colors the persona's tab indicator, hover states, and focus rings.</p>
+      <p class="walkthrough">Choose from 9 built-in dark backgrounds (Midnight Mesh, Aurora, Synthwave, Carbon Grid, Deep Space, Liquid Glass, Tokyo Night, Terminal, Monochrome) &mdash; all CSS-only, no images to load. Or paste any image URL (an Unsplash link works great). Pick an accent color and it colors the persona's tab indicator, hover states, and focus rings.</p>
     </div>
 
     <div class="feature">
       <h3>Sync across every browser and device</h3>
       <p class="one-liner">Same dashboard everywhere, within seconds.</p>
-      <p class="walkthrough">Your data lives in a private GitHub gist on your account. Edits save automatically a couple of seconds after you stop typing. A small indicator in the header shows the sync status: green dot when in sync, amber when saving, red when another browser has updated it (click to reload). The same URL opens to the same data in any browser.</p>
+      <p class="walkthrough">Your data lives in a private GitHub gist on your account. Edits save automatically. A small indicator in the header shows the sync status: green dot when in sync, amber when saving, red when another browser has updated it (click to reload). When the bookmarklet adds a bookmark to a different persona than you're viewing, a banner appears: <em>"Just added X to Personal — Switch to Personal."</em></p>
     </div>
 
     <div class="feature">
@@ -168,7 +180,27 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <li>While on the article, click the <strong>+ Add to StartDashboard</strong> bookmarklet in your bookmarks bar.</li>
         <li>A small popup window appears. You see all your personas grouped, with category buttons under each.</li>
         <li>Click the category where the bookmark should go. The window closes automatically.</li>
-        <li>Open your dashboard in any browser &mdash; the bookmark is there.</li>
+        <li>If your main dashboard tab is viewing a different persona than the one you added to, a banner appears at the top: <em>"Just added X to Personal — Switch to Personal."</em> Click Switch to jump there.</li>
+      </ol>
+    </div>
+
+    <div class="workflow">
+      <h3>Add a description to a bookmark</h3>
+      <ol>
+        <li>Hover the bookmark and click the <strong>📝</strong> icon.</li>
+        <li>A modal opens with a multi-line text area. Type as much as you want &mdash; reminders, line breaks, asterisks for your own notes.</li>
+        <li>Click <strong>Save</strong> (or Cmd+Enter). A small accent dot appears next to the bookmark's title.</li>
+        <li>To read it later, hover the bookmark for half a second &mdash; a popover appears with the full text.</li>
+      </ol>
+    </div>
+
+    <div class="workflow">
+      <h3>Set up the Markets / Watchlist widgets</h3>
+      <ol>
+        <li>Open <strong>Settings ⚙</strong> on the dashboard. Scroll to the <strong>Twelve Data API key</strong> section.</li>
+        <li>Follow the inline four-step walkthrough: sign up at twelvedata.com/register (free, no credit card), verify email, copy your key from their dashboard, paste it in.</li>
+        <li>Click <strong>Save changes</strong>. The Markets widget should start showing prices within a few seconds.</li>
+        <li>Click the Markets <strong>⚙</strong> to add tickers (defaults include SPY, QQQ, DIA). Watchlist works the same way for individual stocks like AAPL, NVDA.</li>
       </ol>
     </div>
 
@@ -260,7 +292,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
 
 <footer>
   <div class="container">
-    Generated and maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-27</span>
+    Generated and maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · v1.5</span>
   </div>
 </footer>
 

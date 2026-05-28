@@ -485,43 +485,52 @@ header.dash-header {
 }
 .todo-clear:hover { color: var(--accent); }
 
-/* ---- Finance widgets (Crypto / Markets / Watchlist) — shared row style ---- */
+/* ---- Finance widgets (Crypto / Markets / Watchlist) — shared row style ----
+   Two-column layout: symbol+name on the left, price+change(stacked) on the
+   right. Both dollar and percent change appear; color matches direction.
+*/
 .fin-row {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: baseline;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   gap: 8px;
-  padding: 6px 0;
+  padding: 7px 0;
   border-bottom: 1px solid var(--border);
   font-size: 13px;
 }
 .fin-row:last-child { border-bottom: none; }
+.fin-left  { display: flex; flex-direction: column; min-width: 0; }
+.fin-right { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
 .fin-row .fin-sym {
   font-weight: 500;
   color: var(--text-primary);
   font-family: 'JetBrains Mono';
   font-size: 12px;
 }
-.fin-row .fin-name { font-size: 10px; color: var(--text-muted); display: block; font-family: 'Inter'; font-weight: 400; }
+.fin-row .fin-name {
+  font-size: 10px; color: var(--text-muted);
+  font-family: 'Inter'; font-weight: 400;
+  margin-top: 1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 130px;
+}
 .fin-row .fin-price {
   font-family: 'JetBrains Mono';
   font-weight: 500;
   color: var(--text-primary);
   font-size: 13px;
-  text-align: right;
   white-space: nowrap;
 }
-.fin-row .fin-change {
-  font-family: 'JetBrains Mono';
+.fin-row .fin-change-line {
+  margin-top: 2px;
   font-size: 11px;
-  text-align: right;
+  font-family: 'JetBrains Mono';
   white-space: nowrap;
-  padding: 1px 6px;
-  border-radius: 4px;
 }
-.fin-row .fin-change.up   { color: #34D399; background: rgba(52, 211, 153, 0.10); }
-.fin-row .fin-change.down { color: #F87171; background: rgba(248, 113, 113, 0.10); }
-.fin-row .fin-change.flat { color: var(--text-muted); }
+.fin-row .fin-dollar { margin-right: 4px; }
+.fin-row .up   { color: #34D399; }
+.fin-row .down { color: #F87171; }
+.fin-row .flat { color: var(--text-muted); }
 .fin-empty   { font-size: 12px; color: var(--text-muted); padding: 4px 0; }
 .fin-error   { font-size: 11px; color: var(--danger); padding: 4px 0; }
 .fin-loading { font-size: 12px; color: var(--text-muted); padding: 4px 0; }
@@ -627,6 +636,7 @@ header.dash-header {
   /* Nudged down a hair so it aligns with the title text baseline. */
   margin-top: 2px;
 }
+.bookmark { position: relative; }
 .bookmark .bk-main { flex: 1; min-width: 0; }
 .bookmark .bk-title {
   color: var(--text-primary);
@@ -636,26 +646,84 @@ header.dash-header {
   cursor: pointer;
   display: block;
 }
-.bookmark .bk-desc {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-top: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  cursor: pointer;
-  line-height: 1.4;
-}
-.bookmark .bk-desc:hover { color: var(--text-secondary); }
-.bookmark .bk-title-input,
-.bookmark .bk-desc-input {
+.bookmark .bk-title-input {
   width: 100%;
   background: var(--bg-elev-2);
   padding: 2px 6px;
   border-radius: 4px;
   display: block;
 }
-.bookmark .bk-desc-input { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+/* Small dot next to the title — only shown when the bookmark has a
+   description. Hints "there's more behind hovering me" without occupying
+   any of the row's vertical space. */
+.bookmark .bk-has-desc {
+  display: inline-block;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-left: 6px;
+  vertical-align: middle;
+  opacity: 0.7;
+}
+
+/* ---- Description hover popover ----
+   Description is hidden by default. On hover (with a 0.5s show delay so
+   the popover doesn't pop on every brief mouseover), a small popover
+   appears anchored below the row showing the full text — supports
+   multi-line content. Hides instantly when the mouse leaves.
+*/
+.bookmark .bk-desc-popover {
+  position: absolute;
+  top: 100%;
+  left: 24px;            /* aligns with title (after favicon) */
+  margin-top: 4px;
+  max-width: 320px;
+  min-width: 180px;
+  background: #11111A;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  white-space: pre-wrap;       /* preserve line breaks the user typed */
+  word-wrap: break-word;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.45);
+  z-index: 20;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.bookmark:hover .bk-desc-popover {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.5s;     /* slow show; quick hide when hover ends */
+}
+
+/* ---- Description edit modal ----
+   Multi-line textarea that auto-grows as you type, plus save/cancel. */
+.desc-textarea {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  background: #0A0A12;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--text-primary);
+  font-family: inherit;
+  line-height: 1.5;
+  overflow: hidden;          /* grows via JS, no scrollbar mid-typing */
+}
+.desc-textarea:focus { border-color: var(--accent); }
+.desc-modal-meta {
+  font-size: 12px; color: var(--text-muted);
+  margin-bottom: 12px;
+  font-family: 'JetBrains Mono';
+  word-break: break-all;
+}
 .bookmark .bk-actions {
   display: flex; gap: 2px;
   /* Action icons are dim by default so users discover they exist without
@@ -1266,6 +1334,15 @@ header.dash-header {
     <div class="widget-toggle-grid" id="set-widget-toggles"></div>
 
     <label>Twelve Data API key (for Markets &amp; Watchlist)</label>
+    <div style="font-size: 12px; color: var(--text-secondary); background: var(--bg-elev-2); padding: 10px 12px; border-radius: 8px; margin-bottom: 8px; line-height: 1.55;">
+      Markets and Watchlist need a free API key from Twelve Data — no credit card, 800 requests/day.
+      <ol style="margin: 8px 0 0 18px; padding: 0;">
+        <li>Open <a href="https://twelvedata.com/register" target="_blank" rel="noopener" style="color: var(--accent); border-bottom: 1px dotted var(--accent);">twelvedata.com/register</a></li>
+        <li>Sign up, verify your email, log in</li>
+        <li>Your API key shows on the dashboard front page — copy it</li>
+        <li>Paste below and Save</li>
+      </ol>
+    </div>
     <input type="password" id="set-twelvedata-key" class="mono" placeholder="Paste your Twelve Data API key…" autocomplete="off" />
 
     <p style="font-size: 12px; color: var(--text-muted); margin-top: 12px; padding: 8px 10px; background: var(--bg-elev-2); border-radius: 6px;">
@@ -1329,6 +1406,22 @@ header.dash-header {
     <p style="font-size: 12px; color: var(--text-muted);">Right-click the button → "Add to bookmarks bar" if dragging doesn't work in your browser.</p>
     <div class="modal-actions">
       <button class="btn" id="bookmarklet-close">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================================
+     Description edit modal — bigger room for multi-line bookmark notes.
+     The textarea auto-grows with content (handled in openDescriptionEdit).
+     ===================================================================== -->
+<div id="desc-modal" class="overlay hidden">
+  <div class="modal">
+    <h2 id="desc-modal-title">Description</h2>
+    <div class="desc-modal-meta" id="desc-modal-url">—</div>
+    <textarea id="desc-textarea" class="desc-textarea" placeholder="Add reminders, notes, asterisks — anything. Line breaks preserved."></textarea>
+    <div class="modal-actions">
+      <button class="btn" id="desc-cancel">Cancel</button>
+      <button class="btn primary" id="desc-save">Save</button>
     </div>
   </div>
 </div>
@@ -2017,8 +2110,8 @@ function renderBookmark(b, parentCat) {
   } catch { /* invalid URL — leave blank */ }
   li.appendChild(fav);
 
-  /* Title + (optional) description sit in a stacked column so descriptions
-     wrap to a second line below the link without disturbing the action row. */
+  /* Title only on the row itself; description hides in a hover popover
+     so it doesn't eat vertical space when at rest. */
   const main = document.createElement('span');
   main.className = 'bk-main';
 
@@ -2032,18 +2125,25 @@ function renderBookmark(b, parentCat) {
   title.addEventListener('dblclick', (e) => { e.preventDefault(); beginRenameBookmark(b.id, parentCat.id, li); });
   main.appendChild(title);
 
-  /* Description: only rendered if present. Double-click to edit inline.
-     When absent, the "add description" pencil shows in the action row. */
+  /* Small accent dot after the title if a description exists — a quiet
+     "there's more here when you hover" affordance. */
   if (b.description) {
-    const desc = document.createElement('span');
-    desc.className = 'bk-desc';
-    desc.textContent = b.description;
-    desc.title = 'Double-click to edit description';
-    desc.addEventListener('dblclick', () => beginEditDescription(b.id, parentCat.id, li));
-    main.appendChild(desc);
+    const dot = document.createElement('span');
+    dot.className = 'bk-has-desc';
+    dot.title = 'Has description — hover to read';
+    title.appendChild(dot);
   }
 
   li.appendChild(main);
+
+  /* Hover popover with the full description. Hidden via CSS by default,
+     shown on .bookmark:hover with a 0.5s delay. Skip if no description. */
+  if (b.description) {
+    const pop = document.createElement('div');
+    pop.className = 'bk-desc-popover';
+    pop.textContent = b.description;
+    li.appendChild(pop);
+  }
 
   const actions = document.createElement('span');
   actions.className = 'bk-actions';
@@ -2107,36 +2207,53 @@ function beginRenameBookmark(bkId, catId, li) {
   });
 }
 
-/* Inline-edit a bookmark's optional description. Same pattern as rename:
-   double-click (on the description text) or click the 📝 icon swaps in an
-   <input>; Enter commits, Escape cancels. */
+/* Open the multi-line description edit modal for a bookmark. The textarea
+   auto-grows as the user types so reminders / asterisked notes have room
+   without cramping the rest of the dashboard. */
+let _descEditFor = null;
 function beginEditDescription(bkId, catId, li) {
-  const main = li.querySelector('.bk-main');
-  if (!main) return;
-  const existing = main.querySelector('.bk-desc');
-  const current = existing ? existing.textContent : '';
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.className = 'bk-desc-input';
-  input.value = current;
-  input.placeholder = 'Add a short description (optional)…';
-  if (existing) existing.replaceWith(input);
-  else main.appendChild(input);
-  input.focus(); input.select();
-  const commit = () => {
-    const v = input.value.trim();
-    setState(d => {
-      const p = d.personas.find(pp => pp.id === currentPersona().id);
-      const c = p.categories.find(cc => cc.id === catId);
-      const bk = c.bookmarks.find(bb => bb.id === bkId);
-      if (bk) bk.description = v;
-    });
-  };
-  input.addEventListener('blur', commit, { once: true });
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') input.blur();
-    if (e.key === 'Escape') { render(); }
+  const p = currentPersona();
+  const c = p.categories.find(cc => cc.id === catId);
+  const bk = c && c.bookmarks.find(bb => bb.id === bkId);
+  if (!bk) return;
+  _descEditFor = { bkId, catId };
+  document.getElementById('desc-modal-title').textContent =
+    'Description — ' + (bk.title || bk.url);
+  document.getElementById('desc-modal-url').textContent = bk.url;
+  const ta = document.getElementById('desc-textarea');
+  ta.value = bk.description || '';
+  document.getElementById('desc-modal').classList.remove('hidden');
+  setTimeout(() => {
+    ta.focus();
+    autoGrowDescTextarea();
+    ta.setSelectionRange(ta.value.length, ta.value.length);
+  }, 50);
+}
+
+function closeDescEdit() {
+  document.getElementById('desc-modal').classList.add('hidden');
+  _descEditFor = null;
+}
+
+function saveDescEdit() {
+  if (!_descEditFor) return closeDescEdit();
+  const v = document.getElementById('desc-textarea').value.trim();
+  const { bkId, catId } = _descEditFor;
+  setState(d => {
+    const p = d.personas.find(pp => pp.id === currentPersona().id);
+    const c = p.categories.find(cc => cc.id === catId);
+    const bk = c && c.bookmarks.find(bb => bb.id === bkId);
+    if (bk) bk.description = v;
   });
+  closeDescEdit();
+}
+
+/* Resize the description textarea to fit its content (auto-grow). Called
+   on focus, on input, and whenever the modal opens. */
+function autoGrowDescTextarea() {
+  const ta = document.getElementById('desc-textarea');
+  ta.style.height = 'auto';
+  ta.style.height = Math.min(420, Math.max(120, ta.scrollHeight + 2)) + 'px';
 }
 
 function beginRenameCategory(catId, span) {
@@ -2526,16 +2643,27 @@ async function renderCryptoWidget(p) {
     coins.forEach(c => {
       const d = data[c.id];
       if (!d) return;
-      const change = d.usd_24h_change || 0;
-      const dir = change > 0.05 ? 'up' : change < -0.05 ? 'down' : 'flat';
-      const sign = change > 0 ? '+' : '';
+      const pct = d.usd_24h_change || 0;
+      const dir = pct > 0.01 ? 'up' : pct < -0.01 ? 'down' : 'flat';
+      const sign = pct > 0 ? '+' : '';
+      /* CoinGecko returns percent change but not absolute. Derive the
+         dollar change from the percent and the current price. */
+      const prev = d.usd / (1 + pct / 100);
+      const dollarChange = d.usd - prev;
       const row = document.createElement('div');
       row.className = 'fin-row';
       row.innerHTML =
-        '<div><span class="fin-sym">' + escapeHtml(c.symbol.toUpperCase()) + '</span>' +
-        '<span class="fin-name">' + escapeHtml(c.name) + '</span></div>' +
-        '<span class="fin-price">' + formatPrice(d.usd) + '</span>' +
-        '<span class="fin-change ' + dir + '">' + sign + change.toFixed(2) + '%</span>';
+        '<div class="fin-left">' +
+          '<span class="fin-sym">' + escapeHtml(c.symbol.toUpperCase()) + '</span>' +
+          '<span class="fin-name">' + escapeHtml(c.name) + '</span>' +
+        '</div>' +
+        '<div class="fin-right">' +
+          '<span class="fin-price">' + formatPrice(d.usd) + '</span>' +
+          '<span class="fin-change-line ' + dir + '">' +
+            '<span class="fin-dollar">' + sign + formatPrice(dollarChange).replace('$-', '-$') + '</span>' +
+            '<span class="fin-pct">' + sign + pct.toFixed(2) + '%</span>' +
+          '</span>' +
+        '</div>';
       body.appendChild(row);
     });
   } catch (e) {
@@ -2577,24 +2705,36 @@ async function renderTwelveDataWidget(p, kind, bodyId, emptyMsg) {
       if (!d || d.code) {
         const row = document.createElement('div');
         row.className = 'fin-row';
-        row.innerHTML = '<div><span class="fin-sym">' + escapeHtml(sym) + '</span></div>' +
-          '<span class="fin-price" style="color:var(--text-muted);">—</span>' +
-          '<span class="fin-change flat">no data</span>';
+        row.innerHTML =
+          '<div class="fin-left"><span class="fin-sym">' + escapeHtml(sym) + '</span></div>' +
+          '<div class="fin-right"><span class="fin-price" style="color:var(--text-muted);">—</span>' +
+          '<span class="fin-change-line flat">no data</span></div>';
         body.appendChild(row);
         return;
       }
       const price = parseFloat(d.close);
-      const change = parseFloat(d.percent_change);
-      const dir = change > 0.01 ? 'up' : change < -0.01 ? 'down' : 'flat';
-      const sign = change > 0 ? '+' : '';
-      const friendly = MARKET_INDEX_LABELS[sym] || (d.name ? d.name.replace(/ Trust| ETF| SPDR/g, '').slice(0, 20) : '');
+      const pct = parseFloat(d.percent_change);
+      /* Twelve Data returns absolute change directly (no derivation needed). */
+      const dollarChange = parseFloat(d.change);
+      const dir = pct > 0.01 ? 'up' : pct < -0.01 ? 'down' : 'flat';
+      const sign = pct > 0 ? '+' : '';
+      const friendly = MARKET_INDEX_LABELS[sym] || (d.name ? d.name.replace(/ Trust| ETF| SPDR/g, '').slice(0, 22) : '');
       const row = document.createElement('div');
       row.className = 'fin-row';
       row.innerHTML =
-        '<div><span class="fin-sym">' + escapeHtml(sym) + '</span>' +
-        (friendly ? '<span class="fin-name">' + escapeHtml(friendly) + '</span>' : '') + '</div>' +
-        '<span class="fin-price">' + formatPrice(price) + '</span>' +
-        '<span class="fin-change ' + dir + '">' + sign + (isFinite(change) ? change.toFixed(2) : '—') + '%</span>';
+        '<div class="fin-left">' +
+          '<span class="fin-sym">' + escapeHtml(sym) + '</span>' +
+          (friendly ? '<span class="fin-name">' + escapeHtml(friendly) + '</span>' : '') +
+        '</div>' +
+        '<div class="fin-right">' +
+          '<span class="fin-price">' + formatPrice(price) + '</span>' +
+          '<span class="fin-change-line ' + dir + '">' +
+            (isFinite(dollarChange)
+              ? '<span class="fin-dollar">' + sign + formatPrice(dollarChange).replace('$-', '-$') + '</span>'
+              : '') +
+            '<span class="fin-pct">' + (isFinite(pct) ? sign + pct.toFixed(2) : '—') + '%</span>' +
+          '</span>' +
+        '</div>';
       body.appendChild(row);
     });
   } catch (e) {
@@ -3446,6 +3586,16 @@ document.getElementById('set-reset-browser').addEventListener('click', () => {
 });
 document.getElementById('confirm-cancel').addEventListener('click', () => closeConfirm(false));
 document.getElementById('confirm-ok').addEventListener('click', () => closeConfirm(true));
+
+/* Description edit modal wiring. */
+document.getElementById('desc-cancel').addEventListener('click', closeDescEdit);
+document.getElementById('desc-save').addEventListener('click', saveDescEdit);
+document.getElementById('desc-textarea').addEventListener('input', autoGrowDescTextarea);
+document.getElementById('desc-textarea').addEventListener('keydown', (e) => {
+  /* Cmd/Ctrl+Enter saves quickly without reaching for the mouse. */
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); saveDescEdit(); }
+  if (e.key === 'Escape') closeDescEdit();
+});
 
 /* Widget-level gear icons (⚙ on Weather, Clock cards): open the per-widget
    config modal. Bound at boot since these buttons live in static HTML. */
