@@ -57,7 +57,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h1>StartDashboard</h1>
     <p class="subtitle">A single-file, cross-browser personal dashboard with GitHub-gist sync.</p>
     <!-- TECH:LAST_UPDATED -->
-    <span class="last-updated">Last updated: 2026-05-28 · v1.5</span>
+    <span class="last-updated">Last updated: 2026-05-28 · v1.6</span>
     <!-- /TECH:LAST_UPDATED -->
   </div>
 </header>
@@ -69,7 +69,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h2>Architecture Overview</h2>
     <p class="section-lead">How the app is structured and how the pieces fit together.</p>
     <!-- TECH:ARCHITECTURE -->
-    <p>StartDashboard is a single HTML file. Everything &mdash; markup, styles, and behavior &mdash; lives in <code>index.html</code> (~3,650 lines as of v1.5). There is no build step, no framework, and no server. The page is served as a static asset (GitHub Pages in production; you can also double-click the file locally).</p>
+    <p>StartDashboard is a single HTML file. Everything &mdash; markup, styles, and behavior &mdash; lives in <code>index.html</code> (~3,750 lines as of v1.6). There is no build step, no framework, and no server. The page is served as a static asset (GitHub Pages in production; you can also double-click the file locally).</p>
     <p>The app has three runtime layers:</p>
     <ul>
       <li><strong>State.</strong> A single <code>state</code> object holds everything: the GitHub token, gist ID, default persona, and Twelve Data API key (all from localStorage on boot), plus the synced <code>state.data</code> object that mirrors the gist's JSON. All UI rendering reads from this object; all mutations go through <code>setState()</code> which re-renders and triggers a debounced save. The Settings save flow bypasses the debounce and awaits the save directly so fast reloads always see the latest state.</li>
@@ -187,6 +187,31 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
       <p>v1.4 made descriptions always-visible inline below the title. v1.5 hides them by default to keep rows clean; an accent dot signals presence, hover reveals the full text in a popover (0.5s show delay, instant hide). Edit opens a modal with an auto-growing textarea for long reminders / asterisks / line breaks.</p>
       <p class="meta">decided 2026-05-28</p>
     </div>
+    <div class="decision">
+      <h3>Light/dark theme via tokenized CSS variables, not per-component overrides (v1.6)</h3>
+      <p>Rather than write a light-mode rule for every component, the dark surface colors were extracted into four new tokens (<code>--modal-bg</code>, <code>--input-bg</code>, <code>--popover-bg</code>, <code>--on-accent</code>) and added to the existing palette tokens. The entire light skin is one <code>body.light-mode { ... }</code> block that re-defines those tokens. One change covers every component; adding future themes (e.g. high-contrast) becomes a single new override block. Theme choice persists in <code>localStorage.sd_theme</code> per browser, parallel to the GitHub PAT and the per-device default persona.</p>
+      <p class="meta">decided 2026-05-28 (v1.6)</p>
+    </div>
+    <div class="decision">
+      <h3>Light palette pulled from the workspace hub-design-brief (v1.6)</h3>
+      <p>Rather than invent a new light palette, the dashboard's light mode uses the same colors (<code>--bg: #FAFAF7</code>, <code>--bg-elev-1: #FFFFFF</code>, <code>--text-primary: #1A1A1A</code>, <code>--border: #E8E6E0</code>) that PROJECT-HUB, MASTER-HUB, TECHNICAL, and USER-EXPERIENCE already use. Visual consistency across Tom's whole workspace. Per-persona accent and accent-soft are <em>not</em> overridden &mdash; they're set per-persona at runtime, and preserving the persona color in both themes was an explicit plan decision.</p>
+      <p class="meta">decided 2026-05-28 (v1.6)</p>
+    </div>
+    <div class="decision">
+      <h3>Light mode overrides the per-persona background with <code>.bg-light-surface</code> (v1.6)</h3>
+      <p>The per-persona gradients (Aurora, Synthwave, Midnight Mesh, etc.) were designed against a dark background; in light mode they'd clash. The toggle removes the persona's <code>.bg-*</code> class from <code>#background</code> and adds <code>.bg-light-surface</code> instead; on toggle back to dark, <code>applyPersonaTheme()</code> restores the persona's gradient. There is deliberately no per-persona light-mode gradient option &mdash; making each persona configure a light variant of its background would roughly double the config burden for marginal benefit.</p>
+      <p class="meta">decided 2026-05-28 (v1.6)</p>
+    </div>
+    <div class="decision">
+      <h3><code>formatPrice</code> simplification: 2 decimals everywhere &ge; $0.01, 4 decimals below (v1.6)</h3>
+      <p>v1.5 and earlier could render <code>$92.232089</code> and <code>-$2409.745305</code> on the finance widgets. Tom wanted prices that look like prices. New rule: <code>n &ge; 0.01</code> &rarr; <code>'$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })</code>; <code>n &lt; 0.01</code> &rarr; <code>'$' + n.toFixed(4)</code> so sub-cent altcoins don't display as <code>$0.00</code>. The previous special case for <code>n &ge; 1000</code> is gone &mdash; <code>toLocaleString</code> handles thousand separators on its own. Applies uniformly to Crypto, Markets, and Watchlist since all three call <code>formatPrice()</code>.</p>
+      <p class="meta">decided 2026-05-28 (v1.6)</p>
+    </div>
+    <div class="decision">
+      <h3>Bookmark URL shown inside the popover, not in the browser's <code>title</code> tooltip (v1.6)</h3>
+      <p>The bookmark <code>&lt;a&gt;</code> previously had <code>title.title = b.url</code>, which surfaces the browser's native URL tooltip on hover. That tooltip overlapped/blocked the description popover. Fix: remove the <code>title</code> attribute entirely; render the URL inside the popover on a small monospace footer line (<code>.bk-desc-url</code>) below the description text (<code>.bk-desc-text</code>). The separator border between description and URL uses an adjacent-sibling selector so it only appears when there's a description above &mdash; URL-only popovers render with no separator. Side-effect by design: the browser's native URL tooltip is gone from bookmarks; the URL lives in the popover.</p>
+      <p class="meta">decided 2026-05-28 (v1.6)</p>
+    </div>
     <!-- /TECH:DECISIONS -->
   </section>
 
@@ -209,6 +234,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
       <li><code>sd_gist_id</code> &mdash; ID of the gist storing this dashboard's data</li>
       <li><code>sd_default_persona</code> &mdash; ID of the persona this device opens to by default</li>
       <li><code>sd_twelvedata_key</code> &mdash; Twelve Data API key (optional; only needed for Markets/Watchlist)</li>
+      <li><code>sd_theme</code> &mdash; <code>'dark'</code> (default) or <code>'light'</code>. Set by the header sun/moon toggle (v1.6). Per-browser; not synced through the gist.</li>
       <li><code>sd_last_added</code> &mdash; transient breadcrumb dropped by the bookmarklet popup so the main window can surface a "Switch to persona X" banner. Cleared by Dismiss or after 5 minutes.</li>
     </ul>
     <h3>Gist JSON shape (synced state.data)</h3>
@@ -281,7 +307,10 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <ul class="modify-map">
       <li><strong>Add a new background preset.</strong> Add a CSS class <code>.bg-&lt;name&gt;</code> in the <code>&lt;style&gt;</code> block (search "Background presets") and a matching entry to <code>BG_PRESETS</code> in the script.</li>
       <li><strong>Add a new widget.</strong> Add a <code>&lt;div class="widget" data-widget="&lt;name&gt;"&gt;</code> in the <code>widgets-row</code> section, append the name to <code>ALL_WIDGETS</code> and <code>WIDGET_LABELS</code>, write a <code>render&lt;Name&gt;Widget(persona)</code> function, call it from <code>renderWidgets()</code>, and (if it needs config) extend <code>openWidgetConfig</code>, <code>renderWidgetCfgList</code>, and <code>dispatchWidgetSearch</code>.</li>
-      <li><strong>Change the dark color palette.</strong> CSS custom properties at the top of the <code>:root</code> block.</li>
+      <li><strong>Change the dark color palette.</strong> CSS custom properties at the top of the <code>:root</code> block. Tokens include the v1.6 additions <code>--modal-bg</code>, <code>--input-bg</code>, <code>--popover-bg</code>, <code>--on-accent</code>.</li>
+      <li><strong>Change the light palette.</strong> The <code>body.light-mode { ... }</code> block near the top of the <code>&lt;style&gt;</code> section &mdash; re-defines the same tokens with light values. Touch nothing else.</li>
+      <li><strong>Add a new theme (e.g. high-contrast).</strong> Add a new body class (<code>body.high-contrast-mode</code>) with its own token overrides, add a state value to <code>state.theme</code>, extend <code>applyTheme()</code> to swap the right class on <code>&lt;body&gt;</code>, and add the corresponding cycle in <code>toggleTheme()</code>. No per-component CSS changes needed if you stay inside the tokens.</li>
+      <li><strong>Restore the browser URL tooltip on bookmarks.</strong> Re-add <code>title.title = b.url</code> inside <code>renderBookmark()</code>. (Note: this re-introduces the v1.5 overlap with the description popover.)</li>
       <li><strong>Change the gist filename.</strong> Constant <code>GIST_FILENAME</code>. Don't change after first deploy — silently breaks sync.</li>
       <li><strong>Disable the favicon service.</strong> Search <code>s2/favicons</code> and remove the block or swap for another source.</li>
       <li><strong>Change the search engine list.</strong> The <code>SEARCH_ENGINES</code> object near the top of the script.</li>
@@ -289,6 +318,8 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
       <li><strong>Adjust the Twelve Data quote cache.</strong> <code>TD_CACHE_MS</code> at the top of the TD section. Lower = fresher, but more API calls.</li>
       <li><strong>Adjust cross-add banner timeout.</strong> The 5-minute window in <code>checkRecentAddition()</code>.</li>
       <li><strong>Adjust hover-popover show delay.</strong> The <code>transition-delay: 0.5s</code> in <code>.bookmark:hover .bk-desc-popover</code>.</li>
+      <li><strong>Style the popover URL footer.</strong> The <code>.bk-desc-url</code> class (URL footer) and <code>.bk-desc-text</code> (description body) live in the popover CSS block. The separator border between them is on <code>.bk-desc-text + .bk-desc-url</code> (adjacent sibling) so URL-only popovers have no separator.</li>
+      <li><strong>Adjust the price decimals rule.</strong> <code>formatPrice()</code> &mdash; the <code>n &gt;= 0.01</code> branch uses <code>toLocaleString</code>; the sub-cent branch uses <code>toFixed(4)</code>.</li>
       <li><strong>Replace Twelve Data with another stock API.</strong> Rewrite <code>fetchTwelveDataQuotes()</code> and <code>doStockSearch()</code>; key fields used downstream are <code>symbol</code>, <code>close</code>, <code>change</code>, <code>percent_change</code>, and (optionally) <code>name</code>.</li>
     </ul>
     <!-- /TECH:HOW_TO_MODIFY -->
@@ -308,6 +339,8 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
       <li><strong>The favicon service sends bookmark domains to Google.</strong> If this matters to you, see "How to Modify" above.</li>
       <li><strong>Bookmarklet popups can be blocked.</strong> Most browsers allow them for the originating site by default, but some configurations block them entirely. Tom can allow popups for <code>tecgunther.github.io</code> if it happens.</li>
       <li><strong>No undo.</strong> Delete a bookmark and it's gone. Worth adding a "Recently deleted" trash bin in a future iteration.</li>
+      <li><strong>No per-persona light backgrounds (v1.6).</strong> Light mode replaces the persona's gradient with one shared <code>.bg-light-surface</code>. Personas keep their accent color in light mode, but they lose their unique background. Making each persona configure a light variant of its background was deliberately deferred &mdash; would roughly double the config burden for marginal benefit. If a future Tom wants per-persona light backgrounds, the hook is in <code>applyTheme()</code> + <code>applyPersonaTheme()</code>.</li>
+      <li><strong>No native browser URL tooltip on bookmarks (v1.6).</strong> By design &mdash; the <code>title</code> attribute was removed so it doesn't overlap the description popover. The URL is now visible on a small footer line inside the popover instead.</li>
     </ul>
     <!-- /TECH:LIMITATIONS -->
   </section>
@@ -316,7 +349,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
 
 <footer>
   <div class="container">
-    Generated and maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · v1.5</span>
+    Generated and maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · v1.6 · mid-afternoon</span>
   </div>
 </footer>
 

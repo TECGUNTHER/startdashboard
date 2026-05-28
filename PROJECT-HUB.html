@@ -111,7 +111,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
       <span class="status-pill complete">Complete</span>
       <!-- /HUB:STATUS_OVERALL -->
       <!-- HUB:LAST_UPDATED -->
-      <span class="last-updated">2026-05-28 · Thu</span>
+      <span class="last-updated">2026-05-28 · Thu · mid-afternoon</span>
       <!-- /HUB:LAST_UPDATED -->
     </div>
   </div>
@@ -136,9 +136,10 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <h3>Recently completed</h3>
         <!-- HUB:RECENT_COMPLETED -->
         <ul>
-          <li><strong>v1.2 shipped:</strong> per-persona widget visibility, three new finance widgets (Crypto via CoinGecko, Markets + Watchlist via Twelve Data), 12-hour clock, background save fixed, cross-add Switch now reloads the gist.</li>
-          <li>v1.1 shipped earlier this session &mdash; wired widget gears, city search, cross-add banner, visible bookmark actions.</li>
-          <li>Live across three browsers and verified cross-browser sync (rename + drag-drop) round-trips Safari ↔ Chrome.</li>
+          <li><strong>v1.6 shipped:</strong> light/dark theme toggle in the header (☀ ↔ 🌙, remembered per browser), all finance prices trimmed to 2 decimals (sub-cent keeps 4), bookmark hover popover now shows the URL on its own footer line (the browser tooltip overlap is gone).</li>
+          <li><strong>Settings polish:</strong> "Default persona on this browser/device" surfaced as a focal block at the top of Settings with a 🖥 icon and plain-English explanation &mdash; the per-device default has always existed, but Tom never saw it.</li>
+          <li><strong>CSS tokenized for theming:</strong> introduced <code>--modal-bg</code> / <code>--input-bg</code> / <code>--popover-bg</code> / <code>--on-accent</code> tokens; the entire light-mode skin is one override block instead of per-component overrides.</li>
+          <li><strong>Process change:</strong> this build used a real <strong>Build Agent</strong> subagent for the code and a real <strong>Documentation Agent</strong> subagent for the docs, per Tom's explicit ask. The multi-agent system is now actually multi-agent.</li>
         </ul>
         <!-- /HUB:RECENT_COMPLETED -->
       </div>
@@ -146,9 +147,9 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <h3>What's next</h3>
         <!-- HUB:WHATS_NEXT -->
         <ul>
-          <li><strong>Push v1.2 to GitHub</strong>, hard-reload, paste your Twelve Data API key in Settings ⚙.</li>
-          <li>Smoke-test: widget toggles, Markets shows S&amp;P/Nasdaq/Dow, Crypto search works, build the Investments persona using these widgets.</li>
-          <li>Then use it on the Mac for a week before the next iteration.</li>
+          <li><strong>Push v1.6 to GitHub</strong> (single-file commit of <code>index.html</code>), wait ~60s for GitHub Pages to refresh.</li>
+          <li><strong>Hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R)</strong> and smoke-test in this order: 2-decimal prices on Crypto/Markets/Watchlist → bookmark hover popover shows URL footer (no browser tooltip overlap) → open Settings and confirm the "Default persona" block is the first thing visible → click the sun/moon icon to flip light mode → reload to confirm the theme persists per-browser.</li>
+          <li>Then use it for a few days before the next iteration &mdash; let real-use friction surface the next round of fixes.</li>
         </ul>
         <!-- /HUB:WHATS_NEXT -->
       </div>
@@ -221,7 +222,31 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h2>Session Log</h2>
     <!-- HUB:SESSION_LOG -->
     <article class="session-entry latest">
-      <div class="date">2026-05-28 &middot; Thursday &middot; later afternoon</div>
+      <div class="date">2026-05-28 &middot; Thursday &middot; mid-afternoon</div>
+      <div class="focus">v1.6 &mdash; light/dark mode + UX polish via real subagent flow.</div>
+      <h4>Completed</h4>
+      <ul>
+        <li><strong>Light/dark theme toggle.</strong> New sun/moon icon button (☀ in dark mode, 🌙 in light mode) sits in the header next to the gear. Click flips the whole UI; choice persists in <code>localStorage.sd_theme</code> per browser. Light mode replaces the persona's gradient background with a clean light surface; the persona's accent color is preserved so tab indicators, hover states, and focus rings still reflect the active persona.</li>
+        <li><strong>Finance prices trimmed to 2 decimals.</strong> <code>formatPrice()</code> rewritten: any value ≥ $0.01 shows 2 decimals (e.g. <code>$1,990.20</code>, <code>-$92.23</code>); sub-cent altcoins still show 4 decimals so they don't display as <code>$0.00</code>. Applies to Crypto, Markets, and Watchlist.</li>
+        <li><strong>Bookmark description popover no longer fights the browser URL tooltip.</strong> The bookmark <code>&lt;a&gt;</code>'s <code>title</code> attribute is gone; the URL now lives inside the popover on a small monospace footer line beneath the description. Hovering a bookmark with no description still shows a tiny popover with just the URL.</li>
+        <li><strong>"Default persona on this browser/device" surfaced in Settings.</strong> The per-device default has always existed but Tom never noticed it. Now it sits at the top of Settings in an accent-tinted block with a 🖥 icon and explanatory subtext ("Each browser/device sets its own &mdash; your work Mac can open to Work while your iPhone opens to Personal").</li>
+        <li><strong>CSS palette tokenized.</strong> Added <code>--modal-bg</code>, <code>--input-bg</code>, <code>--popover-bg</code>, <code>--on-accent</code> tokens. The entire light-mode skin is one <code>body.light-mode</code> override block &mdash; no per-component overrides needed.</li>
+        <li><strong>Real subagent flow used.</strong> Per Tom's explicit ask ("make sure that our agents are engaged for some of these major changes"), this build spawned the <strong>Build Agent</strong> as an actual subagent for the code changes and the <strong>Documentation Agent</strong> as an actual subagent for the doc updates. Both returned standard Agent Reports.</li>
+      </ul>
+      <h4>Decisions made</h4>
+      <ul>
+        <li><strong>Tokenize, don't override per-rule.</strong> Four new CSS variables replaced the hardcoded dark surface colors. The <code>body.light-mode</code> block just re-defines those tokens. One change covers every component instead of dozens of per-component light overrides.</li>
+        <li><strong>Light palette pulled from <code>agent-system/agents/briefs/hub-design-brief.md § 3</code></strong> (<code>--bg: #FAFAF7</code>, <code>--bg-elev-1: #FFFFFF</code>, <code>--text-primary: #1A1A1A</code>, <code>--border: #E8E6E0</code>) so the dashboard's light mode matches the rest of Tom's workspace docs visually.</li>
+        <li><strong>Persona accent + accent-soft are NOT overridden in light mode.</strong> They're set per-persona at runtime; the plan wanted the persona color preserved in both themes.</li>
+        <li><strong>Light mode replaces the persona background</strong> with <code>.bg-light-surface</code>; there is no per-persona light gradient (would double the config burden for marginal benefit).</li>
+        <li><strong><code>--on-accent</code></strong> is white in light mode, near-black in dark mode &mdash; so accent-colored button text reads correctly in both.</li>
+        <li><strong>Popover URL line uses an adjacent-sibling selector</strong> so the separator border only renders when there's a description above it; URL-only popovers have no border.</li>
+        <li><strong>Modal backdrop gets a light-mode override</strong> (<code>rgba(255, 255, 255, 0.55)</code>) &mdash; without it the backdrop flashed pure black on light-mode modal opens.</li>
+      </ul>
+    </article>
+
+    <article class="session-entry">
+      <div class="date">2026-05-28 &middot; Thursday &middot; later afternoon (earlier)</div>
       <div class="focus">v1.5 polish &mdash; description redesign, dollar-change on finance widgets, API key walkthrough, doc refresh.</div>
       <h4>Completed</h4>
       <ul>
@@ -379,7 +404,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
 
 <footer>
   <div class="container">
-    Maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28</span>
+    Maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · mid-afternoon</span>
   </div>
 </footer>
 

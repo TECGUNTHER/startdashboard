@@ -39,6 +39,53 @@
   --radius-sm: 8px;
   --shadow-card: 0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 24px rgba(0,0,0,0.35);
   --blur: 18px;
+  /* Surface tokens used by modals, the toast, context menus, popovers, and
+     form inputs. Kept as variables so the light-mode block below can swap
+     them in one place instead of every individual rule. */
+  --modal-bg: #11111A;
+  --input-bg: #0A0A12;
+  --popover-bg: #11111A;
+  --on-accent: #0A0A0F;        /* text color when sitting ON the accent color */
+}
+
+/* ---------- Light-mode palette overrides ----------
+   Activated by `body.light-mode`. Editorial off-white aesthetic that
+   matches the workspace's HUB documents (see hub-design-brief.md).
+   Per-persona accent colors are preserved — only neutral surface and
+   text tokens flip. The persona background is replaced separately, via
+   `#background.bg-light-surface`, applied in JS at apply-theme time.
+*/
+body.light-mode {
+  --bg: #FAFAF7;                       /* warm off-white page background */
+  --bg-elev-1: #FFFFFF;                /* card / header surfaces */
+  --bg-elev-2: #F2F1EC;                /* subtle inset surfaces (hover, chips) */
+  --bg-overlay: rgba(255, 255, 255, 0.82);
+  --border: #E8E6E0;
+  --border-strong: #D8D6CE;
+  --text-primary: #1A1A1A;
+  --text-secondary: #5A5A5A;
+  --text-muted: #8A8A8A;
+  --modal-bg: #FFFFFF;
+  --input-bg: #FFFFFF;
+  --popover-bg: #FFFFFF;
+  --on-accent: #FFFFFF;                /* white text reads better on accent in light mode */
+  --shadow-card: 0 1px 0 rgba(0,0,0,0.02) inset, 0 4px 16px rgba(0,0,0,0.06);
+}
+
+/* Soft light gradient that replaces the per-persona background when light
+   mode is on. Persona-specific gradients (Aurora, Synthwave, etc.) are
+   designed for dark and would clash, so the toggle swaps them out. */
+.bg-light-surface {
+  background:
+    radial-gradient(60% 50% at 15% 10%, rgba(15, 118, 110, 0.06), transparent 60%),
+    radial-gradient(50% 50% at 90% 20%, rgba(99, 102, 241, 0.05), transparent 60%),
+    linear-gradient(180deg, #FAFAF7 0%, #F4F3EE 100%);
+}
+#background.bg-light-surface::after {
+  /* In light mode the dark vignette would create a muddy frame. Hide it.
+     Selector intentionally includes #background so it outweighs the
+     #background::after rule above (matched specificity, later wins). */
+  display: none;
 }
 
 /* ---------- Reset and base typography ---------- */
@@ -679,14 +726,13 @@ header.dash-header {
   margin-top: 4px;
   max-width: 320px;
   min-width: 180px;
-  background: #11111A;
+  background: var(--popover-bg);
   border: 1px solid var(--border-strong);
   border-radius: 8px;
   padding: 10px 12px;
   font-size: 12px;
   line-height: 1.5;
   color: var(--text-secondary);
-  white-space: pre-wrap;       /* preserve line breaks the user typed */
   word-wrap: break-word;
   box-shadow: 0 8px 20px rgba(0,0,0,0.45);
   z-index: 20;
@@ -694,6 +740,24 @@ header.dash-header {
   pointer-events: none;
   transform: translateY(-4px);
   transition: opacity 0.15s ease, transform 0.15s ease;
+}
+/* Description body — preserves line breaks the user typed. */
+.bookmark .bk-desc-popover .bk-desc-text {
+  white-space: pre-wrap;
+}
+/* URL footer line inside the popover. Small, monospace, muted. When a
+   description is shown above it, a top border separates the two. When the
+   description is empty, no border (it's the only thing in the popover). */
+.bookmark .bk-desc-popover .bk-desc-url {
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+.bookmark .bk-desc-popover .bk-desc-text + .bk-desc-url {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
 }
 .bookmark:hover .bk-desc-popover {
   opacity: 1;
@@ -707,7 +771,7 @@ header.dash-header {
   width: 100%;
   min-height: 120px;
   resize: vertical;
-  background: #0A0A12;
+  background: var(--input-bg);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 12px 14px;
@@ -777,7 +841,7 @@ header.dash-header {
   padding: 20px;
 }
 .modal {
-  background: #11111A;
+  background: var(--modal-bg);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   padding: 24px;
@@ -812,7 +876,7 @@ header.dash-header {
 .modal textarea,
 .modal select {
   width: 100%;
-  background: #0A0A12;
+  background: var(--input-bg);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 10px 12px;
@@ -840,7 +904,7 @@ header.dash-header {
 .btn:hover { background: var(--bg-elev-1); border-color: var(--border-strong); }
 .btn.primary {
   background: var(--accent);
-  color: #0A0A0F;
+  color: var(--on-accent);
   border-color: var(--accent);
 }
 .btn.primary:hover { filter: brightness(1.1); }
@@ -924,7 +988,7 @@ header.dash-header {
   background: var(--bg-elev-2);
   border-radius: 6px;
 }
-.cat-button:hover { background: var(--accent); color: #0A0A0F; }
+.cat-button:hover { background: var(--accent); color: var(--on-accent); }
 
 /* ---------- Setup screen ---------- */
 .setup {
@@ -987,7 +1051,7 @@ header.dash-header {
   bottom: 20px; left: 50%;
   transform: translateX(-50%);
   padding: 10px 16px;
-  background: #11111A;
+  background: var(--modal-bg);
   border: 1px solid var(--border-strong);
   border-radius: 8px;
   font-size: 13px;
@@ -1001,7 +1065,7 @@ header.dash-header {
 /* ---------- Context menu ---------- */
 .context-menu {
   position: fixed;
-  background: #11111A;
+  background: var(--modal-bg);
   border: 1px solid var(--border-strong);
   border-radius: 8px;
   padding: 4px;
@@ -1026,7 +1090,7 @@ header.dash-header {
   position: absolute;
   left: 100%; top: 0;
   margin-left: 4px;
-  background: #11111A;
+  background: var(--modal-bg);
   border: 1px solid var(--border-strong);
   border-radius: 8px;
   padding: 4px;
@@ -1056,7 +1120,7 @@ header.dash-header {
 .cross-add-banner .banner-actions { display: flex; gap: 8px; flex-shrink: 0; }
 .cross-add-banner .banner-btn {
   padding: 6px 12px; font-size: 12px; font-weight: 500;
-  background: var(--accent); color: #0A0A0F; border-radius: 6px;
+  background: var(--accent); color: var(--on-accent); border-radius: 6px;
   white-space: nowrap;
 }
 .cross-add-banner .banner-btn:hover { filter: brightness(1.1); }
@@ -1070,7 +1134,7 @@ header.dash-header {
 .city-search { position: relative; }
 .city-search-input {
   width: 100%;
-  background: #0A0A12;
+  background: var(--input-bg);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 10px 12px;
@@ -1083,7 +1147,7 @@ header.dash-header {
   position: absolute;
   top: calc(100% + 4px);
   left: 0; right: 0;
-  background: #11111A;
+  background: var(--modal-bg);
   border: 1px solid var(--border-strong);
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.5);
@@ -1135,6 +1199,24 @@ header.dash-header {
   font-size: 12px !important;
   padding: 8px 0 !important;
   font-style: italic;
+}
+
+/* ---------- Light-mode adjustments ----------
+   Most of the UI just inherits the swapped CSS variables defined in
+   `body.light-mode`. A handful of rules baked dark-only values directly
+   (overlay backdrop, image-background dim layer, danger-zone red wash,
+   default body fade) — those need explicit light-mode overrides here. */
+
+/* The modal backdrop tints with black in dark mode; in light mode that
+   reads as a heavy black flash. Use a soft white tint instead. */
+body.light-mode .overlay {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+/* Smooth fade when the theme flips, so the swap doesn't feel jarring.
+   The background element handles its own faster transition. */
+body {
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 /* ---------- Responsive ---------- */
@@ -1213,6 +1295,7 @@ header.dash-header {
         <span class="sync-dot synced" id="sync-dot"></span>
         <span id="sync-text">Synced</span>
       </div>
+      <button class="icon-btn" id="theme-toggle" title="Toggle light/dark mode">☀</button>
       <button class="icon-btn" id="open-settings" title="Settings">⚙</button>
     </div>
   </header>
@@ -1314,11 +1397,23 @@ header.dash-header {
     <h2>Settings</h2>
     <p class="sub">Configure your dashboard. Most changes apply immediately.</p>
 
+    <!-- Per-device default persona — surfaced at the top of Settings because
+         it's per-browser, often missed, and has the biggest impact on the
+         day-to-day experience (which persona opens first when Tom hits a
+         new tab on this device). Visual emphasis via tinted block + icon. -->
+    <div style="margin-bottom: 18px; padding: 14px 14px 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--accent-soft);">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+        <span style="font-size: 16px;">🖥</span>
+        <label style="margin: 0; color: var(--text-primary); font-size: 12px;">Default persona on this browser/device</label>
+      </div>
+      <select id="set-default-persona" style="margin-bottom: 6px;"></select>
+      <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.5;">
+        This browser will open to this persona by default. Each browser/device sets its own — your work Mac can open to Work while your iPhone opens to Personal. Stored locally on this device only.
+      </div>
+    </div>
+
     <label>Dashboard title</label>
     <input type="text" id="set-title" />
-
-    <label>Default persona on this browser/device</label>
-    <select id="set-default-persona"></select>
 
     <label>This persona — name</label>
     <input type="text" id="set-persona-name" />
@@ -1401,7 +1496,7 @@ header.dash-header {
     <h2>Install the bookmarklet</h2>
     <p class="sub">Drag this link to your browser's bookmarks bar. Then on any site, click it to add the page to StartDashboard.</p>
     <div style="background: var(--bg-elev-2); padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 14px;">
-      <a id="bookmarklet-link" href="#" style="display: inline-block; padding: 10px 18px; background: var(--accent); color: #0A0A0F; border-radius: 8px; font-weight: 600;">+ Add to StartDashboard</a>
+      <a id="bookmarklet-link" href="#" style="display: inline-block; padding: 10px 18px; background: var(--accent); color: var(--on-accent); border-radius: 8px; font-weight: 600;">+ Add to StartDashboard</a>
     </div>
     <p style="font-size: 12px; color: var(--text-muted);">Right-click the button → "Add to bookmarks bar" if dragging doesn't work in your browser.</p>
     <div class="modal-actions">
@@ -1490,6 +1585,9 @@ const LS = {
      (not synced via gist) for the same reason the GitHub PAT is: it's a
      credential, and the rate limit is per-key. */
   TWELVE_DATA_KEY: 'sd_twelvedata_key',
+  /* Light/dark mode preference. Per-browser like the default persona —
+     Tom can have one device light and another dark. */
+  THEME: 'sd_theme',
 };
 
 /* ---------- Background preset list ---------- */
@@ -1528,6 +1626,9 @@ const state = {
   gistId: localStorage.getItem(LS.GIST_ID) || null,
   defaultPersonaId: localStorage.getItem(LS.DEFAULT_PERSONA) || null,
   twelveDataKey: localStorage.getItem(LS.TWELVE_DATA_KEY) || null,
+  /* 'dark' (default) or 'light'. Drives the theme-toggle button glyph and
+     the .light-mode class on <body>. */
+  theme: localStorage.getItem(LS.THEME) || 'dark',
   data: null,                  // Loaded from gist after setup
   currentPersonaId: null,      // Which persona is being viewed
   syncStatus: 'synced',        // 'synced' | 'saving' | 'stale' | 'error'
@@ -1543,6 +1644,10 @@ const state = {
 window.addEventListener('DOMContentLoaded', boot);
 
 async function boot() {
+  /* Apply the user's saved light/dark choice before anything paints so
+     there's no dark-flash-then-light moment on a light-mode load. */
+  applyTheme();
+
   /* The bookmarklet sends users to ?add=<url>&title=<title>. If those
      params are present we show only the lightweight add overlay rather
      than the full dashboard — this is the popup flow. */
@@ -1830,7 +1935,11 @@ function switchPersona(id) {
   render();
 }
 
-/* Apply persona-specific theming: accent color + background. */
+/* Apply persona-specific theming: accent color + background.
+   When light mode is active, the persona's dark background gradient is
+   replaced with a soft light surface — the persona-specific gradients
+   (Aurora, Synthwave, etc.) are designed for dark and would clash. The
+   persona's accent color is preserved in both modes. */
 function applyPersonaTheme(p) {
   const root = document.documentElement;
   root.style.setProperty('--accent', p.accent);
@@ -1840,6 +1949,11 @@ function applyPersonaTheme(p) {
   bg.removeAttribute('style');
   // Remove any old preset classes, then add the new one.
   bg.className = '';
+  if (state.theme === 'light') {
+    /* Light mode overrides the persona background entirely. */
+    bg.classList.add('bg-light-surface');
+    return;
+  }
   if (p.background && p.background.startsWith('url:')) {
     bg.classList.add('bg-image');
     bg.style.backgroundImage = 'url("' + p.background.slice(4) + '")';
@@ -1848,6 +1962,32 @@ function applyPersonaTheme(p) {
     bg.style.background = p.background.slice(6);
   } else {
     bg.classList.add('bg-' + (p.background || 'midnight-mesh'));
+  }
+}
+
+/* Flip between light and dark mode. Stores the choice per-browser in
+   localStorage, swaps the .light-mode class on <body>, updates the
+   toggle button's glyph, then re-applies the persona theme so the
+   background swaps to the right surface for the new mode. */
+function toggleTheme() {
+  state.theme = (state.theme === 'light') ? 'dark' : 'light';
+  localStorage.setItem(LS.THEME, state.theme);
+  applyTheme();
+  const p = currentPersona();
+  if (p) applyPersonaTheme(p);
+}
+
+/* Apply the current state.theme to the DOM. Called on boot (before first
+   render) and after toggling. Idempotent. */
+function applyTheme() {
+  const isLight = (state.theme === 'light');
+  document.body.classList.toggle('light-mode', isLight);
+  const btn = document.getElementById('theme-toggle');
+  if (btn) {
+    /* Glyph shows what you'll get if you click — sun in dark mode (click
+       to brighten), moon in light mode (click to dim). */
+    btn.textContent = isLight ? '🌙' : '☀';
+    btn.title = isLight ? 'Switch to dark mode' : 'Switch to light mode';
   }
 }
 
@@ -2119,7 +2259,8 @@ function renderBookmark(b, parentCat) {
   title.className = 'bk-title';
   title.href = b.url;
   title.textContent = b.title || b.url;
-  title.title = b.url;
+  /* No `title` attribute on purpose — the browser's native URL tooltip would
+     overlap our hover popover. The URL now lives inside the popover instead. */
   title.target = '_blank';
   title.rel = 'noopener';
   title.addEventListener('dblclick', (e) => { e.preventDefault(); beginRenameBookmark(b.id, parentCat.id, li); });
@@ -2136,14 +2277,25 @@ function renderBookmark(b, parentCat) {
 
   li.appendChild(main);
 
-  /* Hover popover with the full description. Hidden via CSS by default,
-     shown on .bookmark:hover with a 0.5s delay. Skip if no description. */
+  /* Hover popover. Hidden via CSS by default, shown on .bookmark:hover
+     with a 0.5s delay. Always rendered now — even with no description it
+     shows the URL on its own, replacing the browser's native title tooltip
+     so we don't have two overlapping hover UIs fighting each other. */
+  const pop = document.createElement('div');
+  pop.className = 'bk-desc-popover';
   if (b.description) {
-    const pop = document.createElement('div');
-    pop.className = 'bk-desc-popover';
-    pop.textContent = b.description;
-    li.appendChild(pop);
+    const descLine = document.createElement('div');
+    descLine.className = 'bk-desc-text';
+    descLine.textContent = b.description;
+    pop.appendChild(descLine);
   }
+  /* Footer line: small monospace URL, muted, separated by a top border when
+     a description is present above it. */
+  const urlLine = document.createElement('div');
+  urlLine.className = 'bk-desc-url';
+  urlLine.textContent = b.url;
+  pop.appendChild(urlLine);
+  li.appendChild(pop);
 
   const actions = document.createElement('span');
   actions.className = 'bk-actions';
@@ -2771,14 +2923,16 @@ const MARKET_INDEX_LABELS = {
   GLD: 'Gold', SLV: 'Silver', USO: 'Oil',
 };
 
-/* Pretty-print a number as a dollar price: thousands comma, sensible decimals. */
+/* Pretty-print a number as a dollar price.
+   Tom wants exactly two decimals everywhere ($1,990.20, -$92.23, etc.).
+   Sub-cent altcoin prices keep 4 decimals so a tiny coin doesn't show as
+   "$0.00" and look broken. toLocaleString handles the thousands-comma for
+   us, so no special-case is needed for big numbers. */
 function formatPrice(n) {
   n = Number(n);
   if (!isFinite(n)) return '—';
-  if (n >= 1000) return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  if (n >= 1)    return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  if (n >= 0.01) return '$' + n.toFixed(4);
-  return '$' + n.toFixed(6);
+  if (n >= 0.01) return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return '$' + n.toFixed(4);
 }
 
 /* ---- Sticky notes ---- */
@@ -3563,6 +3717,7 @@ function normalizeHex(c) {
    ============================================================ */
 document.getElementById('search-form').addEventListener('submit', handleSearchSubmit);
 document.getElementById('persona-add-btn').addEventListener('click', addNewPersona);
+document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 document.getElementById('open-settings').addEventListener('click', openSettingsModal);
 document.getElementById('set-cancel').addEventListener('click', closeSettingsModal);
 document.getElementById('set-save').addEventListener('click', saveSettings);

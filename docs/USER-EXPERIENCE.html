@@ -51,7 +51,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h1>StartDashboard</h1>
     <p class="subtitle">A personal home page that travels with you across every browser and every device, with separate "channels" for different sides of your life.</p>
     <!-- UX:LAST_UPDATED -->
-    <span class="last-updated">Last updated: 2026-05-28 · v1.5</span>
+    <span class="last-updated">Last updated: 2026-05-28 · v1.6</span>
     <!-- /UX:LAST_UPDATED -->
   </div>
 </header>
@@ -65,7 +65,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <!-- UX:OVERVIEW -->
     <p>StartDashboard replaces the fractured pile of bookmarks you accumulate across Chrome, Safari, and every other browser you touch. It's one web page, at one URL, that looks and behaves identically wherever you open it. You bookmark a site once and it shows up everywhere &mdash; on your laptop, your phone, your work computer &mdash; within seconds.</p>
     <p>It also recognizes that you're not one person to your browser. You have a work mode, a personal mode, and probably a few obsessions besides (investments, side projects, things you're learning). Each of those is a "persona": its own complete dashboard with its own bookmarks, its own widgets, its own background, and its own accent color. You switch between them with one click on a tab bar at the top of the page.</p>
-    <p>The aesthetic is dark, modern, and tech-leaning &mdash; think Linear, Vercel, Raycast. Bookmark categories sit on top of a chosen background (animated gradients, deep space, a synthwave grid, or any image URL you paste in). A small row of widgets near the top gives you a multi-time-zone clock, the weather, a to-do list, and a sticky notes pad &mdash; one set per persona, so your work to-dos and personal to-dos never mix.</p>
+    <p>The default aesthetic is dark, modern, and tech-leaning &mdash; think Linear, Vercel, Raycast. Bookmark categories sit on top of a chosen background (animated gradients, deep space, a synthwave grid, or any image URL you paste in). A sun/moon button in the header flips the whole UI to a clean light mode for daytime / bright-light use, and each browser remembers which theme you picked. A small row of widgets near the top gives you a multi-time-zone clock, the weather, a to-do list, and a sticky notes pad &mdash; one set per persona, so your work to-dos and personal to-dos never mix.</p>
     <p>Behind the scenes, all your data lives in one private GitHub gist on your account. There are no ads, no third-party services besides GitHub and a free weather API, and nothing tracks what you do.</p>
     <!-- /UX:OVERVIEW -->
   </section>
@@ -127,7 +127,13 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <div class="feature">
       <h3>Per-device default persona</h3>
       <p class="one-liner">Your work Mac opens to Work. Your iPhone opens to Personal.</p>
-      <p class="walkthrough">Each browser remembers which persona to load on startup. You set it during first-time setup or in Settings. The default is per-device, so different machines can open to different personas without interfering with each other.</p>
+      <p class="walkthrough">Each browser remembers which persona to load on startup. You set it during first-time setup or in Settings &mdash; as of v1.6 the "Default persona on this browser/device" block sits at the very top of Settings with a 🖥 icon, so you'll see it immediately. The default is per-device, so different machines can open to different personas without interfering with each other.</p>
+    </div>
+
+    <div class="feature">
+      <h3>Light / dark mode toggle</h3>
+      <p class="one-liner">One click in the header flips the whole UI between dark and light. (v1.6)</p>
+      <p class="walkthrough">A sun/moon icon button sits in the header next to the gear. ☀ in dark mode (click to go light), 🌙 in light mode (click to go dark). Light mode swaps the persona's gradient background for a clean light surface, flips text and card colors for readability, and keeps the persona's accent color so tab indicators, hover states, and focus rings still feel like the right persona. Each browser remembers its own theme, so you can run Safari in light mode and Chrome in dark on the same Mac.</p>
     </div>
 
     <div class="feature">
@@ -162,7 +168,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
 
     <div class="screen">
       <h3>Settings modal</h3>
-      <p>Triggered by the gear icon in the header. Configure: dashboard title, this device's default persona, this persona's name + accent color + background, clock zones, weather cities, search engine, gist ID (for copying to other browsers). Includes a Bookmarklet button that shows the drag-to-install link, and Reset This Browser for re-doing setup.</p>
+      <p>Triggered by the gear icon in the header. The first block at the top is now a focal "Default persona on this browser/device" picker (🖥 icon, accent-tinted background, explanatory subtext) so per-device defaults are obvious instead of buried. Below that: dashboard title, this persona's name + accent color + background, clock zones, weather cities, search engine, gist ID (for copying to other browsers). Includes a Bookmarklet button that shows the drag-to-install link, and a Danger Zone block at the bottom for destructive actions (Delete persona, Reset This Browser).</p>
     </div>
 
     <!-- /UX:SCREENS -->
@@ -201,6 +207,16 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <li>Follow the inline four-step walkthrough: sign up at twelvedata.com/register (free, no credit card), verify email, copy your key from their dashboard, paste it in.</li>
         <li>Click <strong>Save changes</strong>. The Markets widget should start showing prices within a few seconds.</li>
         <li>Click the Markets <strong>⚙</strong> to add tickers (defaults include SPY, QQQ, DIA). Watchlist works the same way for individual stocks like AAPL, NVDA.</li>
+      </ol>
+    </div>
+
+    <div class="workflow">
+      <h3>Switch to light mode for evening reading (v1.6)</h3>
+      <ol>
+        <li>Click the <strong>☀</strong> icon in the header (it sits next to the gear).</li>
+        <li>The whole dashboard fades to a light background, dark text, and white cards. The persona's accent color is preserved.</li>
+        <li>To go back to dark, click the <strong>🌙</strong> icon (the button glyph flipped when you went light).</li>
+        <li>Your choice is remembered per browser &mdash; reloading keeps the theme you picked, and another browser/device can stay on the opposite theme.</li>
       </ol>
     </div>
 
@@ -292,7 +308,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
 
 <footer>
   <div class="container">
-    Generated and maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · v1.5</span>
+    Generated and maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · v1.6 · mid-afternoon</span>
   </div>
 </footer>
 
