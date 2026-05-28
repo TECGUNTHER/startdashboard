@@ -57,7 +57,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h1>StartDashboard</h1>
     <p class="subtitle">A single-file, cross-browser personal dashboard with GitHub-gist sync.</p>
     <!-- TECH:LAST_UPDATED -->
-    <span class="last-updated">Last updated: 2026-05-28 · v1.6</span>
+    <span class="last-updated">Last updated: 2026-05-28 · v1.7</span>
     <!-- /TECH:LAST_UPDATED -->
   </div>
 </header>
@@ -212,6 +212,16 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
       <p>The bookmark <code>&lt;a&gt;</code> previously had <code>title.title = b.url</code>, which surfaces the browser's native URL tooltip on hover. That tooltip overlapped/blocked the description popover. Fix: remove the <code>title</code> attribute entirely; render the URL inside the popover on a small monospace footer line (<code>.bk-desc-url</code>) below the description text (<code>.bk-desc-text</code>). The separator border between description and URL uses an adjacent-sibling selector so it only appears when there's a description above &mdash; URL-only popovers render with no separator. Side-effect by design: the browser's native URL tooltip is gone from bookmarks; the URL lives in the popover.</p>
       <p class="meta">decided 2026-05-28 (v1.6)</p>
     </div>
+    <div class="decision">
+      <h3>Negative-aware formatters branch on <code>Math.abs()</code> and re-apply the sign at output (v1.7)</h3>
+      <p>v1.6's <code>formatPrice()</code> compared the raw value to <code>0.01</code>. Any negative dollar change fell through to the sub-cent 4-decimal branch (<code>-89.4463 &rarr; -$89.4463</code>). v1.7 rewrites it: branch on <code>Math.abs(n)</code>, format the magnitude with <code>toLocaleString</code> (or <code>toFixed(4)</code> for sub-cent), then prepend a <code>'-$'</code> or <code>'$'</code> sign string. Both call sites (<code>renderCryptoWidget</code> and <code>renderTwelveDataWidget</code>) lost their old <code>.replace('$-', '-$')</code> band-aids; each now reads as plain <code>formatPrice(dollarChange)</code>. <strong>Reusable lesson:</strong> any future number formatter that accepts negative inputs should branch on <code>Math.abs()</code> and re-apply the sign &mdash; never compare the raw value to a positive threshold.</p>
+      <p class="meta">decided 2026-05-28 (v1.7 hotfix)</p>
+    </div>
+    <div class="decision">
+      <h3>Active persona tab uses solid accent + <code>--on-accent</code> text, not <code>--text-primary</code> (v1.7)</h3>
+      <p>The v1.6 active-tab style used <code>var(--accent-soft)</code> as the background, which was nearly invisible against most personas &mdash; on initial page load, no tab looked selected. v1.7 swaps to solid <code>var(--accent)</code> with <code>font-weight: 600</code>. The plan called for <code>color: var(--text-primary)</code>, but against a solid accent fill that loses contrast in light mode. Used <code>var(--on-accent)</code> instead (the v1.6 token that's near-black in dark mode and white in light mode, specifically designed to ride on top of the accent color). The active-tab dot also moved to <code>--on-accent</code> so it stays visible against the now-solid tab. Separately: <code>render()</code> was calling <code>renderPersonaTabs()</code> before <code>currentPersona()</code>, but <code>currentPersona()</code> lazily initializes <code>state.currentPersonaId</code> on first call &mdash; so the first frame had no active tab regardless of styling. Fix is the ordering swap, with a comment in <code>render()</code> flagging the constraint.</p>
+      <p class="meta">decided 2026-05-28 (v1.7 hotfix)</p>
+    </div>
     <!-- /TECH:DECISIONS -->
   </section>
 
@@ -319,7 +329,9 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
       <li><strong>Adjust cross-add banner timeout.</strong> The 5-minute window in <code>checkRecentAddition()</code>.</li>
       <li><strong>Adjust hover-popover show delay.</strong> The <code>transition-delay: 0.5s</code> in <code>.bookmark:hover .bk-desc-popover</code>.</li>
       <li><strong>Style the popover URL footer.</strong> The <code>.bk-desc-url</code> class (URL footer) and <code>.bk-desc-text</code> (description body) live in the popover CSS block. The separator border between them is on <code>.bk-desc-text + .bk-desc-url</code> (adjacent sibling) so URL-only popovers have no separator.</li>
-      <li><strong>Adjust the price decimals rule.</strong> <code>formatPrice()</code> &mdash; the <code>n &gt;= 0.01</code> branch uses <code>toLocaleString</code>; the sub-cent branch uses <code>toFixed(4)</code>.</li>
+      <li><strong>Adjust the price decimals rule.</strong> <code>formatPrice(n)</code> &mdash; branches on <code>Math.abs(n)</code> (the <code>&gt;= 0.01</code> branch uses <code>toLocaleString</code>; the sub-cent branch uses <code>toFixed(4)</code>) and re-applies the sign via a <code>'-$'</code> / <code>'$'</code> prefix at output. Don't compare the raw <code>n</code> to a positive threshold &mdash; negatives will fall through to the wrong branch.</li>
+      <li><strong>Tweak the active persona tab style.</strong> <code>.persona-tab.active</code> &mdash; background is <code>var(--accent)</code>, text is <code>var(--on-accent)</code>, dot inside it is <code>var(--on-accent)</code>. Don't use <code>--text-primary</code> for the text; it loses contrast against a solid accent fill in light mode.</li>
+      <li><strong>Adjust the bookmark description popover spacing.</strong> <code>.bookmark .bk-desc-popover</code> &mdash; <code>margin-top: 28px</code>. The gap is intentional: Safari and some Chromium builds render their own tooltip for ellipsis-truncated titles, and there's no reliable cross-browser way to suppress it. Don't shrink the gap unless you've verified across all of Tom's browsers.</li>
       <li><strong>Replace Twelve Data with another stock API.</strong> Rewrite <code>fetchTwelveDataQuotes()</code> and <code>doStockSearch()</code>; key fields used downstream are <code>symbol</code>, <code>close</code>, <code>change</code>, <code>percent_change</code>, and (optionally) <code>name</code>.</li>
     </ul>
     <!-- /TECH:HOW_TO_MODIFY -->
@@ -341,6 +353,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
       <li><strong>No undo.</strong> Delete a bookmark and it's gone. Worth adding a "Recently deleted" trash bin in a future iteration.</li>
       <li><strong>No per-persona light backgrounds (v1.6).</strong> Light mode replaces the persona's gradient with one shared <code>.bg-light-surface</code>. Personas keep their accent color in light mode, but they lose their unique background. Making each persona configure a light variant of its background was deliberately deferred &mdash; would roughly double the config burden for marginal benefit. If a future Tom wants per-persona light backgrounds, the hook is in <code>applyTheme()</code> + <code>applyPersonaTheme()</code>.</li>
       <li><strong>No native browser URL tooltip on bookmarks (v1.6).</strong> By design &mdash; the <code>title</code> attribute was removed so it doesn't overlap the description popover. The URL is now visible on a small footer line inside the popover instead.</li>
+      <li><strong>The browser's native tooltip for ellipsis-truncated bookmark titles can't be suppressed cross-browser (v1.7).</strong> Safari (and some Chromium builds) show their own tooltip for titles that have been visually truncated with <code>text-overflow: ellipsis</code>, even when there's no <code>title</code> attribute. There's no reliable way to suppress it across browsers, so the description popover is positioned <code>margin-top: 28px</code> below the bookmark row to leave space for it rather than fight the browser. Side-effect: a touch of extra vertical whitespace under each bookmark row when the popover is open.</li>
     </ul>
     <!-- /TECH:LIMITATIONS -->
   </section>
@@ -349,7 +362,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
 
 <footer>
   <div class="container">
-    Generated and maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · v1.6 · mid-afternoon</span>
+    Generated and maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · v1.7 · late afternoon</span>
   </div>
 </footer>
 

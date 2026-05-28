@@ -111,7 +111,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
       <span class="status-pill complete">Complete</span>
       <!-- /HUB:STATUS_OVERALL -->
       <!-- HUB:LAST_UPDATED -->
-      <span class="last-updated">2026-05-28 · Thu · mid-afternoon</span>
+      <span class="last-updated">2026-05-28 · Thu · late afternoon</span>
       <!-- /HUB:LAST_UPDATED -->
     </div>
   </div>
@@ -136,10 +136,9 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <h3>Recently completed</h3>
         <!-- HUB:RECENT_COMPLETED -->
         <ul>
-          <li><strong>v1.6 shipped:</strong> light/dark theme toggle in the header (☀ ↔ 🌙, remembered per browser), all finance prices trimmed to 2 decimals (sub-cent keeps 4), bookmark hover popover now shows the URL on its own footer line (the browser tooltip overlap is gone).</li>
-          <li><strong>Settings polish:</strong> "Default persona on this browser/device" surfaced as a focal block at the top of Settings with a 🖥 icon and plain-English explanation &mdash; the per-device default has always existed, but Tom never saw it.</li>
-          <li><strong>CSS tokenized for theming:</strong> introduced <code>--modal-bg</code> / <code>--input-bg</code> / <code>--popover-bg</code> / <code>--on-accent</code> tokens; the entire light-mode skin is one override block instead of per-component overrides.</li>
-          <li><strong>Process change:</strong> this build used a real <strong>Build Agent</strong> subagent for the code and a real <strong>Documentation Agent</strong> subagent for the docs, per Tom's explicit ask. The multi-agent system is now actually multi-agent.</li>
+          <li><strong>v1.7 hotfix shipped:</strong> three small bug fixes on top of v1.6 &mdash; negative finance prices were rendering with 4 decimals (e.g. <code>-$89.4463</code>), bookmark description popover was being overlapped by the browser's native tooltip on truncated titles, and the active persona tab wasn't highlighted on initial page load.</li>
+          <li><strong>Active tab styling now solid, not soft.</strong> <code>.persona-tab.active</code> uses the persona's full accent color as the background (was a faded tint), with <code>--on-accent</code> for text so it reads cleanly in both dark and light mode.</li>
+          <li><strong>Two reusable lessons captured</strong> in TECHNICAL: (1) negative-number formatters branch on <code>Math.abs()</code> and re-apply the sign at output; (2) Safari/Chromium native tooltips on ellipsis-truncated text can't be reliably suppressed, so design popovers with a gap that accommodates them.</li>
         </ul>
         <!-- /HUB:RECENT_COMPLETED -->
       </div>
@@ -147,8 +146,8 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <h3>What's next</h3>
         <!-- HUB:WHATS_NEXT -->
         <ul>
-          <li><strong>Push v1.6 to GitHub</strong> (single-file commit of <code>index.html</code>), wait ~60s for GitHub Pages to refresh.</li>
-          <li><strong>Hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R)</strong> and smoke-test in this order: 2-decimal prices on Crypto/Markets/Watchlist → bookmark hover popover shows URL footer (no browser tooltip overlap) → open Settings and confirm the "Default persona" block is the first thing visible → click the sun/moon icon to flip light mode → reload to confirm the theme persists per-browser.</li>
+          <li><strong>Push v1.7 to GitHub</strong> (single-file commit of <code>index.html</code>), wait ~60s for GitHub Pages to refresh.</li>
+          <li><strong>Hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R)</strong> and smoke-test the three fixes: (1) any negative dollar change on Crypto/Markets/Watchlist renders as <code>-$XX.XX</code> with exactly two decimals, (2) hover a bookmark with a truncated title and confirm the description popover sits clear of any native tooltip, (3) load the page and confirm the active persona tab is highlighted in solid accent on the first frame &mdash; no momentary "no tab selected" state.</li>
           <li>Then use it for a few days before the next iteration &mdash; let real-use friction surface the next round of fixes.</li>
         </ul>
         <!-- /HUB:WHATS_NEXT -->
@@ -222,6 +221,28 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h2>Session Log</h2>
     <!-- HUB:SESSION_LOG -->
     <article class="session-entry latest">
+      <div class="date">2026-05-28 &middot; Thursday &middot; late afternoon</div>
+      <div class="focus">v1.7 hotfix &mdash; three small bug fixes on top of v1.6 (negative-price decimals, popover/tooltip overlap, active-tab highlight).</div>
+      <h4>Completed</h4>
+      <ul>
+        <li><strong>Negative finance prices now show 2 decimals.</strong> <code>formatPrice()</code> in v1.6 used a raw <code>n &gt;= 0.01</code> comparison, so any negative value fell through to the 4-decimal branch (<code>-89.4463</code> &rarr; <code>-$89.4463</code>). Rewritten to branch on <code>Math.abs(n)</code> and re-apply the sign at output. Old <code>.replace('$-', '-$')</code> band-aids at the two call sites (<code>renderCryptoWidget</code> and <code>renderTwelveDataWidget</code>) are gone &mdash; each call site is just <code>formatPrice(dollarChange)</code> now. Verified against Tom's screenshot: <code>-89.4463 &rarr; -$89.45</code>, <code>-2477.0102 &rarr; -$2,477.01</code>, <code>-0.13 &rarr; -$0.13</code>.</li>
+        <li><strong>Bookmark description popover no longer collides with the browser's native truncation tooltip.</strong> Safari (and some Chromium builds) show a native tooltip for ellipsis-truncated bookmark titles, even though the <code>title</code> attribute is gone. That tooltip was overlapping the description popover. CSS rule <code>.bookmark .bk-desc-popover</code> margin-top bumped from <code>4px</code> to <code>28px</code>, with a code comment noting the cross-browser reason &mdash; we leave room for the native tooltip rather than trying to suppress it.</li>
+        <li><strong>Active persona tab is now highlighted on initial page load.</strong> Two fixes:
+          <ul>
+            <li><em>Ordering bug:</em> <code>render()</code> called <code>renderPersonaTabs()</code> before <code>currentPersona()</code>, but <code>currentPersona()</code> lazily initializes <code>state.currentPersonaId</code> on first call. So on the very first frame, no tab had the <code>.active</code> class. Moved <code>const p = currentPersona();</code> above <code>renderPersonaTabs()</code>; a comment now flags the ordering constraint.</li>
+            <li><em>Visual bug:</em> the previous active style used <code>var(--accent-soft)</code> background, which read as nearly invisible against most personas. Now uses solid <code>var(--accent)</code> with <code>font-weight: 600</code>, and text color <code>var(--on-accent)</code> for contrast (the v1.6 token: near-black in dark mode, white in light mode). Active-tab dot also swapped to <code>--on-accent</code> so it stays visible against the now-solid accent fill.</li>
+          </ul>
+        </li>
+      </ul>
+      <h4>Decisions made</h4>
+      <ul>
+        <li><strong>Use <code>--on-accent</code> for active-tab text instead of <code>--text-primary</code>.</strong> The plan called for <code>--text-primary</code>, but against a solid accent fill that loses contrast in light mode. <code>--on-accent</code> is the token specifically designed to ride on top of the accent color in both themes.</li>
+        <li><strong>Accommodate the browser's native truncation tooltip, don't try to suppress it.</strong> Safari ignores most suppression tricks for ellipsis tooltips. Pushing the popover down 28px is cheaper than trying to fight the browser.</li>
+        <li><strong>Math.abs + sign re-application is the right pattern for any negative-aware formatter.</strong> Captured as a troubleshooting note in TECHNICAL so future formatters don't repeat the mistake.</li>
+      </ul>
+    </article>
+
+    <article class="session-entry">
       <div class="date">2026-05-28 &middot; Thursday &middot; mid-afternoon</div>
       <div class="focus">v1.6 &mdash; light/dark mode + UX polish via real subagent flow.</div>
       <h4>Completed</h4>
@@ -404,7 +425,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
 
 <footer>
   <div class="container">
-    Maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · mid-afternoon</span>
+    Maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · late afternoon</span>
   </div>
 </footer>
 

@@ -15,7 +15,7 @@
 - Communicates in plain English. Hates marketing language, filler phrases, and over-explanation. Prefers concrete language ("added a Q4 toggle") to corporate language ("implemented quarterly filtering").
 - Default browser on his Mac is Safari (not Chrome). His phone browsing is mostly inbound link-taps from text/email/social — not outbound surfing.
 - When testing a freshly built thing, his strong preference is: log UX issues as Open Items, continue testing, batch-fix at the end. Don't stop to fix each one individually mid-test.
-- For major changes, Tom now expects the **multi-agent flow** to run for real: a Build Agent subagent for code, a Documentation Agent subagent for docs. Not one chat playing every role.
+- For major changes, Tom expects the **multi-agent flow** to run for real: a Build Agent subagent for code, a Documentation Agent subagent for docs. Not one chat playing every role.
 
 ---
 
@@ -24,14 +24,14 @@
 **Name:** StartDashboard
 **Folder:** `projects/personal-dashboard/` in Tom's `tom-workspace`
 **Current status:** Complete (in active use; iterating on polish)
-**Current phase:** Complete (with v1.6 polish round shipped)
+**Current phase:** Complete (with v1.7 hotfix shipped)
 **Last updated:** 2026-05-28
 **Live URL:** https://tecgunther.github.io/startdashboard/
 **Code repo:** https://github.com/TECGUNTHER/startdashboard
 **In use on:** Safari (Mac), Chrome (Mac), Safari (iPhone)
 
 **What it does (plain English):**
-A single-file web app that becomes Tom's home page across every browser and device. A tab bar at the top lets him switch between "personas" (Work, Personal, Investments, anything he creates). Each persona is its own complete dashboard with its own bookmarks (in categories), widgets, background, and accent color. Data lives in one private GitHub gist on his account, so opening the same URL in Chrome on his Mac and Safari on his iPhone shows the same view, synced within seconds. Default aesthetic is dark and modern (Linear/Vercel/Raycast as references); v1.6 added a light-mode toggle for eye comfort.
+A single-file web app that becomes Tom's home page across every browser and device. A tab bar at the top lets him switch between "personas" (Work, Personal, Investments, anything he creates). Each persona is its own complete dashboard with its own bookmarks (in categories), widgets, background, and accent color. Data lives in one private GitHub gist on his account, so opening the same URL in Chrome on his Mac and Safari on his iPhone shows the same view, synced within seconds. Default aesthetic is dark and modern (Linear/Vercel/Raycast as references); a v1.6 light-mode toggle covers daytime / bright-light use.
 
 **Available widgets (per-persona, can be shown or hidden individually):**
 - Clock (multi time zone, 12/24hr toggle)
@@ -46,25 +46,29 @@ A single-file web app that becomes Tom's home page across every browser and devi
 
 # Where We Are
 
-## Most recent session (2026-05-28 — v1.6)
+## Most recent session (2026-05-28 — v1.7 hotfix)
 
-A polish round driven by real-use friction Tom logged after a day of v1.5 use. First build to run the actual multi-agent flow: a Build Agent subagent did the code, a Documentation Agent subagent (me) did the docs.
+A three-bug hotfix on top of v1.6, surfaced by Tom after using v1.6 for a few minutes.
 
-- **Light/dark theme toggle** added to the header. Sun ☀ in dark mode, moon 🌙 in light mode. Click flips the whole UI; persists in `localStorage.sd_theme` per browser. Light mode replaces the persona's gradient background with a clean light surface; the persona's accent color is preserved.
-- **Finance prices trimmed to 2 decimals.** Crypto, Markets, and Watchlist all show 2-decimal prices for anything ≥ $0.01. Sub-cent altcoins still show 4 decimals so they don't display as `$0.00`.
-- **Bookmark description popover no longer fights the browser URL tooltip.** Removed the `title` attribute from bookmark links; the URL now lives inside the popover on a small monospace footer line below the description. Hovering a bookmark with no description still shows a tiny popover with just the URL.
-- **"Default persona on this browser/device"** surfaced as a focal block at the top of Settings (with a 🖥 icon and explanatory subtext). The per-device default has always existed; Tom just never saw it.
-- **CSS palette tokenized.** Introduced `--modal-bg`, `--input-bg`, `--popover-bg`, `--on-accent` tokens. The entire light-mode skin is one `body.light-mode` override block — no per-component overrides.
+- **Negative finance prices now show 2 decimals.** `formatPrice()` in v1.6 compared the raw value to `0.01`, so any negative dollar change fell through to the 4-decimal sub-cent branch (`-89.4463 → -$89.4463`). Rewritten to branch on `Math.abs(n)` and re-apply the sign at output via a `'-$'` / `'$'` prefix. The old `.replace('$-', '-$')` band-aids at both call sites (Crypto and Twelve Data widgets) are gone — each call site is now just `formatPrice(dollarChange)`. Verified: `-89.4463 → -$89.45`, `-2477.0102 → -$2,477.01`, `-0.13 → -$0.13`.
+- **Bookmark description popover no longer collides with the browser's native truncation tooltip.** Safari (and some Chromium builds) show a native tooltip for ellipsis-truncated bookmark titles even though we removed the `title` attribute in v1.6. That tooltip was overlapping the description popover. Popover `margin-top` bumped from `4px` to `28px`, with a code comment noting the cross-browser reason — we leave room for the native tooltip rather than fight it.
+- **Active persona tab is now highlighted on initial page load.** Two fixes wrapped into one. (1) Ordering bug: `render()` was calling `renderPersonaTabs()` before `currentPersona()`, but `currentPersona()` lazily initializes `state.currentPersonaId` on first call — so the first frame had no active tab. Moved `const p = currentPersona();` above `renderPersonaTabs()` with a comment flagging the constraint. (2) Visual bug: the previous active style used `var(--accent-soft)` background, nearly invisible against most personas. Now uses solid `var(--accent)` with `font-weight: 600` and text color `var(--on-accent)` (the v1.6 token that's near-black in dark mode, white in light mode) for contrast safety in both themes.
 
 ## Sessions before that
 
-- **v1.5 (earlier 2026-05-28):** Bookmark description redesign (hover popover, multi-line edit modal), dollar + percent change on Crypto/Markets/Watchlist, Twelve Data API key inline walkthrough, full doc refresh (HANDOFF/TECHNICAL/UX were stale at v1.0).
+- **v1.6 (earlier 2026-05-28):** Light/dark theme toggle in the header (☀ ↔ 🌙, persists per browser), all finance prices trimmed to 2 decimals (sub-cent altcoins keep 4), bookmark hover popover restructured with URL on a small monospace footer line, "Default persona on this browser/device" surfaced as a focal block at the top of Settings, CSS palette tokenized (`--modal-bg`, `--input-bg`, `--popover-bg`, `--on-accent`) so the whole light skin is one override block. First build to run the real subagent flow (Build Agent + Documentation Agent as actual subagents).
+- **v1.5 (2026-05-28):** Bookmark description redesign (hover popover, multi-line edit modal), dollar + percent change on Crypto/Markets/Watchlist, Twelve Data API key inline walkthrough, full doc refresh (HANDOFF/TECHNICAL/UX had been stale at v1.0).
 - **v1.4 (2026-05-28):** Per-persona 12hr/24hr clock toggle, bookmark descriptions (always-visible inline, later superseded in v1.5), Settings "Danger zone" block.
-- **v1.3 (2026-05-28):** Background CSS specificity hotfix (gradients never rendered from v1.0 through v1.2), clock zones changed from string[] to {name, tz}[], removed duplicate Settings UI, `saveSettings` flush-immediately.
 
 ## Immediate next step
 
-Tom pushes v1.6 to GitHub, hard-reloads Safari + Chrome, smoke-tests the four user-facing changes (2-decimal prices → popover URL footer → Settings default-persona block at top → theme toggle persists per browser). Then uses it for a few days before the next iteration.
+Tom pushes v1.7 to GitHub, hard-reloads Safari + Chrome, and smoke-tests the three fixes:
+
+1. Any negative dollar change on Crypto/Markets/Watchlist renders as `-$XX.XX` with exactly two decimals.
+2. Hovering a bookmark with a truncated title shows the description popover clear of any native browser tooltip.
+3. Loading the page shows the active persona tab highlighted in solid accent on the first frame — no momentary "no tab selected" state.
+
+Then he uses it for a few days before the next iteration.
 
 ---
 
@@ -85,8 +89,11 @@ Tom pushes v1.6 to GitHub, hard-reloads Safari + Chrome, smoke-tests the four us
 - **Markets uses ETF proxies (SPY, QQQ, DIA)** for major indices since the actual indices (^GSPC etc.) need higher Twelve Data tiers.
 - **Clock zones stored as {name, tz} objects (since v1.3)** — allows multiple cities in the same timezone (Atlanta + NYC both EST) to render as separate rows.
 - **Bookmark descriptions as hover popover (since v1.5)** — keeps the row clean at rest; full text appears with a 0.5s delay so it doesn't pop on every mouseover.
-- **Bookmark URL shown inside the description popover, not in a `title` tooltip** (v1.6) — the browser's native URL tooltip was overlapping/blocking the description popover. Removing `title` and showing the URL on a small monospace footer line below the description gives one cohesive hover artifact instead of two competing ones.
+- **Bookmark URL shown inside the description popover, not in a `title` tooltip** (v1.6) — the browser's native URL tooltip was overlapping the description popover. Removing `title` and showing the URL on a small monospace footer line below the description gives one cohesive hover artifact instead of two competing ones.
 - **`formatPrice` shows 2 decimals everywhere ≥ $0.01, 4 decimals below** (v1.6) — Tom wants prices that look like prices, not scientific notation. Sub-cent visibility is preserved for tiny altcoins.
+- **Negative-aware formatters branch on `Math.abs()` and re-apply the sign at output** (v1.7) — comparing the raw value to a positive threshold lets negatives fall through to the wrong branch. Any future number formatter that handles negatives should follow the same pattern.
+- **Accommodate the browser's native truncation tooltip, don't try to suppress it** (v1.7) — Safari and some Chromium builds show a native tooltip for ellipsis-truncated text that can't be reliably suppressed cross-browser. Popovers near truncated text leave a 28px gap so the native tooltip doesn't overlap.
+- **Active persona tab uses solid `var(--accent)` + `var(--on-accent)` text** (v1.7) — the v1.6 soft-accent background was nearly invisible against most personas. Solid accent reads cleanly; `--on-accent` keeps text contrast safe in both themes (the plan called for `--text-primary` but that loses contrast against the solid fill in light mode).
 - **Last-write-wins on sync conflicts** — single-user app; full conflict resolution is overkill. A toast warns when another browser has updated.
 - **iPhone slim mode deferred indefinitely** — Tom's phone is inbound-link-driven; he doesn't browse outbound on it.
 
@@ -178,6 +185,9 @@ Then hard-reload the dashboard (Safari: Option+Cmd+R, Chrome: Cmd+Shift+R). GitH
 - **Markets/Watchlist say "Add Twelve Data API key"** → Open Settings ⚙ → see walkthrough → paste key.
 - **(v1.6) Persona gradient still shows behind the light surface after toggling** → indicates the persona-class wasn't removed before `bg-light-surface` was added. Fix is in `applyPersonaTheme()`.
 - **(v1.6) Light mode looks unreadable on one specific element** → most likely a hardcoded color was missed during the tokenization pass. Search for `#11111A`, `#0A0A12`, `#0A0A0F`, or `rgba(0, 0, 0` and check whether that element needs to become a token.
+- **(v1.7) Negative price renders with 4 decimals** → `formatPrice()` must branch on `Math.abs(n)`, not raw `n`. If the bug ever returns, it's because someone reverted the sign-stripping pattern in `formatPrice()` or re-introduced a positive-only threshold comparison.
+- **(v1.7) Description popover sits behind a translucent tooltip on long bookmark titles** → that's the browser's native ellipsis tooltip. Don't try to suppress it; the popover gap (`.bookmark .bk-desc-popover { margin-top: 28px }`) is sized to leave room. If the popover is hugging the row again, the margin got shrunk.
+- **(v1.7) Active persona tab not highlighted on first frame** → check `render()`: `const p = currentPersona()` must be called before `renderPersonaTabs()`. `currentPersona()` lazily initializes `state.currentPersonaId`, so reversing the order leaves the first frame without an active tab.
 
 ---
 
@@ -221,7 +231,7 @@ Then hard-reload the dashboard (Safari: Option+Cmd+R, Chrome: Cmd+Shift+R). GitH
 
 ## Multi-agent flow (as of v1.6)
 
-- For major changes Tom now expects the actual multi-agent flow: **Design Agent** plans, Tom approves, **Build Agent** subagent writes code and returns a standard Agent Report, **Documentation Agent** subagent updates docs from that report. v1.1 through v1.5 were done by one Claude playing all roles; v1.6 was the first build to use real subagents. Tom called this out explicitly and wants it to be the pattern going forward.
+- For major changes Tom now expects the actual multi-agent flow: **Design Agent** plans, Tom approves, **Build Agent** subagent writes code and returns a standard Agent Report, **Documentation Agent** subagent updates docs from that report. v1.1 through v1.5 were done by one Claude playing all roles; v1.6 was the first build to use real subagents, and v1.7's hotfix followed the same pattern. Tom called this out explicitly and wants it to be the pattern going forward.
 
 ## What he's likely to want next
 

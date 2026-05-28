@@ -318,16 +318,20 @@ header.dash-header {
   transition: color 0.15s, background 0.15s, border-color 0.15s;
 }
 .persona-tab:hover { color: var(--text-primary); background: var(--bg-elev-1); }
+/* Active persona tab — solid accent fill so it pops against any persona's
+   background tint. --on-accent is near-black in dark mode and white in
+   light mode, so the label stays readable on the accent color. */
 .persona-tab.active {
-  color: var(--text-primary);
-  background: var(--accent-soft);
+  color: var(--on-accent);
+  background: var(--accent);
   border-color: var(--accent);
+  font-weight: 600;
 }
 .persona-tab .dot {
   width: 8px; height: 8px; border-radius: 50%;
   background: currentColor; opacity: 0.7;
 }
-.persona-tab.active .dot { background: var(--accent); opacity: 1; }
+.persona-tab.active .dot { background: var(--on-accent); opacity: 1; }
 .persona-add-btn {
   padding: 6px 10px;
   color: var(--text-muted);
@@ -723,7 +727,12 @@ header.dash-header {
   position: absolute;
   top: 100%;
   left: 24px;            /* aligns with title (after favicon) */
-  margin-top: 4px;
+  /* Gap below the bookmark row. Bigger than it needs to be on purpose:
+     Safari (and some Chromium builds) show a native tooltip with the full
+     title text when the visible title is truncated with ellipsis. That
+     native tooltip can't be reliably suppressed, so we leave room under
+     the bookmark for it instead of fighting it. */
+  margin-top: 28px;
   max-width: 320px;
   min-width: 180px;
   background: var(--popover-bg);
@@ -1908,9 +1917,13 @@ function render() {
   if (!state.data) return;
   document.title = (state.data.title || 'StartDashboard');
   document.getElementById('brand').textContent = state.data.title || 'StartDashboard';
-  renderPersonaTabs();
+  /* currentPersona() lazily initializes state.currentPersonaId on first
+     call. We MUST call it before renderPersonaTabs() — otherwise on the
+     very first render the tabs render with no active selection because
+     currentPersonaId is still null. */
   const p = currentPersona();
   if (!p) return;
+  renderPersonaTabs();
   applyPersonaTheme(p);
   renderCategories(p);
   renderWidgets(p);
@@ -2812,7 +2825,9 @@ async function renderCryptoWidget(p) {
         '<div class="fin-right">' +
           '<span class="fin-price">' + formatPrice(d.usd) + '</span>' +
           '<span class="fin-change-line ' + dir + '">' +
-            '<span class="fin-dollar">' + sign + formatPrice(dollarChange).replace('$-', '-$') + '</span>' +
+            /* formatPrice now handles the negative sign itself, so we no
+               longer prepend `sign` or run the `.replace('$-', '-$')` fix-up. */
+            '<span class="fin-dollar">' + formatPrice(dollarChange) + '</span>' +
             '<span class="fin-pct">' + sign + pct.toFixed(2) + '%</span>' +
           '</span>' +
         '</div>';
@@ -2881,8 +2896,10 @@ async function renderTwelveDataWidget(p, kind, bodyId, emptyMsg) {
         '<div class="fin-right">' +
           '<span class="fin-price">' + formatPrice(price) + '</span>' +
           '<span class="fin-change-line ' + dir + '">' +
+            /* formatPrice now handles the negative sign itself, so we no
+               longer prepend `sign` or run the `.replace('$-', '-$')` fix-up. */
             (isFinite(dollarChange)
-              ? '<span class="fin-dollar">' + sign + formatPrice(dollarChange).replace('$-', '-$') + '</span>'
+              ? '<span class="fin-dollar">' + formatPrice(dollarChange) + '</span>'
               : '') +
             '<span class="fin-pct">' + (isFinite(pct) ? sign + pct.toFixed(2) : '—') + '%</span>' +
           '</span>' +
@@ -2927,12 +2944,18 @@ const MARKET_INDEX_LABELS = {
    Tom wants exactly two decimals everywhere ($1,990.20, -$92.23, etc.).
    Sub-cent altcoin prices keep 4 decimals so a tiny coin doesn't show as
    "$0.00" and look broken. toLocaleString handles the thousands-comma for
-   us, so no special-case is needed for big numbers. */
+   us, so no special-case is needed for big numbers.
+   We branch on the absolute value and re-apply the sign so negative
+   dollar changes (e.g. -89.45) format with two decimals instead of
+   accidentally falling into the sub-cent 4-decimal branch. */
 function formatPrice(n) {
   n = Number(n);
   if (!isFinite(n)) return '—';
-  if (n >= 0.01) return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return '$' + n.toFixed(4);
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '-$' : '$';
+  if (abs >= 0.01) return sign + abs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  /* Sub-cent (tiny altcoins) — 4 decimals so they don't display as $0.00. */
+  return sign + abs.toFixed(4);
 }
 
 /* ---- Sticky notes ---- */
