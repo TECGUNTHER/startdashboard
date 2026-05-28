@@ -318,12 +318,12 @@ header.dash-header {
   transition: color 0.15s, background 0.15s, border-color 0.15s;
 }
 .persona-tab:hover { color: var(--text-primary); background: var(--bg-elev-1); }
-/* Active persona tab — solid accent fill so it pops against any persona's
-   background tint. --on-accent is near-black in dark mode and white in
-   light mode, so the label stays readable on the accent color. */
+/* Active persona tab — soft accent-tinted fill with a clear accent outline,
+   plus bold text. Subtle but obvious: marks the active persona without
+   visually dominating the rest of the header. */
 .persona-tab.active {
-  color: var(--on-accent);
-  background: var(--accent);
+  color: var(--text-primary);
+  background: var(--accent-soft);
   border-color: var(--accent);
   font-weight: 600;
 }
@@ -331,7 +331,7 @@ header.dash-header {
   width: 8px; height: 8px; border-radius: 50%;
   background: currentColor; opacity: 0.7;
 }
-.persona-tab.active .dot { background: var(--on-accent); opacity: 1; }
+.persona-tab.active .dot { background: var(--accent); opacity: 1; }
 .persona-add-btn {
   padding: 6px 10px;
   color: var(--text-muted);
@@ -2799,43 +2799,57 @@ async function renderCryptoWidget(p) {
     return;
   }
   body.innerHTML = '<div class="fin-loading">Loading prices…</div>';
-  try {
-    const ids = coins.map(c => c.id).join(',');
-    const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=' + encodeURIComponent(ids) + '&vs_currencies=usd&include_24hr_change=true');
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const data = await r.json();
-    body.innerHTML = '';
-    coins.forEach(c => {
-      const d = data[c.id];
-      if (!d) return;
-      const pct = d.usd_24h_change || 0;
-      const dir = pct > 0.01 ? 'up' : pct < -0.01 ? 'down' : 'flat';
-      const sign = pct > 0 ? '+' : '';
-      /* CoinGecko returns percent change but not absolute. Derive the
-         dollar change from the percent and the current price. */
-      const prev = d.usd / (1 + pct / 100);
-      const dollarChange = d.usd - prev;
-      const row = document.createElement('div');
-      row.className = 'fin-row';
-      row.innerHTML =
-        '<div class="fin-left">' +
-          '<span class="fin-sym">' + escapeHtml(c.symbol.toUpperCase()) + '</span>' +
-          '<span class="fin-name">' + escapeHtml(c.name) + '</span>' +
-        '</div>' +
-        '<div class="fin-right">' +
-          '<span class="fin-price">' + formatPrice(d.usd) + '</span>' +
-          '<span class="fin-change-line ' + dir + '">' +
-            /* formatPrice now handles the negative sign itself, so we no
-               longer prepend `sign` or run the `.replace('$-', '-$')` fix-up. */
-            '<span class="fin-dollar">' + formatPrice(dollarChange) + '</span>' +
-            '<span class="fin-pct">' + sign + pct.toFixed(2) + '%</span>' +
-          '</span>' +
-        '</div>';
-      body.appendChild(row);
-    });
-  } catch (e) {
-    body.innerHTML = '<div class="fin-error">Crypto load failed: ' + escapeHtml(e.message) + '</div>';
-  }
+
+  /* CoinGecko's free tier occasionally fails the very first request after a
+     cold tab-open. We do the fetch inside a small helper so we can transparently
+     retry exactly once after a 2-second pause before showing the user an error. */
+  const doFetch = async (isRetry) => {
+    try {
+      const ids = coins.map(c => c.id).join(',');
+      const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=' + encodeURIComponent(ids) + '&vs_currencies=usd&include_24hr_change=true');
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const data = await r.json();
+      body.innerHTML = '';
+      coins.forEach(c => {
+        const d = data[c.id];
+        if (!d) return;
+        const pct = d.usd_24h_change || 0;
+        const dir = pct > 0.01 ? 'up' : pct < -0.01 ? 'down' : 'flat';
+        const sign = pct > 0 ? '+' : '';
+        /* CoinGecko returns percent change but not absolute. Derive the
+           dollar change from the percent and the current price. */
+        const prev = d.usd / (1 + pct / 100);
+        const dollarChange = d.usd - prev;
+        const row = document.createElement('div');
+        row.className = 'fin-row';
+        row.innerHTML =
+          '<div class="fin-left">' +
+            '<span class="fin-sym">' + escapeHtml(c.symbol.toUpperCase()) + '</span>' +
+            '<span class="fin-name">' + escapeHtml(c.name) + '</span>' +
+          '</div>' +
+          '<div class="fin-right">' +
+            '<span class="fin-price">' + formatPrice(d.usd) + '</span>' +
+            '<span class="fin-change-line ' + dir + '">' +
+              /* formatPrice now handles the negative sign itself, so we no
+                 longer prepend `sign` or run the `.replace('$-', '-$')` fix-up. */
+              '<span class="fin-dollar">' + formatPrice(dollarChange) + '</span>' +
+              '<span class="fin-pct">' + sign + pct.toFixed(2) + '%</span>' +
+            '</span>' +
+          '</div>';
+        body.appendChild(row);
+      });
+    } catch (e) {
+      if (!isRetry) {
+        /* One automatic retry. CoinGecko's free tier sometimes cold-starts
+           with a transient failure; a 2-second backoff usually clears it. */
+        body.innerHTML = '<div class="fin-loading">Loading prices…</div>';
+        setTimeout(() => doFetch(true), 2000);
+      } else {
+        body.innerHTML = '<div class="fin-error">Crypto load failed: ' + escapeHtml(e.message) + '</div>';
+      }
+    }
+  };
+  doFetch(false);
 }
 
 /* ---- Markets widget ----
@@ -2861,54 +2875,67 @@ async function renderTwelveDataWidget(p, kind, bodyId, emptyMsg) {
     return;
   }
   body.innerHTML = '<div class="fin-loading">Loading quotes…</div>';
-  try {
-    const data = await fetchTwelveDataQuotes(symbols);
-    body.innerHTML = '';
-    /* Twelve Data returns a single object for one symbol and a {symbol: data}
-       map for multiple — normalize to always-a-map. */
-    const norm = (symbols.length === 1 && data && data.symbol) ? { [data.symbol]: data } : data;
-    symbols.forEach(sym => {
-      const d = norm && norm[sym];
-      if (!d || d.code) {
+
+  /* Same cold-start resiliency pattern as the crypto widget: one transparent
+     retry after 2 seconds before surfacing an error. Twelve Data's free tier
+     occasionally fails the first request on a fresh tab; this clears it. */
+  const doFetch = async (isRetry) => {
+    try {
+      const data = await fetchTwelveDataQuotes(symbols);
+      body.innerHTML = '';
+      /* Twelve Data returns a single object for one symbol and a {symbol: data}
+         map for multiple — normalize to always-a-map. */
+      const norm = (symbols.length === 1 && data && data.symbol) ? { [data.symbol]: data } : data;
+      symbols.forEach(sym => {
+        const d = norm && norm[sym];
+        if (!d || d.code) {
+          const row = document.createElement('div');
+          row.className = 'fin-row';
+          row.innerHTML =
+            '<div class="fin-left"><span class="fin-sym">' + escapeHtml(sym) + '</span></div>' +
+            '<div class="fin-right"><span class="fin-price" style="color:var(--text-muted);">—</span>' +
+            '<span class="fin-change-line flat">no data</span></div>';
+          body.appendChild(row);
+          return;
+        }
+        const price = parseFloat(d.close);
+        const pct = parseFloat(d.percent_change);
+        /* Twelve Data returns absolute change directly (no derivation needed). */
+        const dollarChange = parseFloat(d.change);
+        const dir = pct > 0.01 ? 'up' : pct < -0.01 ? 'down' : 'flat';
+        const sign = pct > 0 ? '+' : '';
+        const friendly = MARKET_INDEX_LABELS[sym] || (d.name ? d.name.replace(/ Trust| ETF| SPDR/g, '').slice(0, 22) : '');
         const row = document.createElement('div');
         row.className = 'fin-row';
         row.innerHTML =
-          '<div class="fin-left"><span class="fin-sym">' + escapeHtml(sym) + '</span></div>' +
-          '<div class="fin-right"><span class="fin-price" style="color:var(--text-muted);">—</span>' +
-          '<span class="fin-change-line flat">no data</span></div>';
+          '<div class="fin-left">' +
+            '<span class="fin-sym">' + escapeHtml(sym) + '</span>' +
+            (friendly ? '<span class="fin-name">' + escapeHtml(friendly) + '</span>' : '') +
+          '</div>' +
+          '<div class="fin-right">' +
+            '<span class="fin-price">' + formatPrice(price) + '</span>' +
+            '<span class="fin-change-line ' + dir + '">' +
+              /* formatPrice now handles the negative sign itself, so we no
+                 longer prepend `sign` or run the `.replace('$-', '-$')` fix-up. */
+              (isFinite(dollarChange)
+                ? '<span class="fin-dollar">' + formatPrice(dollarChange) + '</span>'
+                : '') +
+              '<span class="fin-pct">' + (isFinite(pct) ? sign + pct.toFixed(2) : '—') + '%</span>' +
+            '</span>' +
+          '</div>';
         body.appendChild(row);
-        return;
+      });
+    } catch (e) {
+      if (!isRetry) {
+        /* One automatic retry, 2-second backoff. Same rationale as crypto. */
+        body.innerHTML = '<div class="fin-loading">Loading quotes…</div>';
+        setTimeout(() => doFetch(true), 2000);
+      } else {
+        body.innerHTML = '<div class="fin-error">Quote load failed: ' + escapeHtml(e.message) + '</div>';
       }
-      const price = parseFloat(d.close);
-      const pct = parseFloat(d.percent_change);
-      /* Twelve Data returns absolute change directly (no derivation needed). */
-      const dollarChange = parseFloat(d.change);
-      const dir = pct > 0.01 ? 'up' : pct < -0.01 ? 'down' : 'flat';
-      const sign = pct > 0 ? '+' : '';
-      const friendly = MARKET_INDEX_LABELS[sym] || (d.name ? d.name.replace(/ Trust| ETF| SPDR/g, '').slice(0, 22) : '');
-      const row = document.createElement('div');
-      row.className = 'fin-row';
-      row.innerHTML =
-        '<div class="fin-left">' +
-          '<span class="fin-sym">' + escapeHtml(sym) + '</span>' +
-          (friendly ? '<span class="fin-name">' + escapeHtml(friendly) + '</span>' : '') +
-        '</div>' +
-        '<div class="fin-right">' +
-          '<span class="fin-price">' + formatPrice(price) + '</span>' +
-          '<span class="fin-change-line ' + dir + '">' +
-            /* formatPrice now handles the negative sign itself, so we no
-               longer prepend `sign` or run the `.replace('$-', '-$')` fix-up. */
-            (isFinite(dollarChange)
-              ? '<span class="fin-dollar">' + formatPrice(dollarChange) + '</span>'
-              : '') +
-            '<span class="fin-pct">' + (isFinite(pct) ? sign + pct.toFixed(2) : '—') + '%</span>' +
-          '</span>' +
-        '</div>';
-      body.appendChild(row);
-    });
-  } catch (e) {
-    body.innerHTML = '<div class="fin-error">Quote load failed: ' + escapeHtml(e.message) + '</div>';
-  }
+    }
+  };
+  doFetch(false);
 }
 
 /* In-memory cache of Twelve Data quotes, keyed by sorted symbol list.
@@ -3223,14 +3250,15 @@ async function saveSettings() {
   localStorage.setItem(LS.DEFAULT_PERSONA, defaultPersonaId);
   state.defaultPersonaId = defaultPersonaId;
 
-  /* Twelve Data API key — per-browser like the GitHub PAT, never synced. */
+  /* Twelve Data API key — per-browser like the GitHub PAT, never synced.
+     Empty field means "no change" rather than "delete" — Safari sometimes
+     clears type=password values on programmatic .value=... assignment, and
+     accidentally wiping a credential on every Settings save would be hostile.
+     Explicit clearing path is Danger Zone → Reset browser. */
   const tdKey = document.getElementById('set-twelvedata-key').value.trim();
   if (tdKey) {
     localStorage.setItem(LS.TWELVE_DATA_KEY, tdKey);
     state.twelveDataKey = tdKey;
-  } else {
-    localStorage.removeItem(LS.TWELVE_DATA_KEY);
-    state.twelveDataKey = null;
   }
 
   /* Apply immediately AND flush to the gist now (no 1.5s debounce) so a

@@ -24,7 +24,7 @@
 **Name:** StartDashboard
 **Folder:** `projects/personal-dashboard/` in Tom's `tom-workspace`
 **Current status:** Complete (in active use; iterating on polish)
-**Current phase:** Complete (with v1.7 hotfix shipped)
+**Current phase:** Complete (with v1.8 hotfix shipped)
 **Last updated:** 2026-05-28
 **Live URL:** https://tecgunther.github.io/startdashboard/
 **Code repo:** https://github.com/TECGUNTHER/startdashboard
@@ -46,27 +46,27 @@ A single-file web app that becomes Tom's home page across every browser and devi
 
 # Where We Are
 
-## Most recent session (2026-05-28 — v1.7 hotfix)
+## Most recent session (2026-05-28 — v1.8 hotfix)
 
-A three-bug hotfix on top of v1.6, surfaced by Tom after using v1.6 for a few minutes.
+A three-bug hotfix on top of v1.7, surfaced by Tom after a day of real use.
 
-- **Negative finance prices now show 2 decimals.** `formatPrice()` in v1.6 compared the raw value to `0.01`, so any negative dollar change fell through to the 4-decimal sub-cent branch (`-89.4463 → -$89.4463`). Rewritten to branch on `Math.abs(n)` and re-apply the sign at output via a `'-$'` / `'$'` prefix. The old `.replace('$-', '-$')` band-aids at both call sites (Crypto and Twelve Data widgets) are gone — each call site is now just `formatPrice(dollarChange)`. Verified: `-89.4463 → -$89.45`, `-2477.0102 → -$2,477.01`, `-0.13 → -$0.13`.
-- **Bookmark description popover no longer collides with the browser's native truncation tooltip.** Safari (and some Chromium builds) show a native tooltip for ellipsis-truncated bookmark titles even though we removed the `title` attribute in v1.6. That tooltip was overlapping the description popover. Popover `margin-top` bumped from `4px` to `28px`, with a code comment noting the cross-browser reason — we leave room for the native tooltip rather than fight it.
-- **Active persona tab is now highlighted on initial page load.** Two fixes wrapped into one. (1) Ordering bug: `render()` was calling `renderPersonaTabs()` before `currentPersona()`, but `currentPersona()` lazily initializes `state.currentPersonaId` on first call — so the first frame had no active tab. Moved `const p = currentPersona();` above `renderPersonaTabs()` with a comment flagging the constraint. (2) Visual bug: the previous active style used `var(--accent-soft)` background, nearly invisible against most personas. Now uses solid `var(--accent)` with `font-weight: 600` and text color `var(--on-accent)` (the v1.6 token that's near-black in dark mode, white in light mode) for contrast safety in both themes.
+- **Settings no longer wipes the Twelve Data API key when the field is left empty.** v1.7's `saveSettings` treated an empty trimmed input as "clear the stored key" — meaning every time Tom opened Settings for an unrelated change and hit Save, the API key got nuked (Safari's `type="password"` field can't reliably re-populate from autofill, so the field reads empty even when the key is stored). v1.8 deletes that destructive `else` branch: empty input means "no change." Only a non-empty trimmed value updates the stored key. To explicitly clear the key, go to Danger Zone → Reset browser. A code comment in `saveSettings` documents the Safari rationale.
+- **Cold-start retry on Crypto, Markets, and Watchlist.** Refactored `renderCryptoWidget` and `renderTwelveDataWidget` to wrap the fetch + render body in an internal `doFetch(isRetry)` async helper. On first failure, the widget restores its "Loading…" placeholder and schedules `setTimeout(() => doFetch(true), 2000)`. On second failure, it falls through to the existing `fin-error` red message. Exactly one retry per widget per load, at 2000ms. Both Markets and Watchlist inherit this since they both route through `renderTwelveDataWidget`. The existing `_tdCache` / `TD_CACHE_MS` logic in `fetchTwelveDataQuotes` is untouched — retry sits above the cache layer.
+- **Active persona tab restyled from solid slab to soft fill.** v1.7's solid `var(--accent)` with `var(--on-accent)` text was high-contrast but visually loud. v1.8 keeps `font-weight: 600` but softens the colors: background `var(--accent-soft)`, text `var(--text-primary)`, border `var(--accent)` (unchanged) for an accent outline. The active-tab dot reverted from `--on-accent` back to `--accent`. Same discoverability win, calmer look.
 
 ## Sessions before that
 
-- **v1.6 (earlier 2026-05-28):** Light/dark theme toggle in the header (☀ ↔ 🌙, persists per browser), all finance prices trimmed to 2 decimals (sub-cent altcoins keep 4), bookmark hover popover restructured with URL on a small monospace footer line, "Default persona on this browser/device" surfaced as a focal block at the top of Settings, CSS palette tokenized (`--modal-bg`, `--input-bg`, `--popover-bg`, `--on-accent`) so the whole light skin is one override block. First build to run the real subagent flow (Build Agent + Documentation Agent as actual subagents).
+- **v1.7 hotfix (2026-05-28, late afternoon):** Negative finance prices were rendering with 4 decimals (`-89.4463 → -$89.4463`) — `formatPrice()` rewritten to branch on `Math.abs()` and re-apply the sign at output. Bookmark description popover spacing bumped to 28px to leave room for Safari/Chromium's native ellipsis-truncation tooltip. Active persona tab styled solid `var(--accent)` to fix the "no tab selected on first frame" bug (the visual was right but loud — see v1.8 for the softening pass).
+- **v1.6 (earlier 2026-05-28):** Light/dark theme toggle in the header (☀ ↔ 🌙, persists per browser), all finance prices trimmed to 2 decimals (sub-cent altcoins keep 4), bookmark hover popover restructured with URL on a small monospace footer line, "Default persona on this browser/device" surfaced as a focal block at the top of Settings, CSS palette tokenized (`--modal-bg`, `--input-bg`, `--popover-bg`, `--on-accent`) so the whole light skin is one override block. First build to run the real subagent flow.
 - **v1.5 (2026-05-28):** Bookmark description redesign (hover popover, multi-line edit modal), dollar + percent change on Crypto/Markets/Watchlist, Twelve Data API key inline walkthrough, full doc refresh (HANDOFF/TECHNICAL/UX had been stale at v1.0).
-- **v1.4 (2026-05-28):** Per-persona 12hr/24hr clock toggle, bookmark descriptions (always-visible inline, later superseded in v1.5), Settings "Danger zone" block.
 
 ## Immediate next step
 
-Tom pushes v1.7 to GitHub, hard-reloads Safari + Chrome, and smoke-tests the three fixes:
+Tom pushes v1.8 to GitHub, hard-reloads Safari + Chrome, and smoke-tests the three fixes:
 
-1. Any negative dollar change on Crypto/Markets/Watchlist renders as `-$XX.XX` with exactly two decimals.
-2. Hovering a bookmark with a truncated title shows the description popover clear of any native browser tooltip.
-3. Loading the page shows the active persona tab highlighted in solid accent on the first frame — no momentary "no tab selected" state.
+1. Open Settings, leave the Twelve Data key field empty, save — reopen Settings and confirm the key dots are still there; finance quotes still load.
+2. Open the page on a cold tab and confirm Crypto resolves cleanly even if the first CoinGecko call hits a network hiccup — at most a brief "Loading prices…" for ~2 seconds, then real data; no red error. Same for Markets/Watchlist.
+3. Confirm the active persona tab now reads as a soft fill (soft-accent background + bold primary text + accent outline), not the solid-accent slab from v1.7.
 
 Then he uses it for a few days before the next iteration.
 
@@ -93,7 +93,9 @@ Then he uses it for a few days before the next iteration.
 - **`formatPrice` shows 2 decimals everywhere ≥ $0.01, 4 decimals below** (v1.6) — Tom wants prices that look like prices, not scientific notation. Sub-cent visibility is preserved for tiny altcoins.
 - **Negative-aware formatters branch on `Math.abs()` and re-apply the sign at output** (v1.7) — comparing the raw value to a positive threshold lets negatives fall through to the wrong branch. Any future number formatter that handles negatives should follow the same pattern.
 - **Accommodate the browser's native truncation tooltip, don't try to suppress it** (v1.7) — Safari and some Chromium builds show a native tooltip for ellipsis-truncated text that can't be reliably suppressed cross-browser. Popovers near truncated text leave a 28px gap so the native tooltip doesn't overlap.
-- **Active persona tab uses solid `var(--accent)` + `var(--on-accent)` text** (v1.7) — the v1.6 soft-accent background was nearly invisible against most personas. Solid accent reads cleanly; `--on-accent` keeps text contrast safe in both themes (the plan called for `--text-primary` but that loses contrast against the solid fill in light mode).
+- **Active persona tab uses soft-accent fill + accent outline + bold primary text** (v1.8) — v1.7's solid-accent slab solved the discoverability bug ("no tab selected on first frame") but was visually loud. Soft fill + bold text + the existing accent border keeps the discoverability win without overshooting. `font-weight: 600` does as much of the lifting as color now.
+- **Empty Settings input means "no change" for credentials** (v1.8) — saving Settings should never be accidentally destructive. Safari's `type="password"` fields can't reliably re-populate from autofill, so an empty read is ambiguous; treating it as "clear" punished Tom every time he opened Settings for an unrelated change. The only way to explicitly clear the Twelve Data key is now Danger Zone → Reset browser, where destructive intent is unambiguous. Reusable principle for any future credential UI.
+- **Finance widgets retry once after 2 seconds on initial-load failure** (v1.8) — Tom kept seeing red "Could not load" states on cold tab open that resolved on manual reload — a classic transient-flake symptom. One retry at 2s is the sweet spot: two would mask real outages too long; zero leaves manual-reload friction in place. Retry sits above the `_tdCache` layer, so cached quotes are still respected.
 - **Last-write-wins on sync conflicts** — single-user app; full conflict resolution is overkill. A toast warns when another browser has updated.
 - **iPhone slim mode deferred indefinitely** — Tom's phone is inbound-link-driven; he doesn't browse outbound on it.
 
@@ -188,6 +190,9 @@ Then hard-reload the dashboard (Safari: Option+Cmd+R, Chrome: Cmd+Shift+R). GitH
 - **(v1.7) Negative price renders with 4 decimals** → `formatPrice()` must branch on `Math.abs(n)`, not raw `n`. If the bug ever returns, it's because someone reverted the sign-stripping pattern in `formatPrice()` or re-introduced a positive-only threshold comparison.
 - **(v1.7) Description popover sits behind a translucent tooltip on long bookmark titles** → that's the browser's native ellipsis tooltip. Don't try to suppress it; the popover gap (`.bookmark .bk-desc-popover { margin-top: 28px }`) is sized to leave room. If the popover is hugging the row again, the margin got shrunk.
 - **(v1.7) Active persona tab not highlighted on first frame** → check `render()`: `const p = currentPersona()` must be called before `renderPersonaTabs()`. `currentPersona()` lazily initializes `state.currentPersonaId`, so reversing the order leaves the first frame without an active tab.
+- **(v1.8) Twelve Data API key got wiped after saving Settings** → shouldn't happen anymore. `saveSettings` no longer treats an empty trimmed key field as "clear." If it ever does happen again, someone re-introduced the destructive `else` branch in `saveSettings` — restore the v1.8 behavior (empty means "no change," only a non-empty value writes).
+- **(v1.8) A finance widget shows "Loading…" for ~2 seconds before resolving** → that's the new cold-start retry doing its job. The first fetch failed transiently; the widget is auto-retrying once at 2s before falling through to the existing red error. Not a hang.
+- **(v1.8) Need to explicitly clear the Twelve Data API key** → Settings → Danger Zone → Reset browser. The Settings field can no longer remove it (empty means "no change") — specifically because Safari's password-type field can't reliably re-populate from autofill, so an empty read used to be ambiguous and accidentally destructive.
 
 ---
 
@@ -231,7 +236,7 @@ Then hard-reload the dashboard (Safari: Option+Cmd+R, Chrome: Cmd+Shift+R). GitH
 
 ## Multi-agent flow (as of v1.6)
 
-- For major changes Tom now expects the actual multi-agent flow: **Design Agent** plans, Tom approves, **Build Agent** subagent writes code and returns a standard Agent Report, **Documentation Agent** subagent updates docs from that report. v1.1 through v1.5 were done by one Claude playing all roles; v1.6 was the first build to use real subagents, and v1.7's hotfix followed the same pattern. Tom called this out explicitly and wants it to be the pattern going forward.
+- For major changes Tom now expects the actual multi-agent flow: **Design Agent** plans, Tom approves, **Build Agent** subagent writes code and returns a standard Agent Report, **Documentation Agent** subagent updates docs from that report. v1.1 through v1.5 were done by one Claude playing all roles; v1.6 was the first build to use real subagents, and v1.7's and v1.8's hotfixes followed the same pattern. Tom called this out explicitly and wants it to be the pattern going forward.
 
 ## What he's likely to want next
 

@@ -111,7 +111,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
       <span class="status-pill complete">Complete</span>
       <!-- /HUB:STATUS_OVERALL -->
       <!-- HUB:LAST_UPDATED -->
-      <span class="last-updated">2026-05-28 · Thu · late afternoon</span>
+      <span class="last-updated">2026-05-28 · Thu · evening</span>
       <!-- /HUB:LAST_UPDATED -->
     </div>
   </div>
@@ -136,9 +136,10 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <h3>Recently completed</h3>
         <!-- HUB:RECENT_COMPLETED -->
         <ul>
-          <li><strong>v1.7 hotfix shipped:</strong> three small bug fixes on top of v1.6 &mdash; negative finance prices were rendering with 4 decimals (e.g. <code>-$89.4463</code>), bookmark description popover was being overlapped by the browser's native tooltip on truncated titles, and the active persona tab wasn't highlighted on initial page load.</li>
-          <li><strong>Active tab styling now solid, not soft.</strong> <code>.persona-tab.active</code> uses the persona's full accent color as the background (was a faded tint), with <code>--on-accent</code> for text so it reads cleanly in both dark and light mode.</li>
-          <li><strong>Two reusable lessons captured</strong> in TECHNICAL: (1) negative-number formatters branch on <code>Math.abs()</code> and re-apply the sign at output; (2) Safari/Chromium native tooltips on ellipsis-truncated text can't be reliably suppressed, so design popovers with a gap that accommodates them.</li>
+          <li><strong>v1.8 hotfix shipped:</strong> three small fixes on top of v1.7 &mdash; (1) saving Settings with the Twelve Data key field empty no longer wipes the stored key, (2) Crypto and Twelve Data widgets now retry once after 2 seconds on a cold-start failure instead of going straight to a red error, (3) active persona tab restyled to a soft fill with bold text (soft-accent background, primary text, accent outline) for a calmer look than the solid-accent slab from v1.7.</li>
+          <li><strong>Settings API key field is now non-destructive.</strong> Empty trimmed value means &ldquo;no change&rdquo; &mdash; the only way to explicitly clear the key is Danger Zone &rarr; Reset browser. A code comment in <code>saveSettings</code> calls out the Safari <code>type=&quot;password&quot;</code> rationale so this doesn&rsquo;t get reverted.</li>
+          <li><strong>Cold-start retry on finance widgets.</strong> An internal <code>doFetch(isRetry)</code> helper wraps the fetch + render body in <code>renderCryptoWidget</code> and <code>renderTwelveDataWidget</code>. First failure restores the &ldquo;Loading&hellip;&rdquo; placeholder and schedules one retry at exactly 2000ms; second failure shows the existing red error. Maximum one retry per widget per load.</li>
+          <li><strong>Two new troubleshooting tips captured.</strong> (1) A widget that hangs on &ldquo;Loading&hellip;&rdquo; for ~2 seconds before resolving is the new retry doing its job, not a hang. (2) To explicitly clear the Twelve Data key, use Danger Zone &rarr; Reset browser &mdash; the Settings field can no longer remove it.</li>
         </ul>
         <!-- /HUB:RECENT_COMPLETED -->
       </div>
@@ -146,8 +147,8 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <h3>What's next</h3>
         <!-- HUB:WHATS_NEXT -->
         <ul>
-          <li><strong>Push v1.7 to GitHub</strong> (single-file commit of <code>index.html</code>), wait ~60s for GitHub Pages to refresh.</li>
-          <li><strong>Hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R)</strong> and smoke-test the three fixes: (1) any negative dollar change on Crypto/Markets/Watchlist renders as <code>-$XX.XX</code> with exactly two decimals, (2) hover a bookmark with a truncated title and confirm the description popover sits clear of any native tooltip, (3) load the page and confirm the active persona tab is highlighted in solid accent on the first frame &mdash; no momentary "no tab selected" state.</li>
+          <li><strong>Push v1.8 to GitHub</strong> (single-file commit of <code>index.html</code>), wait ~60s for GitHub Pages to refresh.</li>
+          <li><strong>Hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R)</strong> and smoke-test the three fixes: (1) open Settings, leave the Twelve Data key field empty, save &mdash; reopen Settings and confirm the key dots are still there; quotes still load. (2) Open the page on a cold tab and confirm Crypto resolves cleanly even if the first CoinGecko call coincides with a network hiccup &mdash; you should see at most a brief &ldquo;Loading prices&hellip;&rdquo; for ~2 seconds, not a red error. Same for Markets/Watchlist. (3) Confirm the active persona tab now reads as a soft fill (accent-soft background + bold primary text + accent outline), not the solid-accent slab from v1.7.</li>
           <li>Then use it for a few days before the next iteration &mdash; let real-use friction surface the next round of fixes.</li>
         </ul>
         <!-- /HUB:WHATS_NEXT -->
@@ -221,6 +222,28 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h2>Session Log</h2>
     <!-- HUB:SESSION_LOG -->
     <article class="session-entry latest">
+      <div class="date">2026-05-28 &middot; Thursday &middot; evening</div>
+      <div class="focus">v1.8 hotfix &mdash; API key persistence, cold-start retry on finance widgets, and a calmer active-tab style (three small fixes on top of v1.7).</div>
+      <h4>Completed</h4>
+      <ul>
+        <li><strong>Settings no longer wipes the Twelve Data API key when the field is left empty.</strong> In v1.7, <code>saveSettings</code> read the input, and on an empty trimmed value it called <code>localStorage.removeItem(LS.TWELVE_DATA_KEY)</code> and set <code>state.twelveDataKey = null</code> &mdash; meaning every time Tom opened Settings to change something else and hit Save, the API key got nuked (Safari's <code>type=&quot;password&quot;</code> fields don't reliably re-populate from autofill). v1.8 deletes that destructive <code>else</code> branch entirely: empty input means &ldquo;no change.&rdquo; Only a non-empty trimmed value updates the stored key. A comment above the block calls out the Safari rationale and points users at Danger Zone &rarr; Reset browser if they ever genuinely need to clear the key.</li>
+        <li><strong>Cold-start retry on Crypto, Markets, and Watchlist.</strong> Refactored <code>renderCryptoWidget</code> and <code>renderTwelveDataWidget</code> to wrap the fetch + render body in an internal <code>doFetch(isRetry)</code> async helper. On the first failure, the widget restores its &ldquo;Loading prices&hellip;&rdquo; / &ldquo;Loading quotes&hellip;&rdquo; placeholder and schedules <code>setTimeout(() =&gt; doFetch(true), 2000)</code>. On the second failure (<code>isRetry === true</code>), it falls through to the existing <code>fin-error</code> message. Exactly one retry per widget per load, at 2000ms. Both Markets and Watchlist inherit this automatically since they both route through <code>renderTwelveDataWidget</code>. The <code>_tdCache</code> / <code>TD_CACHE_MS</code> logic in <code>fetchTwelveDataQuotes</code> is untouched &mdash; retry sits above that layer. Why this matters: Tom kept seeing red &ldquo;Could not load&rdquo; states on first load that resolved on a second manual reload &mdash; classic transient first-fetch flake on a cold tab.</li>
+        <li><strong>Active persona tab restyled to a soft fill, not a solid slab.</strong> v1.7's solid <code>var(--accent)</code> fill with <code>var(--on-accent)</code> text was high-contrast but visually loud against the rest of the row. v1.8 keeps the <code>font-weight: 600</code> bolding but dials the colors back: background is now <code>var(--accent-soft)</code>, text is <code>var(--text-primary)</code>, border keeps <code>var(--accent)</code> for the outline. The active-tab dot reverted from <code>var(--on-accent)</code> back to <code>var(--accent)</code> (it now reads on the soft fill instead of the solid slab); <code>opacity: 1</code> on the dot is preserved. The comment above the rule was rewritten to describe the new soft-fill + accent-outline intent.</li>
+      </ul>
+      <h4>Decisions made</h4>
+      <ul>
+        <li><strong>Empty Settings input means &ldquo;no change&rdquo; for credentials.</strong> Don't make a save operation accidentally destructive. The only way to explicitly clear the API key is Danger Zone &rarr; Reset browser, where destructive intent is unambiguous. Reusable principle for any future credential UI.</li>
+        <li><strong>Cold-start retry: one retry, 2000ms, then fall through to the existing error.</strong> Two retries would mask real outages too long; zero retries leaves Tom doing manual reloads for what's clearly a transient flake. One retry at 2 seconds is the sweet spot.</li>
+        <li><strong>Soft-fill active tab over solid slab.</strong> The v1.7 solid fill solved discoverability (Tom couldn't tell which tab was active on cold load) but overshot &mdash; the slab read as visually loud. Soft fill + bold text + accent outline keeps the discoverability win without the loudness. <code>font-weight: 600</code> is doing as much of the lifting as the color now.</li>
+      </ul>
+      <h4>New troubleshooting tips</h4>
+      <ul>
+        <li><strong>Widget shows &ldquo;Loading&hellip;&rdquo; for ~2 seconds before resolving.</strong> That's the new cold-start retry doing its job &mdash; the first fetch failed transiently and the widget is automatically retrying once before falling through to an error. Not a hang.</li>
+        <li><strong>Need to explicitly clear the Twelve Data API key?</strong> Settings &rarr; Danger Zone &rarr; Reset browser. The Settings field can no longer remove the key (empty means &ldquo;no change&rdquo;), specifically because Safari's password-type field can't reliably re-populate from autofill.</li>
+      </ul>
+    </article>
+
+    <article class="session-entry">
       <div class="date">2026-05-28 &middot; Thursday &middot; late afternoon</div>
       <div class="focus">v1.7 hotfix &mdash; three small bug fixes on top of v1.6 (negative-price decimals, popover/tooltip overlap, active-tab highlight).</div>
       <h4>Completed</h4>
@@ -425,7 +448,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
 
 <footer>
   <div class="container">
-    Maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · late afternoon</span>
+    Maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · evening</span>
   </div>
 </footer>
 
