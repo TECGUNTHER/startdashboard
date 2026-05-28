@@ -574,7 +574,10 @@ header.dash-header {
 }
 .bookmark .bk-actions {
   display: flex; gap: 2px;
-  opacity: 0;
+  /* Action icons are dim by default so users discover they exist without
+     us having to hover-reveal them. Brightens on hover. */
+  opacity: 0.4;
+  transition: opacity 0.15s ease;
 }
 .bookmark:hover .bk-actions { opacity: 1; }
 .bk-actions button {
@@ -880,6 +883,108 @@ header.dash-header {
 }
 .context-menu .sub-trigger:hover .submenu { display: block; }
 
+/* ---------- Cross-add banner ----------
+   Shown at the top of the dashboard when the bookmarklet added something
+   to a different persona than the one you're currently viewing.
+*/
+.cross-add-banner {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  font-size: 13px;
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+}
+.cross-add-banner .banner-text { flex: 1; color: var(--text-primary); line-height: 1.4; }
+.cross-add-banner .banner-text strong { color: var(--accent); font-weight: 600; }
+.cross-add-banner .banner-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.cross-add-banner .banner-btn {
+  padding: 6px 12px; font-size: 12px; font-weight: 500;
+  background: var(--accent); color: #0A0A0F; border-radius: 6px;
+  white-space: nowrap;
+}
+.cross-add-banner .banner-btn:hover { filter: brightness(1.1); }
+.cross-add-banner .banner-dismiss {
+  padding: 6px 10px; font-size: 12px;
+  color: var(--text-muted);
+}
+.cross-add-banner .banner-dismiss:hover { color: var(--text-primary); }
+
+/* ---------- City search (used by Weather + Clock widget config) ---------- */
+.city-search { position: relative; }
+.city-search-input {
+  width: 100%;
+  background: #0A0A12;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+  font-family: inherit;
+}
+.city-search-input:focus { border-color: var(--accent); }
+.city-search-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  background: #11111A;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  max-height: 280px;
+  overflow-y: auto;
+  z-index: 10;
+}
+.city-search-result {
+  display: block; width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+}
+.city-search-result:last-child { border-bottom: none; }
+.city-search-result:hover { background: var(--bg-elev-2); color: var(--text-primary); }
+.city-search-result .primary { color: var(--text-primary); font-weight: 500; }
+.city-search-result .secondary { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.city-search-result .meta { font-family: 'JetBrains Mono'; font-size: 10px; color: var(--accent); margin-top: 2px; }
+.city-search-status {
+  padding: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* List of already-added items inside the widget config modal */
+.widget-cfg-list { list-style: none; margin-top: 12px; }
+.widget-cfg-list li {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 10px;
+  background: var(--bg-elev-2);
+  border-radius: 6px;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+.widget-cfg-list .item-name { color: var(--text-primary); }
+.widget-cfg-list .item-right { display: flex; align-items: center; gap: 8px; }
+.widget-cfg-list .item-meta { font-family: 'JetBrains Mono'; font-size: 11px; color: var(--text-muted); }
+.widget-cfg-list .remove-btn {
+  font-size: 14px; color: var(--text-muted); padding: 2px 8px;
+  border-radius: 4px;
+}
+.widget-cfg-list .remove-btn:hover { background: var(--bg-elev-1); color: var(--danger); }
+.widget-cfg-empty {
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  font-size: 12px !important;
+  padding: 8px 0 !important;
+  font-style: italic;
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 700px) {
   .app { padding: 14px 14px 60px; }
@@ -959,6 +1064,16 @@ header.dash-header {
       <button class="icon-btn" id="open-settings" title="Settings">⚙</button>
     </div>
   </header>
+
+  <!-- Cross-add banner: appears when the bookmarklet added something to a
+       different persona than the one currently viewed. Hidden by default. -->
+  <div id="cross-add-banner" class="cross-add-banner hidden">
+    <div class="banner-text" id="cross-add-banner-text">&mdash;</div>
+    <div class="banner-actions">
+      <button class="banner-btn" id="cross-add-switch">Switch</button>
+      <button class="banner-dismiss" id="cross-add-dismiss">Dismiss</button>
+    </div>
+  </div>
 
   <div class="search-row">
     <form class="search-bar" id="search-form">
@@ -1089,6 +1204,30 @@ header.dash-header {
     <p style="font-size: 12px; color: var(--text-muted);">Right-click the button → "Add to bookmarks bar" if dragging doesn't work in your browser.</p>
     <div class="modal-actions">
       <button class="btn" id="bookmarklet-close">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================================
+     Widget config modal — shared by Weather and Clock widget gear icons.
+     Lets you search a city by name (Open-Meteo geocoding) and add it
+     without ever having to know lat/lon or IANA timezone strings.
+     ===================================================================== -->
+<div id="widget-cfg-modal" class="overlay hidden">
+  <div class="modal">
+    <h2 id="widget-cfg-title">Configure widget</h2>
+    <p class="sub" id="widget-cfg-sub">Search for a city. We'll handle the coordinates and timezone behind the scenes.</p>
+
+    <div class="city-search">
+      <input type="text" id="widget-cfg-search" class="city-search-input" placeholder="Type a city name…" autocomplete="off" />
+      <div id="widget-cfg-results" class="city-search-results hidden"></div>
+    </div>
+
+    <label>Currently added</label>
+    <ul class="widget-cfg-list" id="widget-cfg-list"></ul>
+
+    <div class="modal-actions">
+      <button class="btn primary" id="widget-cfg-close">Done</button>
     </div>
   </div>
 </div>
@@ -1393,6 +1532,9 @@ function render() {
   applyPersonaTheme(p);
   renderCategories(p);
   renderWidgets(p);
+  /* Re-check whether to show the cross-add banner. Cheap (reads one
+     localStorage key) so safe to run on every render. */
+  checkRecentAddition();
 }
 
 /* The persona currently being viewed. If we don't have one yet (boot), pick
@@ -2222,8 +2364,10 @@ function showAddOverlay(url, titleHint) {
 
 async function addBookmarkFromBookmarklet(personaId, catId, url, title) {
   // We must save synchronously and then close. Don't use the debounced setState.
-  state.data.personas.find(p => p.id === personaId).categories.find(c => c.id === catId)
-    .bookmarks.push({ id: uid(), title: title || url, url });
+  const persona = state.data.personas.find(p => p.id === personaId);
+  const category = persona.categories.find(c => c.id === catId);
+  const bookmarkTitle = title || url;
+  category.bookmarks.push({ id: uid(), title: bookmarkTitle, url });
   setSyncStatus('saving', 'Saving…');
   try {
     await ghRequest('/gists/' + state.gistId, {
@@ -2231,7 +2375,19 @@ async function addBookmarkFromBookmarklet(personaId, catId, url, title) {
       body: { files: { [GIST_FILENAME]: { content: JSON.stringify(state.data, null, 2) } } }
     });
     setSyncStatus('synced', 'Saved');
-    showToast('Added to ' + (state.data.personas.find(p => p.id === personaId).name) + ' › ' + (state.data.personas.find(p => p.id === personaId).categories.find(c => c.id === catId).name));
+    showToast('Added to ' + persona.name + ' › ' + category.name);
+    /* Leave a breadcrumb in localStorage so the main dashboard window can
+       surface a banner if it's currently viewing a different persona.
+       The 'storage' event in the main window fires when this is written. */
+    try {
+      localStorage.setItem('sd_last_added', JSON.stringify({
+        personaId,
+        personaName: persona.name,
+        categoryName: category.name,
+        bookmarkTitle,
+        timestamp: Date.now(),
+      }));
+    } catch { /* localStorage quota etc. — non-fatal */ }
     setTimeout(() => window.close(), 500);
   } catch (e) {
     showToast('Save failed: ' + e.message);
@@ -2387,6 +2543,219 @@ function showToast(msg) {
 }
 
 /* ============================================================
+   Cross-add banner — surfaces popup-add events the user might miss
+   ============================================================ */
+
+/* Check if there's a recent (within 5 min) bookmarklet addition that
+   went to a different persona than the one we're viewing. If so, show
+   a banner with a "Switch to <persona>" button. */
+function checkRecentAddition() {
+  const banner = document.getElementById('cross-add-banner');
+  if (!banner) return;
+  const raw = localStorage.getItem('sd_last_added');
+  if (!raw) { banner.classList.add('hidden'); return; }
+  let info;
+  try { info = JSON.parse(raw); } catch { return; }
+  /* Older than 5 minutes — stop nagging. */
+  if (!info.timestamp || Date.now() - info.timestamp > 5 * 60 * 1000) {
+    banner.classList.add('hidden');
+    return;
+  }
+  /* Already viewing that persona — nothing to surface. */
+  if (!currentPersona() || info.personaId === currentPersona().id) {
+    banner.classList.add('hidden');
+    return;
+  }
+  document.getElementById('cross-add-banner-text').innerHTML =
+    'Just added <strong>"' + escapeHtml(info.bookmarkTitle) + '"</strong> to ' +
+    '<strong>' + escapeHtml(info.personaName) + ' &rsaquo; ' + escapeHtml(info.categoryName) + '</strong>.';
+  const switchBtn = document.getElementById('cross-add-switch');
+  switchBtn.textContent = 'Switch to ' + info.personaName;
+  switchBtn.onclick = () => {
+    switchPersona(info.personaId);
+    dismissCrossAddBanner();
+  };
+  banner.classList.remove('hidden');
+}
+
+function dismissCrossAddBanner() {
+  localStorage.removeItem('sd_last_added');
+  document.getElementById('cross-add-banner').classList.add('hidden');
+}
+
+/* ============================================================
+   Widget config modal — Open-Meteo-powered city search
+   ============================================================ */
+
+/* Which widget the modal is currently configuring: 'weather' or 'clock'. */
+let _widgetCfgFor = null;
+let _citySearchTimer = null;
+
+function openWidgetConfig(widgetName) {
+  _widgetCfgFor = widgetName;
+  document.getElementById('widget-cfg-title').textContent =
+    widgetName === 'weather' ? 'Weather — add cities' : 'Clock — add time zones';
+  document.getElementById('widget-cfg-sub').textContent =
+    widgetName === 'weather'
+      ? "Type a city name and pick from the list. We handle the coordinates behind the scenes."
+      : "Type a city or capital. We map it to the correct timezone so the clock stays right through DST.";
+  const input = document.getElementById('widget-cfg-search');
+  input.value = '';
+  input.placeholder = widgetName === 'weather' ? 'e.g. Charlotte, Tokyo, Berlin…' : 'e.g. New York, London, Sydney…';
+  document.getElementById('widget-cfg-results').classList.add('hidden');
+  renderWidgetCfgList();
+  document.getElementById('widget-cfg-modal').classList.remove('hidden');
+  setTimeout(() => input.focus(), 50);
+}
+
+function closeWidgetConfig() {
+  document.getElementById('widget-cfg-modal').classList.add('hidden');
+  /* Re-render the widget itself so the new cities/zones show up right away. */
+  if (state.data) {
+    if (_widgetCfgFor === 'weather') renderWeatherWidget(currentPersona());
+    if (_widgetCfgFor === 'clock')   renderClockWidget(currentPersona());
+  }
+  _widgetCfgFor = null;
+}
+
+/* Renders the "Currently added" list inside the modal. */
+function renderWidgetCfgList() {
+  const ul = document.getElementById('widget-cfg-list');
+  ul.innerHTML = '';
+  const p = currentPersona();
+  if (!p) return;
+
+  if (_widgetCfgFor === 'weather') {
+    const cities = p.widgets.weather.cities || [];
+    if (!cities.length) {
+      ul.innerHTML = '<li class="widget-cfg-empty">No cities yet — search above to add one.</li>';
+      return;
+    }
+    cities.forEach((c, i) => {
+      const li = document.createElement('li');
+      li.innerHTML =
+        '<span class="item-name">' + escapeHtml(c.name) + '</span>' +
+        '<span class="item-right">' +
+          '<span class="item-meta">' + c.lat.toFixed(2) + ', ' + c.lon.toFixed(2) + '</span>' +
+          '<button class="remove-btn" title="Remove">&times;</button>' +
+        '</span>';
+      li.querySelector('.remove-btn').addEventListener('click', () => {
+        setState(d => {
+          d.personas.find(pp => pp.id === currentPersona().id).widgets.weather.cities.splice(i, 1);
+        });
+        renderWidgetCfgList();
+      });
+      ul.appendChild(li);
+    });
+  } else if (_widgetCfgFor === 'clock') {
+    const zones = p.widgets.clock.zones || [];
+    if (!zones.length) {
+      ul.innerHTML = '<li class="widget-cfg-empty">No time zones yet — search above to add one.</li>';
+      return;
+    }
+    zones.forEach((z, i) => {
+      const friendly = z.split('/').pop().replace(/_/g, ' ');
+      const li = document.createElement('li');
+      li.innerHTML =
+        '<span class="item-name">' + escapeHtml(friendly) + '</span>' +
+        '<span class="item-right">' +
+          '<span class="item-meta">' + escapeHtml(z) + '</span>' +
+          '<button class="remove-btn" title="Remove">&times;</button>' +
+        '</span>';
+      li.querySelector('.remove-btn').addEventListener('click', () => {
+        setState(d => {
+          d.personas.find(pp => pp.id === currentPersona().id).widgets.clock.zones.splice(i, 1);
+        });
+        renderWidgetCfgList();
+      });
+      ul.appendChild(li);
+    });
+  }
+}
+
+/* Wires the city-search input — debounced, hits Open-Meteo's free
+   geocoding endpoint, renders clickable results below the input. */
+function setupWidgetCfgSearch() {
+  const input = document.getElementById('widget-cfg-search');
+  const results = document.getElementById('widget-cfg-results');
+  if (!input || !results) return;
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim();
+    if (q.length < 2) { results.classList.add('hidden'); results.innerHTML = ''; return; }
+    if (_citySearchTimer) clearTimeout(_citySearchTimer);
+    _citySearchTimer = setTimeout(() => doCitySearch(q, results), 250);
+  });
+
+  /* Click outside the dropdown to dismiss it. */
+  document.addEventListener('click', (e) => {
+    if (!results.contains(e.target) && e.target !== input) {
+      results.classList.add('hidden');
+    }
+  });
+}
+
+async function doCitySearch(q, resultsEl) {
+  resultsEl.classList.remove('hidden');
+  resultsEl.innerHTML = '<div class="city-search-status">Searching…</div>';
+  try {
+    const url = 'https://geocoding-api.open-meteo.com/v1/search?count=8&language=en&name=' + encodeURIComponent(q);
+    const r = await fetch(url);
+    const data = await r.json();
+    resultsEl.innerHTML = '';
+    if (!data.results || !data.results.length) {
+      resultsEl.innerHTML = '<div class="city-search-status">No matches.</div>';
+      return;
+    }
+    data.results.forEach(item => {
+      const where = [item.admin1, item.country].filter(Boolean).join(', ');
+      const btn = document.createElement('button');
+      btn.className = 'city-search-result';
+      if (_widgetCfgFor === 'weather') {
+        btn.innerHTML =
+          '<div class="primary">' + escapeHtml(item.name) + '</div>' +
+          '<div class="secondary">' + escapeHtml(where) + '</div>' +
+          '<div class="meta">' + item.latitude.toFixed(3) + ', ' + item.longitude.toFixed(3) + '</div>';
+        btn.addEventListener('click', () => {
+          setState(d => {
+            d.personas.find(pp => pp.id === currentPersona().id).widgets.weather.cities.push({
+              name: item.name + (item.admin1 ? ', ' + item.admin1 : ''),
+              lat: item.latitude,
+              lon: item.longitude,
+            });
+          });
+          document.getElementById('widget-cfg-search').value = '';
+          resultsEl.classList.add('hidden');
+          renderWidgetCfgList();
+        });
+      } else { /* clock */
+        const tz = item.timezone || 'UTC';
+        let localTime = '';
+        try {
+          localTime = new Intl.DateTimeFormat([], { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
+        } catch { /* invalid TZ — leave blank */ }
+        btn.innerHTML =
+          '<div class="primary">' + escapeHtml(item.name) + '</div>' +
+          '<div class="secondary">' + escapeHtml(where) + (localTime ? ' &middot; currently ' + localTime : '') + '</div>' +
+          '<div class="meta">' + escapeHtml(tz) + '</div>';
+        btn.addEventListener('click', () => {
+          setState(d => {
+            const pp = d.personas.find(x => x.id === currentPersona().id);
+            if (!pp.widgets.clock.zones.includes(tz)) pp.widgets.clock.zones.push(tz);
+          });
+          document.getElementById('widget-cfg-search').value = '';
+          resultsEl.classList.add('hidden');
+          renderWidgetCfgList();
+        });
+      }
+      resultsEl.appendChild(btn);
+    });
+  } catch (e) {
+    resultsEl.innerHTML = '<div class="city-search-status">Search failed: ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+/* ============================================================
    Helpers
    ============================================================ */
 function uid() {
@@ -2431,6 +2800,25 @@ document.getElementById('set-reset-browser').addEventListener('click', () => {
 });
 document.getElementById('confirm-cancel').addEventListener('click', () => closeConfirm(false));
 document.getElementById('confirm-ok').addEventListener('click', () => closeConfirm(true));
+
+/* Widget-level gear icons (⚙ on Weather, Clock cards): open the per-widget
+   config modal. Bound at boot since these buttons live in static HTML. */
+document.querySelectorAll('[data-widget-settings]').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openWidgetConfig(btn.dataset.widgetSettings);
+  });
+});
+document.getElementById('widget-cfg-close').addEventListener('click', closeWidgetConfig);
+setupWidgetCfgSearch();
+
+/* Cross-add banner wiring. */
+document.getElementById('cross-add-dismiss').addEventListener('click', dismissCrossAddBanner);
+/* When the bookmarklet popup writes to localStorage, this fires in the main
+   window — same origin, different windows. We re-check and surface the banner. */
+window.addEventListener('storage', (e) => {
+  if (e.key === 'sd_last_added') checkRecentAddition();
+});
 
 document.getElementById('sync-indicator').addEventListener('click', () => {
   if (state.syncStatus === 'stale' || state.syncStatus === 'error') {
