@@ -481,6 +481,67 @@ header.dash-header {
 }
 .todo-clear:hover { color: var(--accent); }
 
+/* ---- Finance widgets (Crypto / Markets / Watchlist) — shared row style ---- */
+.fin-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.fin-row:last-child { border-bottom: none; }
+.fin-row .fin-sym {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono';
+  font-size: 12px;
+}
+.fin-row .fin-name { font-size: 10px; color: var(--text-muted); display: block; font-family: 'Inter'; font-weight: 400; }
+.fin-row .fin-price {
+  font-family: 'JetBrains Mono';
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 13px;
+  text-align: right;
+  white-space: nowrap;
+}
+.fin-row .fin-change {
+  font-family: 'JetBrains Mono';
+  font-size: 11px;
+  text-align: right;
+  white-space: nowrap;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.fin-row .fin-change.up   { color: #34D399; background: rgba(52, 211, 153, 0.10); }
+.fin-row .fin-change.down { color: #F87171; background: rgba(248, 113, 113, 0.10); }
+.fin-row .fin-change.flat { color: var(--text-muted); }
+.fin-empty   { font-size: 12px; color: var(--text-muted); padding: 4px 0; }
+.fin-error   { font-size: 11px; color: var(--danger); padding: 4px 0; }
+.fin-loading { font-size: 12px; color: var(--text-muted); padding: 4px 0; }
+
+/* Widget toggle checkboxes inside Settings */
+.widget-toggle-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px 12px;
+  margin-bottom: 4px;
+}
+.widget-toggle-grid label {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px;
+  text-transform: none; letter-spacing: 0; font-weight: 400;
+  color: var(--text-primary);
+  margin: 0;
+  cursor: pointer;
+}
+.widget-toggle-grid input[type="checkbox"] {
+  width: 14px; height: 14px;
+  accent-color: var(--accent);
+}
+
 /* ---- Notes widget ---- */
 .notes-textarea {
   width: 100%; height: 100%;
@@ -1111,6 +1172,27 @@ header.dash-header {
         <textarea id="notes-textarea" class="notes-textarea" placeholder="Type anything…"></textarea>
       </div>
     </div>
+    <div class="widget" data-widget="crypto">
+      <div class="widget-head">
+        <span class="widget-title">Crypto</span>
+        <button class="widget-settings-btn" data-widget-settings="crypto">⚙</button>
+      </div>
+      <div class="widget-body" id="widget-crypto-body"></div>
+    </div>
+    <div class="widget" data-widget="markets">
+      <div class="widget-head">
+        <span class="widget-title">Markets</span>
+        <button class="widget-settings-btn" data-widget-settings="markets">⚙</button>
+      </div>
+      <div class="widget-body" id="widget-markets-body"></div>
+    </div>
+    <div class="widget" data-widget="watchlist">
+      <div class="widget-head">
+        <span class="widget-title">Watchlist</span>
+        <button class="widget-settings-btn" data-widget-settings="watchlist">⚙</button>
+      </div>
+      <div class="widget-body" id="widget-watchlist-body"></div>
+    </div>
   </section>
 
   <section class="categories-grid" id="categories-grid"></section>
@@ -1156,6 +1238,12 @@ header.dash-header {
     <label>This persona — background</label>
     <div class="bg-preset-grid" id="bg-preset-grid"></div>
     <input type="url" id="set-bg-image-url" placeholder="…or paste an image URL" />
+
+    <label>This persona — widgets shown</label>
+    <div class="widget-toggle-grid" id="set-widget-toggles"></div>
+
+    <label>Twelve Data API key (for Markets &amp; Watchlist)</label>
+    <input type="password" id="set-twelvedata-key" class="mono" placeholder="Paste your Twelve Data API key…" autocomplete="off" />
 
     <label>Clock — time zones (comma-separated IANA names)</label>
     <input type="text" id="set-clock-zones" class="mono" placeholder="e.g. America/New_York, Europe/London, Asia/Tokyo" />
@@ -1259,6 +1347,10 @@ const LS = {
   PAT: 'sd_pat',
   GIST_ID: 'sd_gist_id',
   DEFAULT_PERSONA: 'sd_default_persona',
+  /* Twelve Data API key for the Markets & Watchlist widgets. Per-browser
+     (not synced via gist) for the same reason the GitHub PAT is: it's a
+     credential, and the rate limit is per-key. */
+  TWELVE_DATA_KEY: 'sd_twelvedata_key',
 };
 
 /* ---------- Background preset list ---------- */
@@ -1296,6 +1388,7 @@ const state = {
   pat: localStorage.getItem(LS.PAT) || null,
   gistId: localStorage.getItem(LS.GIST_ID) || null,
   defaultPersonaId: localStorage.getItem(LS.DEFAULT_PERSONA) || null,
+  twelveDataKey: localStorage.getItem(LS.TWELVE_DATA_KEY) || null,
   data: null,                  // Loaded from gist after setup
   currentPersonaId: null,      // Which persona is being viewed
   syncStatus: 'synced',        // 'synced' | 'saving' | 'stale' | 'error'
@@ -1461,7 +1554,22 @@ function ensurePersonaSchema(p) {
   if (!p.widgets.weather) p.widgets.weather = { cities: [] };
   if (!Array.isArray(p.widgets.todos)) p.widgets.todos = [];
   if (typeof p.widgets.notes !== 'string') p.widgets.notes = '';
+  /* v1.2 widgets — finance. Each persona gets its own list. */
+  if (!p.widgets.crypto)    p.widgets.crypto    = { coins: [] };
+  if (!p.widgets.markets)   p.widgets.markets   = { symbols: [] };
+  if (!p.widgets.watchlist) p.widgets.watchlist = { symbols: [] };
+  /* Per-persona widget visibility. Empty array means "show every widget."
+     Tom can hide individual widgets via Settings on a per-persona basis. */
+  if (!Array.isArray(p.hiddenWidgets)) p.hiddenWidgets = [];
 }
+
+/* Canonical list of all widget IDs in the order they render. New widgets
+   appended at the end so existing personas don't have their layout shuffled. */
+const ALL_WIDGETS = ['clock', 'weather', 'todos', 'notes', 'crypto', 'markets', 'watchlist'];
+const WIDGET_LABELS = {
+  clock: 'Clock', weather: 'Weather', todos: 'To-do', notes: 'Notes',
+  crypto: 'Crypto', markets: 'Markets', watchlist: 'Watchlist'
+};
 
 /* The seed personas applied on the very first run, per the plan. */
 function makeSeedPersonas() {
@@ -1483,7 +1591,13 @@ function makeSeedPersonas() {
         weather: { cities: [] },
         todos: [],
         notes: '',
+        crypto: { coins: [] },
+        markets: { symbols: ['SPY', 'QQQ', 'DIA'] },
+        watchlist: { symbols: [] },
       },
+      /* Work persona hides the finance widgets by default — these belong
+         on a finance-focused persona Tom can create. */
+      hiddenWidgets: ['crypto', 'markets', 'watchlist'],
     },
     {
       id: 'personal',
@@ -1499,7 +1613,11 @@ function makeSeedPersonas() {
         weather: { cities: [] },
         todos: [],
         notes: '',
+        crypto: { coins: [] },
+        markets: { symbols: [] },
+        watchlist: { symbols: [] },
       },
+      hiddenWidgets: ['crypto', 'markets', 'watchlist'],
     },
   ];
 }
@@ -1714,8 +1832,14 @@ function addNewPersona() {
     d.personas.push({
       id, name: name.trim(), accent, background: BG_PRESETS[used % BG_PRESETS.length].id,
       categories: [{ id: uid(), name: 'Untitled', bookmarks: [] }],
-      widgets: { clock: { zones: [Intl.DateTimeFormat().resolvedOptions().timeZone] },
-                 weather: { cities: [] }, todos: [], notes: '' },
+      widgets: {
+        clock: { zones: [Intl.DateTimeFormat().resolvedOptions().timeZone] },
+        weather: { cities: [] }, todos: [], notes: '',
+        crypto: { coins: [] }, markets: { symbols: [] }, watchlist: { symbols: [] },
+      },
+      /* New personas start with all widgets visible so the user can pick
+         what to keep. Easy to hide via Settings ⚙ → "Widgets shown". */
+      hiddenWidgets: [],
     });
   });
   switchPersona(id);
@@ -2056,10 +2180,25 @@ function openManualAddBookmark(catId) {
    Widgets
    ============================================================ */
 function renderWidgets(p) {
-  renderClockWidget(p);
-  renderWeatherWidget(p);
-  renderTodosWidget(p);
-  renderNotesWidget(p);
+  /* Honor per-persona widget visibility. Hidden widgets get a CSS class
+     that hides them outright (avoids reserving empty grid space). */
+  const hidden = new Set(p.hiddenWidgets || []);
+  ALL_WIDGETS.forEach(name => {
+    const card = document.querySelector('.widget[data-widget="' + name + '"]');
+    if (card) card.classList.toggle('hidden', hidden.has(name));
+  });
+  /* If every widget is hidden on this persona, drop the entire widgets row
+     so the categories grid starts right under the header. */
+  const allHidden = ALL_WIDGETS.every(n => hidden.has(n));
+  document.getElementById('widgets-row').classList.toggle('hidden', allHidden);
+
+  if (!hidden.has('clock'))     renderClockWidget(p);
+  if (!hidden.has('weather'))   renderWeatherWidget(p);
+  if (!hidden.has('todos'))     renderTodosWidget(p);
+  if (!hidden.has('notes'))     renderNotesWidget(p);
+  if (!hidden.has('crypto'))    renderCryptoWidget(p);
+  if (!hidden.has('markets'))   renderMarketsWidget(p);
+  if (!hidden.has('watchlist')) renderWatchlistWidget(p);
 }
 
 /* ---- Clock ---- */
@@ -2083,7 +2222,7 @@ function renderClockWidget(p) {
       const time = document.createElement('span');
       time.className = 'time';
       try {
-        const fmt = new Intl.DateTimeFormat([], { timeZone: zone, hour: '2-digit', minute: '2-digit', hour12: false });
+        const fmt = new Intl.DateTimeFormat([], { timeZone: zone, hour: 'numeric', minute: '2-digit', hour12: true });
         time.textContent = fmt.format(now);
       } catch { time.textContent = '—'; }
       row.appendChild(city);
@@ -2231,6 +2370,141 @@ function renderTodosWidget(p) {
     });
     body.appendChild(clear);
   }
+}
+
+/* ---- Crypto widget ----
+   Uses CoinGecko's free public API (no key required).
+   `coins` is an array of { id, symbol, name } where id is CoinGecko's slug. */
+async function renderCryptoWidget(p) {
+  const body = document.getElementById('widget-crypto-body');
+  const coins = (p.widgets.crypto && p.widgets.crypto.coins) || [];
+  if (!coins.length) {
+    body.innerHTML = '<div class="fin-empty">Add coins in widget settings (⚙). Suggested: BTC, ETH, SOL.</div>';
+    return;
+  }
+  body.innerHTML = '<div class="fin-loading">Loading prices…</div>';
+  try {
+    const ids = coins.map(c => c.id).join(',');
+    const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=' + encodeURIComponent(ids) + '&vs_currencies=usd&include_24hr_change=true');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    body.innerHTML = '';
+    coins.forEach(c => {
+      const d = data[c.id];
+      if (!d) return;
+      const change = d.usd_24h_change || 0;
+      const dir = change > 0.05 ? 'up' : change < -0.05 ? 'down' : 'flat';
+      const sign = change > 0 ? '+' : '';
+      const row = document.createElement('div');
+      row.className = 'fin-row';
+      row.innerHTML =
+        '<div><span class="fin-sym">' + escapeHtml(c.symbol.toUpperCase()) + '</span>' +
+        '<span class="fin-name">' + escapeHtml(c.name) + '</span></div>' +
+        '<span class="fin-price">' + formatPrice(d.usd) + '</span>' +
+        '<span class="fin-change ' + dir + '">' + sign + change.toFixed(2) + '%</span>';
+      body.appendChild(row);
+    });
+  } catch (e) {
+    body.innerHTML = '<div class="fin-error">Crypto load failed: ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+/* ---- Markets widget ----
+   Uses Twelve Data quote endpoint. Needs an API key (stored per-browser
+   in localStorage as sd_twelvedata_key). Default symbols are ETFs that
+   track the major US indices so the free tier works without issue. */
+function renderMarketsWidget(p) {
+  return renderTwelveDataWidget(p, 'markets', 'widget-markets-body', 'No markets yet. Defaults: SPY, QQQ, DIA.');
+}
+function renderWatchlistWidget(p) {
+  return renderTwelveDataWidget(p, 'watchlist', 'widget-watchlist-body', 'No symbols yet. Add stocks in widget settings (⚙).');
+}
+
+async function renderTwelveDataWidget(p, kind, bodyId, emptyMsg) {
+  const body = document.getElementById(bodyId);
+  const symbols = (p.widgets[kind] && p.widgets[kind].symbols) || [];
+  if (!state.twelveDataKey) {
+    body.innerHTML = '<div class="fin-empty">Add your <a href="https://twelvedata.com/account/api-keys" target="_blank" rel="noopener" style="color: var(--accent); border-bottom: 1px dotted var(--accent);">Twelve Data API key</a> in Settings (⚙).</div>';
+    return;
+  }
+  if (!symbols.length) {
+    body.innerHTML = '<div class="fin-empty">' + escapeHtml(emptyMsg) + '</div>';
+    return;
+  }
+  body.innerHTML = '<div class="fin-loading">Loading quotes…</div>';
+  try {
+    const data = await fetchTwelveDataQuotes(symbols);
+    body.innerHTML = '';
+    /* Twelve Data returns a single object for one symbol and a {symbol: data}
+       map for multiple — normalize to always-a-map. */
+    const norm = (symbols.length === 1 && data && data.symbol) ? { [data.symbol]: data } : data;
+    symbols.forEach(sym => {
+      const d = norm && norm[sym];
+      if (!d || d.code) {
+        const row = document.createElement('div');
+        row.className = 'fin-row';
+        row.innerHTML = '<div><span class="fin-sym">' + escapeHtml(sym) + '</span></div>' +
+          '<span class="fin-price" style="color:var(--text-muted);">—</span>' +
+          '<span class="fin-change flat">no data</span>';
+        body.appendChild(row);
+        return;
+      }
+      const price = parseFloat(d.close);
+      const change = parseFloat(d.percent_change);
+      const dir = change > 0.01 ? 'up' : change < -0.01 ? 'down' : 'flat';
+      const sign = change > 0 ? '+' : '';
+      const friendly = MARKET_INDEX_LABELS[sym] || (d.name ? d.name.replace(/ Trust| ETF| SPDR/g, '').slice(0, 20) : '');
+      const row = document.createElement('div');
+      row.className = 'fin-row';
+      row.innerHTML =
+        '<div><span class="fin-sym">' + escapeHtml(sym) + '</span>' +
+        (friendly ? '<span class="fin-name">' + escapeHtml(friendly) + '</span>' : '') + '</div>' +
+        '<span class="fin-price">' + formatPrice(price) + '</span>' +
+        '<span class="fin-change ' + dir + '">' + sign + (isFinite(change) ? change.toFixed(2) : '—') + '%</span>';
+      body.appendChild(row);
+    });
+  } catch (e) {
+    body.innerHTML = '<div class="fin-error">Quote load failed: ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+/* In-memory cache of Twelve Data quotes, keyed by sorted symbol list.
+   Free tier is 8 requests/minute, so we cache for ~60s to avoid burning
+   the quota on every render (persona switch, widget settings close, etc.). */
+const _tdCache = new Map();
+const TD_CACHE_MS = 60 * 1000;
+
+/* Common Twelve Data quote fetch. Batches all symbols into a single call. */
+async function fetchTwelveDataQuotes(symbols) {
+  if (!symbols || !symbols.length) return {};
+  const key = symbols.slice().sort().join(',');
+  const cached = _tdCache.get(key);
+  if (cached && (Date.now() - cached.t < TD_CACHE_MS)) return cached.data;
+  const url = 'https://api.twelvedata.com/quote?symbol=' + encodeURIComponent(symbols.join(',')) + '&apikey=' + encodeURIComponent(state.twelveDataKey);
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const data = await r.json();
+  if (data && data.code && data.message) throw new Error(data.message);
+  _tdCache.set(key, { t: Date.now(), data });
+  return data;
+}
+
+/* Friendly labels for common ETFs that proxy major indices. */
+const MARKET_INDEX_LABELS = {
+  SPY: 'S&P 500', QQQ: 'Nasdaq 100', DIA: 'Dow Jones',
+  IWM: 'Russell 2000', VTI: 'Total US Market',
+  EFA: 'Developed ex-US', EEM: 'Emerging Markets',
+  GLD: 'Gold', SLV: 'Silver', USO: 'Oil',
+};
+
+/* Pretty-print a number as a dollar price: thousands comma, sensible decimals. */
+function formatPrice(n) {
+  n = Number(n);
+  if (!isFinite(n)) return '—';
+  if (n >= 1000) return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (n >= 1)    return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (n >= 0.01) return '$' + n.toFixed(4);
+  return '$' + n.toFixed(6);
 }
 
 /* ---- Sticky notes ---- */
@@ -2408,8 +2682,20 @@ function openSettingsModal() {
     .map(c => `${c.name}, ${c.lat}, ${c.lon}`).join('\n');
   document.getElementById('set-search-engine').value = state.data.searchEngine || 'google';
   document.getElementById('set-gist-id').textContent = state.gistId;
+  document.getElementById('set-twelvedata-key').value = state.twelveDataKey || '';
   document.getElementById('set-bg-image-url').value =
     (p.background && p.background.startsWith('url:')) ? p.background.slice(4) : '';
+
+  /* Per-persona widget visibility checkboxes. */
+  const togglesEl = document.getElementById('set-widget-toggles');
+  togglesEl.innerHTML = '';
+  const hidden = new Set(p.hiddenWidgets || []);
+  ALL_WIDGETS.forEach(w => {
+    const label = document.createElement('label');
+    label.innerHTML = '<input type="checkbox" data-widget-toggle="' + w + '"' +
+      (hidden.has(w) ? '' : ' checked') + '> ' + WIDGET_LABELS[w];
+    togglesEl.appendChild(label);
+  });
 
   /* Build the default-persona dropdown */
   const sel = document.getElementById('set-default-persona');
@@ -2427,15 +2713,23 @@ function openSettingsModal() {
   grid.innerHTML = '';
   BG_PRESETS.forEach(bp => {
     const t = document.createElement('div');
-    t.className = 'bg-preset-thumb bg-' + bp.id + (p.background === bp.id ? ' selected' : '');
+    const isCurrent = (p.background === bp.id);
+    t.className = 'bg-preset-thumb bg-' + bp.id + (isCurrent ? ' selected' : '');
+    /* IMPORTANT: also set data-selected on the pre-selected thumb so that
+       saveSettings() can find it even if the user never clicks anything. */
+    if (isCurrent) t.dataset.selected = bp.id;
     t.textContent = bp.name;
     t.addEventListener('click', () => {
-      grid.querySelectorAll('.bg-preset-thumb').forEach(x => x.classList.remove('selected'));
+      grid.querySelectorAll('.bg-preset-thumb').forEach(x => {
+        x.classList.remove('selected');
+        delete x.dataset.selected;
+      });
       t.classList.add('selected');
-      document.getElementById('set-bg-image-url').value = '';
       t.dataset.selected = bp.id;
-      // Live-apply for preview
-      applyPersonaTheme(Object.assign({}, p, { background: bp.id }));
+      document.getElementById('set-bg-image-url').value = '';
+      /* Live-apply so Tom sees the change immediately. The settings overlay
+         is semi-transparent so the change is visible through the blur. */
+      applyPersonaTheme(Object.assign({}, currentPersona(), { background: bp.id }));
     });
     grid.appendChild(t);
   });
@@ -2458,7 +2752,10 @@ function saveSettings() {
   const searchEngine = document.getElementById('set-search-engine').value;
   const defaultPersonaId = document.getElementById('set-default-persona').value;
   const bgUrl = document.getElementById('set-bg-image-url').value.trim();
-  const selectedPreset = document.querySelector('#bg-preset-grid .bg-preset-thumb.selected')?.dataset?.selected;
+  /* Fallback to the persona's current background if no thumb was clicked —
+     means "user didn't change anything," not "user wants no background." */
+  const selectedPreset = document.querySelector('#bg-preset-grid .bg-preset-thumb.selected')?.dataset?.selected
+    || currentPersona().background;
 
   const zones = zonesStr
     ? zonesStr.split(',').map(s => s.trim()).filter(Boolean)
@@ -2473,6 +2770,13 @@ function saveSettings() {
       }).filter(Boolean)
     : [];
 
+  /* Per-persona widget visibility: an unchecked checkbox means "hide this
+     widget on this persona." Collect the unchecked ones. */
+  const newHidden = [];
+  document.querySelectorAll('#set-widget-toggles [data-widget-toggle]').forEach(cb => {
+    if (!cb.checked) newHidden.push(cb.dataset.widgetToggle);
+  });
+
   setState(d => {
     d.title = newTitle;
     d.searchEngine = searchEngine;
@@ -2483,10 +2787,22 @@ function saveSettings() {
     else if (selectedPreset) p.background = selectedPreset;
     p.widgets.clock.zones = zones;
     p.widgets.weather.cities = cities;
+    p.hiddenWidgets = newHidden;
   });
 
   localStorage.setItem(LS.DEFAULT_PERSONA, defaultPersonaId);
   state.defaultPersonaId = defaultPersonaId;
+
+  /* Twelve Data API key — per-browser like the GitHub PAT, never synced
+     through the gist. */
+  const tdKey = document.getElementById('set-twelvedata-key').value.trim();
+  if (tdKey) {
+    localStorage.setItem(LS.TWELVE_DATA_KEY, tdKey);
+    state.twelveDataKey = tdKey;
+  } else {
+    localStorage.removeItem(LS.TWELVE_DATA_KEY);
+    state.twelveDataKey = null;
+  }
 
   document.getElementById('settings-modal').classList.add('hidden');
   showToast('Settings saved.');
@@ -2571,9 +2887,21 @@ function checkRecentAddition() {
     '<strong>' + escapeHtml(info.personaName) + ' &rsaquo; ' + escapeHtml(info.categoryName) + '</strong>.';
   const switchBtn = document.getElementById('cross-add-switch');
   switchBtn.textContent = 'Switch to ' + info.personaName;
-  switchBtn.onclick = () => {
+  /* Switch handler reloads the gist before switching so the just-added
+     bookmark (which was written by the popup window, not us) is in our
+     in-memory state when we render the destination persona. Without the
+     reload, the bookmark wouldn't show up until the next manual refresh. */
+  switchBtn.onclick = async () => {
+    switchBtn.disabled = true;
+    switchBtn.textContent = 'Loading…';
+    try {
+      await loadFromGist();
+    } catch (e) {
+      showToast('Could not reload from gist: ' + e.message);
+    }
     switchPersona(info.personaId);
     dismissCrossAddBanner();
+    switchBtn.disabled = false;
   };
   banner.classList.remove('hidden');
 }
@@ -2593,15 +2921,32 @@ let _citySearchTimer = null;
 
 function openWidgetConfig(widgetName) {
   _widgetCfgFor = widgetName;
-  document.getElementById('widget-cfg-title').textContent =
-    widgetName === 'weather' ? 'Weather — add cities' : 'Clock — add time zones';
-  document.getElementById('widget-cfg-sub').textContent =
-    widgetName === 'weather'
-      ? "Type a city name and pick from the list. We handle the coordinates behind the scenes."
-      : "Type a city or capital. We map it to the correct timezone so the clock stays right through DST.";
+  const titles = {
+    weather:   'Weather — add cities',
+    clock:     'Clock — add time zones',
+    crypto:    'Crypto — add coins',
+    markets:   'Markets — add tickers',
+    watchlist: 'Watchlist — add stocks',
+  };
+  const subs = {
+    weather:   "Type a city name and pick from the list. We handle the coordinates behind the scenes.",
+    clock:     "Type a city or capital. We map it to the correct timezone so the clock stays right through DST.",
+    crypto:    "Type a coin name or symbol (Bitcoin, ETH, Solana…). Powered by CoinGecko — no key needed.",
+    markets:   "Add ticker symbols (SPY, QQQ, DIA, etc.). Indices are typically tracked via ETF proxies on the free tier.",
+    watchlist: "Add stocks you want to follow daily (AAPL, MSFT, NVDA…).",
+  };
+  const placeholders = {
+    weather:   'e.g. Charlotte, Tokyo, Berlin…',
+    clock:     'e.g. New York, London, Sydney…',
+    crypto:    'e.g. Bitcoin, ETH, Solana…',
+    markets:   'Search ticker — e.g. SPY, QQQ',
+    watchlist: 'Search ticker — e.g. AAPL, NVDA',
+  };
+  document.getElementById('widget-cfg-title').textContent = titles[widgetName] || 'Configure widget';
+  document.getElementById('widget-cfg-sub').textContent   = subs[widgetName] || '';
   const input = document.getElementById('widget-cfg-search');
   input.value = '';
-  input.placeholder = widgetName === 'weather' ? 'e.g. Charlotte, Tokyo, Berlin…' : 'e.g. New York, London, Sydney…';
+  input.placeholder = placeholders[widgetName] || 'Search…';
   document.getElementById('widget-cfg-results').classList.add('hidden');
   renderWidgetCfgList();
   document.getElementById('widget-cfg-modal').classList.remove('hidden');
@@ -2610,10 +2955,14 @@ function openWidgetConfig(widgetName) {
 
 function closeWidgetConfig() {
   document.getElementById('widget-cfg-modal').classList.add('hidden');
-  /* Re-render the widget itself so the new cities/zones show up right away. */
+  /* Re-render the widget itself so the new items show up right away. */
   if (state.data) {
-    if (_widgetCfgFor === 'weather') renderWeatherWidget(currentPersona());
-    if (_widgetCfgFor === 'clock')   renderClockWidget(currentPersona());
+    const p = currentPersona();
+    if (_widgetCfgFor === 'weather')   renderWeatherWidget(p);
+    if (_widgetCfgFor === 'clock')     renderClockWidget(p);
+    if (_widgetCfgFor === 'crypto')    renderCryptoWidget(p);
+    if (_widgetCfgFor === 'markets')   renderMarketsWidget(p);
+    if (_widgetCfgFor === 'watchlist') renderWatchlistWidget(p);
   }
   _widgetCfgFor = null;
 }
@@ -2670,11 +3019,55 @@ function renderWidgetCfgList() {
       });
       ul.appendChild(li);
     });
+  } else if (_widgetCfgFor === 'crypto') {
+    const coins = p.widgets.crypto.coins || [];
+    if (!coins.length) {
+      ul.innerHTML = '<li class="widget-cfg-empty">No coins yet — search above to add one.</li>';
+      return;
+    }
+    coins.forEach((c, i) => {
+      const li = document.createElement('li');
+      li.innerHTML =
+        '<span class="item-name">' + escapeHtml(c.name) + '</span>' +
+        '<span class="item-right">' +
+          '<span class="item-meta">' + escapeHtml(c.symbol.toUpperCase()) + '</span>' +
+          '<button class="remove-btn" title="Remove">&times;</button>' +
+        '</span>';
+      li.querySelector('.remove-btn').addEventListener('click', () => {
+        setState(d => {
+          d.personas.find(pp => pp.id === currentPersona().id).widgets.crypto.coins.splice(i, 1);
+        });
+        renderWidgetCfgList();
+      });
+      ul.appendChild(li);
+    });
+  } else if (_widgetCfgFor === 'markets' || _widgetCfgFor === 'watchlist') {
+    const symbols = p.widgets[_widgetCfgFor].symbols || [];
+    if (!symbols.length) {
+      ul.innerHTML = '<li class="widget-cfg-empty">No symbols yet — search above to add one, or type one in directly and press Enter.</li>';
+      return;
+    }
+    symbols.forEach((s, i) => {
+      const friendly = MARKET_INDEX_LABELS[s] || '';
+      const li = document.createElement('li');
+      li.innerHTML =
+        '<span class="item-name">' + escapeHtml(s) + (friendly ? ' <span style="color: var(--text-muted); font-weight: 400;">— ' + escapeHtml(friendly) + '</span>' : '') + '</span>' +
+        '<span class="item-right">' +
+          '<button class="remove-btn" title="Remove">&times;</button>' +
+        '</span>';
+      li.querySelector('.remove-btn').addEventListener('click', () => {
+        setState(d => {
+          d.personas.find(pp => pp.id === currentPersona().id).widgets[_widgetCfgFor].symbols.splice(i, 1);
+        });
+        renderWidgetCfgList();
+      });
+      ul.appendChild(li);
+    });
   }
 }
 
-/* Wires the city-search input — debounced, hits Open-Meteo's free
-   geocoding endpoint, renders clickable results below the input. */
+/* Wires the search input — debounced, dispatches to the right API per
+   widget type, renders clickable results below the input. */
 function setupWidgetCfgSearch() {
   const input = document.getElementById('widget-cfg-search');
   const results = document.getElementById('widget-cfg-results');
@@ -2684,7 +3077,20 @@ function setupWidgetCfgSearch() {
     const q = input.value.trim();
     if (q.length < 2) { results.classList.add('hidden'); results.innerHTML = ''; return; }
     if (_citySearchTimer) clearTimeout(_citySearchTimer);
-    _citySearchTimer = setTimeout(() => doCitySearch(q, results), 250);
+    _citySearchTimer = setTimeout(() => dispatchWidgetSearch(q, results), 280);
+  });
+
+  /* For Markets/Watchlist, allow pressing Enter to add the raw ticker
+     directly — useful for indices/ETFs the search may not surface. */
+  input.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    if (_widgetCfgFor !== 'markets' && _widgetCfgFor !== 'watchlist') return;
+    const raw = input.value.trim().toUpperCase();
+    if (!raw) return;
+    e.preventDefault();
+    addSymbolToWidget(raw);
+    input.value = '';
+    results.classList.add('hidden');
   });
 
   /* Click outside the dropdown to dismiss it. */
@@ -2695,6 +3101,13 @@ function setupWidgetCfgSearch() {
   });
 }
 
+function dispatchWidgetSearch(q, resultsEl) {
+  if (_widgetCfgFor === 'weather' || _widgetCfgFor === 'clock') return doCitySearch(q, resultsEl);
+  if (_widgetCfgFor === 'crypto') return doCryptoSearch(q, resultsEl);
+  if (_widgetCfgFor === 'markets' || _widgetCfgFor === 'watchlist') return doStockSearch(q, resultsEl);
+}
+
+/* Open-Meteo geocoding (cities / timezones). */
 async function doCitySearch(q, resultsEl) {
   resultsEl.classList.remove('hidden');
   resultsEl.innerHTML = '<div class="city-search-status">Searching…</div>';
@@ -2732,7 +3145,7 @@ async function doCitySearch(q, resultsEl) {
         const tz = item.timezone || 'UTC';
         let localTime = '';
         try {
-          localTime = new Intl.DateTimeFormat([], { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
+          localTime = new Intl.DateTimeFormat([], { timeZone: tz, hour: 'numeric', minute: '2-digit', hour12: true }).format(new Date());
         } catch { /* invalid TZ — leave blank */ }
         btn.innerHTML =
           '<div class="primary">' + escapeHtml(item.name) + '</div>' +
@@ -2753,6 +3166,96 @@ async function doCitySearch(q, resultsEl) {
   } catch (e) {
     resultsEl.innerHTML = '<div class="city-search-status">Search failed: ' + escapeHtml(e.message) + '</div>';
   }
+}
+
+/* CoinGecko coin search (free, no key). */
+async function doCryptoSearch(q, resultsEl) {
+  resultsEl.classList.remove('hidden');
+  resultsEl.innerHTML = '<div class="city-search-status">Searching…</div>';
+  try {
+    const r = await fetch('https://api.coingecko.com/api/v3/search?query=' + encodeURIComponent(q));
+    const data = await r.json();
+    resultsEl.innerHTML = '';
+    const coins = (data && data.coins) ? data.coins.slice(0, 10) : [];
+    if (!coins.length) {
+      resultsEl.innerHTML = '<div class="city-search-status">No coins found.</div>';
+      return;
+    }
+    coins.forEach(item => {
+      const btn = document.createElement('button');
+      btn.className = 'city-search-result';
+      btn.innerHTML =
+        '<div class="primary">' + escapeHtml(item.name) + '</div>' +
+        '<div class="secondary">' + escapeHtml(item.symbol.toUpperCase()) +
+          (item.market_cap_rank ? ' &middot; market cap rank #' + item.market_cap_rank : '') + '</div>' +
+        '<div class="meta">' + escapeHtml(item.id) + '</div>';
+      btn.addEventListener('click', () => {
+        setState(d => {
+          const pp = d.personas.find(x => x.id === currentPersona().id);
+          if (!pp.widgets.crypto.coins.some(c => c.id === item.id)) {
+            pp.widgets.crypto.coins.push({ id: item.id, symbol: item.symbol, name: item.name });
+          }
+        });
+        document.getElementById('widget-cfg-search').value = '';
+        resultsEl.classList.add('hidden');
+        renderWidgetCfgList();
+      });
+      resultsEl.appendChild(btn);
+    });
+  } catch (e) {
+    resultsEl.innerHTML = '<div class="city-search-status">Search failed: ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+/* Twelve Data symbol search. Falls back to "just press Enter to add the raw
+   ticker" if no key is set or the search fails. */
+async function doStockSearch(q, resultsEl) {
+  resultsEl.classList.remove('hidden');
+  if (!state.twelveDataKey) {
+    resultsEl.innerHTML = '<div class="city-search-status">Add your Twelve Data API key in Settings (⚙) to enable search. Or type a ticker and press Enter to add it directly.</div>';
+    return;
+  }
+  resultsEl.innerHTML = '<div class="city-search-status">Searching…</div>';
+  try {
+    const url = 'https://api.twelvedata.com/symbol_search?symbol=' + encodeURIComponent(q) + '&outputsize=12';
+    const r = await fetch(url);
+    const data = await r.json();
+    resultsEl.innerHTML = '';
+    const items = (data && data.data) ? data.data : [];
+    if (!items.length) {
+      resultsEl.innerHTML = '<div class="city-search-status">No matches. Tip: press Enter to add the ticker directly.</div>';
+      return;
+    }
+    items.forEach(item => {
+      const btn = document.createElement('button');
+      btn.className = 'city-search-result';
+      btn.innerHTML =
+        '<div class="primary">' + escapeHtml(item.symbol) + '</div>' +
+        '<div class="secondary">' + escapeHtml(item.instrument_name || '') + '</div>' +
+        '<div class="meta">' + escapeHtml(item.exchange || '') + (item.country ? ' &middot; ' + escapeHtml(item.country) : '') + '</div>';
+      btn.addEventListener('click', () => {
+        addSymbolToWidget(item.symbol);
+        document.getElementById('widget-cfg-search').value = '';
+        resultsEl.classList.add('hidden');
+      });
+      resultsEl.appendChild(btn);
+    });
+  } catch (e) {
+    resultsEl.innerHTML = '<div class="city-search-status">Search failed: ' + escapeHtml(e.message) + '. Tip: press Enter to add the ticker directly.</div>';
+  }
+}
+
+/* Shared helper: add a stock ticker to the currently-configuring widget. */
+function addSymbolToWidget(symbol) {
+  const upper = symbol.trim().toUpperCase();
+  if (!upper) return;
+  setState(d => {
+    const pp = d.personas.find(x => x.id === currentPersona().id);
+    if (!pp.widgets[_widgetCfgFor].symbols.includes(upper)) {
+      pp.widgets[_widgetCfgFor].symbols.push(upper);
+    }
+  });
+  renderWidgetCfgList();
 }
 
 /* ============================================================
