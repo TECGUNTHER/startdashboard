@@ -111,7 +111,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
       <span class="status-pill complete">Complete</span>
       <!-- /HUB:STATUS_OVERALL -->
       <!-- HUB:LAST_UPDATED -->
-      <span class="last-updated">2026-05-28 · Thu · night</span>
+      <span class="last-updated">2026-05-28 · Thu · late night</span>
       <!-- /HUB:LAST_UPDATED -->
     </div>
   </div>
@@ -136,6 +136,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <h3>Recently completed</h3>
         <!-- HUB:RECENT_COMPLETED -->
         <ul>
+          <li><strong>v1.12 shipped &mdash; richer weather forecast.</strong> Each day in the weather forecast now shows a condition icon (&#9728;&#65039;, &#9925;, &#9729;&#65039;, &#127783;&#65039;, etc.) plus a short label, alongside the high/low it already showed, and a chance-of-rain line (&ldquo;&#127783; NN%&rdquo;). The current-conditions line gained a matching icon too. If a day has no rain-chance data, that line is simply left off. Only <code>index.html</code> changed; no new keys or dependencies.</li>
           <li><strong>v1.11 shipped &mdash; a built-in &ldquo;Ask Gemini&rdquo; AI chat panel.</strong> A floating chat bubble in the bottom-right corner opens a slide-over panel where you can ask a question and get a concise, search-style answer without leaving the dashboard. Available from every persona. Powered by Google&rsquo;s free Gemini API.</li>
           <li><strong>Tuned for quick answers.</strong> The assistant is primed (via a system instruction) to give short, direct, search-style replies rather than long essays &mdash; the same kind of fast answer you get from Google Search&rsquo;s AI. Follow-up questions keep recent context (it sends the last ~10 turns).</li>
           <li><strong>&ldquo;Open full Gemini&rdquo; link-out.</strong> A header button jumps to gemini.google.com when you want your real Gemini account (with its history and your logged-in features). The in-dashboard chat is a separate, fresh assistant &mdash; it doesn&rsquo;t see your personal Gemini history.</li>
@@ -148,9 +149,8 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <h3>What's next</h3>
         <!-- HUB:WHATS_NEXT -->
         <ul>
-          <li><strong>Generate your free Gemini key.</strong> Go to <a href="https://aistudio.google.com/app/apikey">aistudio.google.com/app/apikey</a> (free, no credit card), create a key, and copy it. (There&rsquo;s an inline walkthrough in Settings too.)</li>
-          <li><strong>Push v1.11 to GitHub</strong> (single-file commit of <code>index.html</code>), wait ~60s for GitHub Pages, hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R). Then open <strong>Settings &rarr; Gemini API key</strong>, paste the key, and Save.</li>
-          <li><strong>Verify the chat works.</strong> Click the floating bubble (bottom-right), ask a question, confirm you get a concise answer. <strong>This first real query is also the one empirical unknown:</strong> the Build Agent couldn&rsquo;t fully confirm the browser-direct call to Gemini works without CORS trouble. If it&rsquo;s blocked, you&rsquo;ll see a friendly &ldquo;Couldn&rsquo;t reach Gemini&rdquo; note with an &ldquo;Open full Gemini&rdquo; link &mdash; the fallback covers it, no fix needed. (Logged as an Open Item.)</li>
+          <li><strong>Push v1.12 and verify the weather detail.</strong> Commit the single-file <code>index.html</code> change, wait ~60s for GitHub Pages, hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R), then check a Weather widget: each forecast day should show a condition icon + short label + high/low + a &ldquo;&#127783; NN%&rdquo; chance-of-rain line, and the current line should show a matching icon.</li>
+          <li><strong>Still pending from v1.11: the Gemini key + chat verify.</strong> If you haven&rsquo;t yet, generate a free Gemini key at <a href="https://aistudio.google.com/app/apikey">aistudio.google.com/app/apikey</a> (no credit card), paste it into <strong>Settings &rarr; Gemini API key</strong>, then click the floating bubble and ask a question. That first real query is also the one empirical unknown &mdash; if the browser blocks the direct call you&rsquo;ll get a friendly &ldquo;Couldn&rsquo;t reach Gemini&rdquo; note with an &ldquo;Open full Gemini&rdquo; link, which covers it. (Logged as an Open Item.)</li>
         </ul>
         <!-- /HUB:WHATS_NEXT -->
       </div>
@@ -234,6 +234,18 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h2>Session Log</h2>
     <!-- HUB:SESSION_LOG -->
     <article class="session-entry latest">
+      <div class="date">2026-05-28 &middot; Thursday &middot; late night</div>
+      <div class="focus">v1.12 &mdash; weather forecast detail: each day now shows a condition icon + short label and a chance-of-rain line, alongside the existing high/low. Real Build Agent + Documentation Agent subagent flow.</div>
+      <h4>Completed</h4>
+      <ul>
+        <li><strong>Per-day condition icon + label.</strong> Each forecast day in the Weather widget now leads with a weather emoji (a new <code>weatherCodeIcon(code)</code> function maps each WMO code to an icon &mdash; &#9728;&#65039; clear, &#9925; partly cloudy, &#9729;&#65039; overcast, &#127787;&#65039; fog, &#127783;&#65039; rain, &#10052;&#65039; snow, &#9928;&#65039; thunder, etc.) plus the short text label it already used (<code>.d-cond</code>). The current-conditions line gained the matching icon (<code>.w-icon</code>).</li>
+        <li><strong>Chance of rain per day.</strong> The Open-Meteo daily request now also asks for <code>precipitation_probability_max</code>, and each day shows a &ldquo;&#127783; NN%&rdquo; line (<code>.d-rain</code>). Still no API key, still a 4-day forecast in Fahrenheit.</li>
+        <li><strong>Clean null handling.</strong> If a given day has no rain-chance value, the rain line is simply omitted &mdash; no &ldquo;null%&rdquo; ever shows.</li>
+        <li><strong>Light styling, theme-safe.</strong> New CSS for the icon and the two new lines, plus the forecast row now wraps and each day has a minimum width so the extra detail lays out cleanly. All theme-token-based, so light and dark both look right. No new dependencies; only <code>index.html</code> changed (grew to ~5,235 lines). Only the Weather widget was touched.</li>
+      </ul>
+    </article>
+
+    <article class="session-entry">
       <div class="date">2026-05-28 &middot; Thursday &middot; night</div>
       <div class="focus">v1.11 &mdash; a built-in &ldquo;Ask Gemini&rdquo; AI chat panel inside the dashboard: floating bubble &rarr; slide-over panel, concise quick answers, per-device history, and a link-out to the full Gemini. Real Build Agent + Documentation Agent subagent flow.</div>
       <h4>Completed</h4>
@@ -549,7 +561,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
 
 <footer>
   <div class="container">
-    Maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · night</span>
+    Maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · late night</span>
   </div>
 </footer>
 

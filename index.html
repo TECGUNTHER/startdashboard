@@ -455,22 +455,37 @@ header.dash-header {
 }
 .weather-city .temp { font-family: 'JetBrains Mono'; font-size: 22px; font-weight: 500; }
 .weather-city .desc { font-size: 11px; color: var(--text-muted); }
+.weather-city .w-icon { font-size: 18px; line-height: 1; }
 .weather-forecast {
   display: flex; gap: 6px; margin-top: 6px;
+  flex-wrap: wrap;
 }
 .weather-forecast .day {
-  flex: 1; text-align: center;
+  flex: 1; min-width: 56px; text-align: center;
   padding: 4px 2px;
   background: var(--bg-elev-2);
   border-radius: 6px;
   font-size: 10px;
   color: var(--text-muted);
 }
+.weather-forecast .day .d-cond {
+  display: block;
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin: 2px 0;
+  word-break: break-word;
+}
 .weather-forecast .day .d-temp {
   font-family: 'JetBrains Mono';
   color: var(--text-primary);
   font-size: 11px;
   display: block;
+}
+.weather-forecast .day .d-rain {
+  display: block;
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 1px;
 }
 
 /* ---- To-do widget ---- */
@@ -3380,18 +3395,33 @@ function renderWeatherWidget(p) {
         const w = data.current;
         const f = data.daily;
         const codeText = weatherCodeText(w.weather_code);
+        const codeIcon = weatherCodeIcon(w.weather_code);
+        // Current line: condition glyph next to the temp, matching the forecast days below.
         block.innerHTML = `
           <div class="city-name">${escapeHtml(c.name)}</div>
-          <div class="now"><span class="temp">${Math.round(w.temperature_2m)}°</span><span class="desc">${codeText}</span></div>
+          <div class="now"><span class="w-icon">${codeIcon}</span><span class="temp">${Math.round(w.temperature_2m)}°</span><span class="desc">${codeText}</span></div>
         `;
         if (f && f.time && f.time.length > 1) {
           const fc = document.createElement('div');
           fc.className = 'weather-forecast';
+          const precip = f.precipitation_probability_max || [];
           for (let j = 1; j < Math.min(4, f.time.length); j++) {
             const day = document.createElement('div');
             day.className = 'day';
             const d = new Date(f.time[j]);
-            day.innerHTML = `${d.toLocaleDateString([], { weekday: 'short' })}<span class="d-temp">${Math.round(f.temperature_2m_max[j])}°/${Math.round(f.temperature_2m_min[j])}°</span>`;
+            // Each forecast day: weekday, condition glyph + short label, high/low temp,
+            // and chance of rain. Skip the rain line when the API gives no value
+            // for that day so we never print "null%".
+            const dayIcon = weatherCodeIcon(f.weather_code[j]);
+            const dayLabel = weatherCodeText(f.weather_code[j]);
+            const rain = precip[j];
+            const rainLine = (rain === null || rain === undefined)
+              ? ''
+              : `<span class="d-rain">🌧 ${Math.round(rain)}%</span>`;
+            day.innerHTML = `${d.toLocaleDateString([], { weekday: 'short' })}`
+              + `<span class="d-cond">${dayIcon} ${dayLabel}</span>`
+              + `<span class="d-temp">${Math.round(f.temperature_2m_max[j])}°/${Math.round(f.temperature_2m_min[j])}°</span>`
+              + rainLine;
             fc.appendChild(day);
           }
           block.appendChild(fc);
@@ -3404,7 +3434,8 @@ function renderWeatherWidget(p) {
 
 async function fetchWeather(city) {
   try {
-    const u = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code&temperature_unit=fahrenheit&timezone=auto&forecast_days=4`;
+    // precipitation_probability_max gives each day's chance-of-rain percentage.
+    const u = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max&temperature_unit=fahrenheit&timezone=auto&forecast_days=4`;
     const r = await fetch(u);
     if (!r.ok) return null;
     return await r.json();
@@ -3424,6 +3455,23 @@ function weatherCodeText(code) {
     95:'Thunderstorm',96:'Thunderstorm w/ hail',99:'Thunderstorm w/ hail'
   };
   return map[code] || '';
+}
+
+// Returns an emoji glyph for a WMO weather code so each condition reads at a
+// glance. Parallels weatherCodeText above (use that for the short label).
+function weatherCodeIcon(code) {
+  const map = {
+    0:'☀️', 1:'⛅', 2:'⛅', 3:'☁️',
+    45:'🌫️', 48:'🌫️',
+    51:'🌦️', 53:'🌦️', 55:'🌦️',
+    61:'🌧️', 63:'🌧️', 65:'🌧️',
+    66:'🌧️', 67:'🌧️',
+    71:'❄️', 73:'❄️', 75:'❄️', 77:'❄️',
+    80:'🌦️', 81:'🌦️', 82:'🌦️',
+    85:'🌨️', 86:'🌨️',
+    95:'⛈️', 96:'⛈️', 99:'⛈️'
+  };
+  return map[code] || '🌡️';
 }
 
 /* ---- To-do list ---- */

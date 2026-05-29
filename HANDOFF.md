@@ -24,7 +24,7 @@
 **Name:** StartDashboard
 **Folder:** `projects/personal-dashboard/` in Tom's `tom-workspace`
 **Current status:** Complete (in active use; iterating on polish)
-**Current phase:** Complete (with v1.11 shipped)
+**Current phase:** Complete (with v1.12 shipped)
 **Last updated:** 2026-05-28
 **Live URL:** https://tecgunther.github.io/startdashboard/
 **Code repo:** https://github.com/TECGUNTHER/startdashboard
@@ -35,7 +35,7 @@ A single-file web app that becomes Tom's home page across every browser and devi
 
 **Available widgets (per-persona, can be shown/hidden and reordered individually):**
 - Clock (multi time zone, 12/24hr toggle)
-- Weather (Open-Meteo, no key)
+- Weather (Open-Meteo, no key). **As of v1.12, each forecast day shows a condition icon + short label and a chance-of-rain percentage ("🌧 NN%"), alongside the high/low it already showed; the current-conditions line shows a matching icon.**
 - To-do list
 - Sticky notes
 - Crypto (CoinGecko, no key — shows price + dollar + percent change)
@@ -50,33 +50,28 @@ As of v1.10, the widget cards can be dragged to reorder, and any category or wid
 
 # Where We Are
 
-## Most recent session (2026-05-28 — v1.11)
+## Most recent session (2026-05-28 — v1.12)
 
-Shipped a built-in **"Ask Gemini" AI chat panel** inside the dashboard.
+Shipped a small **weather forecast detail** enhancement.
 
-- **Floating chat bubble → slide-over panel.** A bottom-right chat FAB (theme- and accent-aware, shown only on the main dashboard) opens a slide-over panel: header (title, model label, "Open full Gemini ↗", close ✕), scrollable history, an input row (Enter sends, Shift+Enter newline, Escape/backdrop/✕ closes), and a "Clear chat" footer.
-- **Powered by Google's free Gemini API, browser-direct, no backend.** `sendChatMessage` POSTs to `generativelanguage.googleapis.com/v1beta/models/<model>:generateContent` with the key in an `x-goog-api-key` header. Body is `{ system_instruction: { parts:[{text: GEMINI_SYSTEM_PROMPT}] }, contents: [ ...last ~10 turns as {role:'user'|'model', parts:[{text}]} ] }`; the reply is parsed from `candidates[0].content.parts[0].text`. Default model `gemini-2.5-flash`, overridable in Settings.
-- **Quick-answer tuning.** `GEMINI_SYSTEM_PROMPT` primes short, direct, search-style answers rather than long essays — the same fast-answer feel as Google Search's AI.
-- **Per-device chat history.** Stored in `sd_chat_history` (localStorage, capped at the last 50 messages, `CHAT_HISTORY_CAP`), so it survives reloads but is **not** synced through the gist (avoids transcript bloat). "Clear chat" empties it.
-- **"Open full Gemini ↗" link-out** opens gemini.google.com for Tom's real account — works even with no key set. The in-panel chat is a separate, fresh assistant with no access to that account's history.
-- **Settings:** a "Gemini API key" password field (with an inline AI Studio walkthrough link — free, no card) plus an optional model-override field, placed after the Finnhub key. Both follow the v1.8 non-destructive save rule (empty = no change; empty model falls back to the default).
-- **Friendly errors, never stack traces.** 429 → rate-limited note; network/CORS failure → "Couldn't reach Gemini…" with a prominent "Open full Gemini" link; missing key → empty-state prompt and no request; other non-OK → status + message. All as in-panel dashed note bubbles. Chat text is inserted as plain text; only the trusted link string uses markup.
+- **Per-day condition icon + label.** Each forecast day now leads with a weather emoji from a new `weatherCodeIcon(code)` function (maps each WMO code → an icon: ☀️ clear, ⛅ partly cloudy, ☁️ overcast, 🌫️ fog, 🌧️ rain, ❄️ snow, ⛈️ thunder, etc.), plus the short text label it already used (`.d-cond`, still from `weatherCodeText`). The current-conditions line gained the matching icon (`.w-icon`).
+- **Chance of rain per day.** The Open-Meteo daily request now also asks for `precipitation_probability_max` (alongside the existing `temperature_2m_max`/`temperature_2m_min`/`weather_code`), and each day shows a "🌧 NN%" line (`.d-rain`). Still no API key, still a 4-day forecast in Fahrenheit.
+- **Null handling.** If a day has no rain-chance value, the rain line is simply omitted — never "null%".
+- **Light, theme-safe styling.** New CSS for the icon and the two new lines; the forecast row now wraps and each day has a minimum width so the extra detail lays out cleanly in both light and dark.
 
-No new dependencies; only `index.html` changed (~4,610 → ~5,190 lines). New external service: Google Gemini (free tier). Markets/Finnhub, Crypto/CoinGecko, Weather/Open-Meteo, and gist sync are all unchanged.
-
-**One empirical unknown:** the Build Agent could not definitively confirm the browser-direct `:generateContent` call works without hitting a CORS block (the commonly-reported Gemini CORS error is about the OpenAI-compat endpoint, not the native endpoint this build calls). The client was built per plan with a robust fallback, so the worst case is graceful (message + link-out). Tom's first real query settles it.
+No new dependencies; only `index.html` changed (~5,190 → ~5,235 lines). Only the Weather widget was touched.
 
 ## Sessions before that
 
+- **v1.11 (2026-05-28, night):** Shipped a built-in **"Ask Gemini" AI chat panel** inside the dashboard — a bottom-right floating bubble opens a slide-over chat for concise, search-style answers. Powered by the free Google Gemini API, called **browser-direct with no backend** (`sendChatMessage` POSTs to `generativelanguage.googleapis.com/v1beta/models/<model>:generateContent` with the key in an `x-goog-api-key` header; default model `gemini-2.5-flash`, overridable in Settings). A `GEMINI_SYSTEM_PROMPT` primes short answers; the last ~10 turns are sent for context. Chat history is per-device in `sd_chat_history` (localStorage, capped at 50), **not** synced through the gist. Settings gained a Gemini key + optional model field; errors render as friendly in-panel notes (never stack traces) with an "Open full Gemini" link-out that works even with no key. **One empirical unknown:** the Build Agent couldn't fully confirm the browser-direct call avoids a CORS block — the fallback makes the worst case graceful, and Tom's first real query settles it.
 - **v1.10 (2026-05-28, late evening):** Biggest release since v1.0. Three per-persona, gist-synced features: (1) **drag widget cards to reorder** (each card header has a ⠿ grip; order stored in a new `widgetOrder` array); (2) **multiple, renamable watchlists** (the old single `widgets.watchlist` became `persona.watchlists`, an array of `{id, title, symbols[]}`, each keyed by a composite `watchlist:<id>`; "+ Add watchlist" in Settings); (3) **per-card border/glow color** (`category.color` + a `persona.widgetColors` map; picker with swatches + custom color + "Default (theme)" reset). The widget row is now built dynamically by `renderWidgets`. Migration is invisible (`ensurePersonaSchema` + `migrateWidgetOrder`). Only `index.html` changed.
 - **v1.9 (2026-05-28, later evening):** Migrated stock data from Twelve Data to **Finnhub** (Twelve Data's free tier was 8 calls/min; Tom's ~12 symbols hit chronic HTTP 429s — Finnhub is 60/min, also free). Added a shared 5-minute localStorage stock-quote cache (`sd_quote_cache`). On a rate limit the widget backs off 60s. Overhauled drag-to-reorder with visible ⠿ grip handles. **Tom must paste a free Finnhub key (finnhub.io/register) into Settings.**
-- **v1.8 hotfix (2026-05-28, evening):** Empty Settings key field no longer wipes the stored API key. Finance widgets gained a one-shot cold-start retry at 2s. Active persona tab restyled to a soft-accent fill + accent outline + bold text. New `INSTALL-FOR-OTHERS.md` guide.
 
 ## Immediate next step
 
-1. **Generate a free Gemini key** at https://aistudio.google.com/app/apikey (no credit card).
-2. **Push v1.11 to GitHub** (single-file commit of `index.html`), wait ~60s for Pages, hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R). Open **Settings → Gemini API key**, paste the key, Save.
-3. **Verify the chat:** click the floating bubble (bottom-right), ask a question, confirm a concise answer comes back. This first query also confirms the browser-direct CORS path; if it's blocked you'll get a friendly "Couldn't reach Gemini" note with an "Open full Gemini" link — the fallback covers it, no fix needed.
+1. **Push v1.12 to GitHub** (single-file commit of `index.html`), wait ~60s for Pages, hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R).
+2. **Verify the weather detail:** open a persona with the Weather widget; each forecast day should show a condition icon + short label + high/low + a "🌧 NN%" chance-of-rain line, and the current line should show a matching icon.
+3. **Still pending from v1.11:** if not done yet, generate a free Gemini key at https://aistudio.google.com/app/apikey (no credit card), paste it into **Settings → Gemini API key**, click the floating bubble, and ask a question to confirm the chat works. That first real query also confirms the browser-direct CORS path; if blocked, the friendly "Couldn't reach Gemini" note + "Open full Gemini" link covers it (no fix needed).
 
 ---
 
@@ -87,6 +82,7 @@ No new dependencies; only `index.html` changed (~4,610 → ~5,190 lines). New ex
 - **Per-persona widgets, backgrounds, accent colors, visibility, order, and per-card colors** — the whole point of personas is mental separation. Each persona is fully independent.
 - **Per-device default persona** (localStorage) — Tom's work Mac opens to Work, iPhone opens to Personal. Not synced through the gist.
 - **Per-device theme choice** (localStorage, v1.6) — light vs dark is a per-environment preference, not a per-account one.
+- **Weather widget enhanced incrementally, not redesigned (v1.12)** — added one new Open-Meteo daily field (`precipitation_probability_max`) plus a `weatherCodeIcon` map, rendered into the existing per-day layout. Null rain values drop the line rather than show "null%". Kept entirely theme-token-styled so light and dark both work, and touched only the Weather widget.
 - **Ask Gemini uses Gemini Flash, not Claude or OpenAI (v1.11)** — it's free with no credit card, and it's the same model family behind the Google Search AI answers Tom already reaches for, so it fits the "fast quick answer" use case. Claude/OpenAI have no free tier. The model name is a Settings override field defaulting to `gemini-2.5-flash`, so a Google rename doesn't require a code change.
 - **Browser-direct Gemini call with a graceful link-out fallback, not a backend (v1.11)** — preserves the zero-backend, single-file architecture. If the browser blocks the call (CORS), the panel shows a friendly message plus the "Open full Gemini" link rather than breaking. CORS on the native `:generateContent` endpoint is unconfirmed until Tom's first real query; the fallback makes the worst case graceful.
 - **Chat history per-device in localStorage, not synced to the gist (v1.11)** — transcripts would bloat the synced data on every save, and the in-progress conversation is naturally a per-device thing (same reasoning as the per-device theme and default persona).
@@ -120,7 +116,7 @@ No new dependencies; only `index.html` changed (~4,610 → ~5,190 lines). New ex
 - **Frameworks / Libraries:** None
 - **External APIs:**
   - GitHub REST API (gist read/write) — `api.github.com`
-  - Open-Meteo (free weather + geocoding, no key) — `api.open-meteo.com` + `geocoding-api.open-meteo.com`
+  - Open-Meteo (free weather + geocoding, no key) — `api.open-meteo.com` + `geocoding-api.open-meteo.com`. The Weather widget's daily request asks for `temperature_2m_max`, `temperature_2m_min`, `weather_code`, and (as of v1.12) `precipitation_probability_max`.
   - CoinGecko (free crypto prices + search, no key) — `api.coingecko.com`
   - **Finnhub** (stock quotes + symbol search, free tier with key, 60 calls/min) — `finnhub.io/api/v1/quote` + `finnhub.io/api/v1/search` *(replaced Twelve Data in v1.9)*
   - **Google Gemini** (AI chat, free tier with key, browser-direct, no backend) — `generativelanguage.googleapis.com/v1beta/models/<model>:generateContent`, default model `gemini-2.5-flash` *(since v1.11)*
@@ -136,7 +132,7 @@ Each persona carries: `categories` (each with an optional `color`), `widgets` (c
 
 ```
 projects/personal-dashboard/
-├── index.html               — the entire app (HTML + CSS + JS in one file, ~5,190 lines)
+├── index.html               — the entire app (HTML + CSS + JS in one file, ~5,235 lines)
 ├── README.md                — Tom's own TECGUNTHER-specific setup walkthrough
 ├── INSTALL-FOR-OTHERS.md    — clean install guide for someone else to fork and run their own
 ├── PROJECT-HUB.html         — project dashboard for Tom
@@ -147,7 +143,8 @@ projects/personal-dashboard/
 └── plans/
     ├── 2026-05-27-personal-dashboard-v1.md            — original v1.0 build plan
     ├── 2026-05-28-v1.10-widgets-watchlists-colors.md  — the v1.10 plan
-    └── 2026-05-28-v1.11-gemini-chat-panel.md          — the v1.11 plan (this session)
+    ├── 2026-05-28-v1.11-gemini-chat-panel.md          — the v1.11 plan
+    └── 2026-05-28-v1.12-weather-detail.md             — the v1.12 plan (this session)
 ```
 
 ---
@@ -206,6 +203,7 @@ Then hard-reload the dashboard (Safari: Option+Cmd+R, Chrome: Cmd+Shift+R). GitH
 - **Cross-browser changes not showing** → Reload the other browser. Background poll is 60s; manual reload is instant.
 - **Bookmarklet popup blocked** → Allow popups for `tecgunther.github.io` in browser settings.
 - **Weather "Could not load"** → Transient Open-Meteo issue, or invalid lat/lon coords.
+- **A weather day shows no chance-of-rain line (v1.12)** → Expected. Open-Meteo returned no `precipitation_probability_max` for that day, so the line is omitted rather than showing "null%".
 - **Markets/Watchlists say "Add your Finnhub API key" (v1.9)** → Stock widgets use Finnhub now, not Twelve Data. Generate a free key at finnhub.io/register and paste it into Settings. The old Twelve Data key is ignored.
 - **"Rate limit reached — prices refresh shortly" (v1.9)** → Every tracked symbol got rate-limited with nothing cached. The widget backs off and auto-refreshes once after 60s. No action needed (Finnhub free tier = 60 calls/min).
 - **A single stock row shows "—" (v1.9)** → That one symbol's quote call failed (bad ticker or transient error). The rest of the widget still renders; the dash means "no data for this symbol," not a widget-wide failure.
@@ -227,7 +225,8 @@ Then hard-reload the dashboard (Safari: Option+Cmd+R, Chrome: Cmd+Shift+R). GitH
 - `docs/USER-EXPERIENCE.html` — what the app does, plain English
 - `plans/2026-05-27-personal-dashboard-v1.md` — the approved v1.0 build plan
 - `plans/2026-05-28-v1.10-widgets-watchlists-colors.md` — the approved v1.10 plan
-- `plans/2026-05-28-v1.11-gemini-chat-panel.md` — the approved v1.11 plan (Gemini chat panel)
+- `plans/2026-05-28-v1.11-gemini-chat-panel.md` — the approved v1.11 plan
+- `plans/2026-05-28-v1.12-weather-detail.md` — the approved v1.12 plan (weather forecast detail)
 
 ---
 
@@ -263,12 +262,12 @@ Then hard-reload the dashboard (Safari: Option+Cmd+R, Chrome: Cmd+Shift+R). GitH
 
 ## Multi-agent flow (as of v1.6)
 
-- For major changes Tom expects the actual multi-agent flow: **Design Agent** plans, Tom approves, **Build Agent** subagent writes code and returns a standard Agent Report, **Documentation Agent** subagent updates docs from that report. v1.1–v1.5 were done by one Claude playing all roles; v1.6 onward use real subagents. v1.10 and v1.11 followed this flow. Tom wants this to be the pattern going forward.
+- For major changes Tom expects the actual multi-agent flow: **Design Agent** plans, Tom approves, **Build Agent** subagent writes code and returns a standard Agent Report, **Documentation Agent** subagent updates docs from that report. v1.1–v1.5 were done by one Claude playing all roles; v1.6 onward use real subagents. v1.10, v1.11, and v1.12 followed this flow. Tom wants this to be the pattern going forward.
 
 ## What he's likely to want next
 
 - More polish based on actual use (he iterates fast when he finds friction).
-- Confirming the Gemini chat works on first use (the one open empirical question); possibly tuning the system prompt or default model afterward.
+- Pushing and verifying v1.12's weather detail; confirming the Gemini chat works on first use (the one open empirical question).
 - Possibly the Crypto cache (see Open Items) if reorder-driven re-fetching gets noticeable.
 - Eventually: a Custom embed widget for arbitrary iframes (calendar, RSS).
 - Maybe: more financial widgets (international markets, futures, FX) if he leans further into Investments.
