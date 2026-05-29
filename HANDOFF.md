@@ -23,7 +23,7 @@
 **Name:** StartDashboard
 **Folder:** `projects/personal-dashboard/` in Tom's `tom-workspace`
 **Current status:** Complete (in active use; iterating on polish)
-**Current phase:** Complete (v1.13 shipped)
+**Current phase:** Complete (v1.14 shipped)
 **Last updated:** 2026-05-29
 **Live URL:** https://tecgunther.github.io/startdashboard/
 **Code repo:** https://github.com/TECGUNTHER/startdashboard
@@ -31,6 +31,8 @@
 
 **What it does (plain English):**
 A single-file web app that serves as Tom's home page across every browser and device. A top tab bar switches between "personas" (Work, Personal, Investments, etc.); each is its own complete dashboard with its own bookmarks (in categories), widgets, background, and accent color. All data lives in one private GitHub gist, so the same URL shows the same synced view everywhere within seconds. Dark/modern by default; a light-mode toggle (v1.6) covers daytime use.
+
+**Backgrounds:** 10 CSS-only dark presets (Midnight Mesh, Aurora, Synthwave, Carbon Grid, Deep Space, Liquid Glass, Tokyo Night, Terminal, Monochrome, and **Starlink** as of v1.14), or any image URL. Starlink is a deep-space scene that also auto-applies a matched electric-blue accent (overridable) when selected.
 
 **Widgets** (per-persona; show/hide, drag-to-reorder, optional border/glow color as of v1.10): Clock (multi-zone, 12/24hr), Weather (Open-Meteo, no key — each day shows icon + label, high/low, "🌧 NN%" as of v1.12), To-do, Sticky notes, Crypto (CoinGecko), Markets (Finnhub — fixed SPY/QQQ/DIA proxies), Watchlists (Finnhub — multiple, renamable, v1.10).
 
@@ -40,24 +42,27 @@ A single-file web app that serves as Tom's home page across every browser and de
 
 # Where We Are
 
-## Most recent session (2026-05-29 — v1.13)
+## Most recent session (2026-05-29 — v1.14)
 
-Shipped a **reliability fix to the Ask Gemini chat** (only `index.html` changed; no new deps/keys): it now auto-retries Google's transient **503 "model overloaded"** responses instead of showing them as errors — up to 2x (3 attempts total) with short backoffs (~1.5s/3s + jitter), keeping the "thinking…" indicator up. If all retries fail, it shows a plain-English note ("Google's servers are briefly overloaded — on Google's side, not you. Try again in a moment.") with a **Retry** button + the link-out. Constants `CHAT_OVERLOAD_MAX_RETRIES` / `CHAT_OVERLOAD_BACKOFFS` tune it; the retry loop lives in `runChatRequest` (split out of `sendChatMessage` so Retry re-issues without re-pushing the user's turn). 429 and network/CORS handling unchanged. Details in `docs/TECHNICAL.html`.
+Shipped a new **"Starlink" background preset** (only `index.html` changed, 3 edits; no new deps/keys):
 
-Also: the v1.11 "confirm Gemini browser-direct CORS works" open question is **closed** — Tom confirmed the chat works in his browser. That open item was removed.
+- New `.bg-starlink` CSS (after `.bg-deep-space`): near-black `#05060A` base + ~10 low-opacity radial-gradient stars (fewer/calmer than Deep Space) + a faint diagonal Milky Way band + 3 soft nebula radial-gradients (blue/teal/purple). Pure CSS — no images, no animation.
+- New `BG_PRESETS` entry `{ id:'starlink', name:'Starlink', accent:'#4F9CFF' }` — preset count now **10**. The `accent` field is a **new optional property on the preset shape**; only Starlink uses it.
+- **Accent auto-apply:** in the background-thumbnail click handler, if the clicked preset has an `accent`, the persona accent input is set to it (live preview) and Save persists it to `persona.accent` — so picking Starlink + Save sets `#4F9CFF`, overridable afterward. Presets without an `accent` leave the accent untouched.
+- Picker grid + `applyPersonaTheme` already render dynamically from `BG_PRESETS` / swap `.bg-<id>`, so the thumbnail and background appear with no extra wiring. `node --check` passes; light mode and the other 9 presets untouched.
 
 ## Sessions before that
 
+- **v1.13 (2026-05-29):** Ask Gemini chat now auto-retries Google's transient 503 "model overloaded" (up to 2x, short backoff, "thinking…" stays up) instead of surfacing them, with a plain-English note + Retry button if retries run out. Also closed the v1.11 "is the browser-direct Gemini call CORS-blocked?" question — Tom confirmed it works.
 - **v1.12 (2026-05-28):** Weather forecast detail — each day shows a condition icon + label and a "🌧 NN%" rain line alongside high/low.
 - **v1.11 (2026-05-28):** Built the "Ask Gemini" chat panel — browser-direct, no backend, history per-device in localStorage.
 - **v1.10 (2026-05-28):** Biggest release since v1.0 — drag-to-reorder widget cards, multiple renamable watchlists, per-card border/glow color.
-- **v1.9 (2026-05-28):** Migrated stock data Twelve Data → **Finnhub** (8→60 calls/min, fixing chronic 429s); shared 5-min quote cache.
-- **v1.0–v1.8 (2026-05-27 → 28):** Initial build through earlier polish (deploy, finance widgets, light mode, hotfixes). Full history in PROJECT-HUB.
+- **v1.0–v1.9 (2026-05-27 → 28):** Initial build through earlier polish (deploy, finance widgets, Finnhub migration, light mode, hotfixes). Full history in PROJECT-HUB.
 
 ## Immediate next step
 
-1. **Push v1.13** (single-file `index.html` commit), wait ~60s for Pages, hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R).
-2. **Verify chat recovers from a 503:** use the Ask Gemini chat normally; on a Google "high demand" moment it should keep "thinking…" and recover on its own, or show the overloaded note with a working Retry button.
+1. **Push v1.14** (single-file `index.html` commit), wait ~60s for Pages, hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R).
+2. **Pick Starlink to verify:** Settings → background → Starlink. Confirm the deep-space scene paints and the accent jumps to electric blue in the picker; Save to keep it; then try overriding the accent to confirm it isn't locked.
 3. **Possible future build (not started):** a backup/export of dashboard data.
 
 ---
@@ -68,6 +73,7 @@ Also: the v1.11 "confirm Gemini browser-direct CORS works" open question is **cl
 - **Per-browser Personal Access Tokens in localStorage** — avoids OAuth in a static page; losing a device means revoking one token, not all.
 - **Per-persona everything (widgets, backgrounds, accent, visibility, order, colors)** — personas exist for mental separation, so each is fully independent.
 - **Per-device, not synced: default persona, theme, credentials (GitHub/Finnhub/Gemini keys), Gemini chat history** — per-environment by nature; syncing keys/transcripts through a gist would be wrong.
+- **Starlink background auto-applies a matched accent, but doesn't lock it (v1.14)** — the look is complete out of the box, yet still overridable. Implemented as an **optional `accent` field on the preset** (not a separate map), so the "a preset can suggest an accent" idea is self-contained and only the preset that wants it carries it. CSS-only, no light-mode variant (consistent with all other backgrounds).
 - **Finnhub over Twelve Data (v1.9)** — Twelve Data was 8 calls/min and Tom's ~12 symbols hit chronic 429s. Finnhub is 60/min, also free, same REST shape.
 - **Ask Gemini uses Gemini Flash, not Claude/OpenAI (v1.11)** — free with no card, fits "fast quick answer." Model is a Settings override (default `gemini-2.5-flash`) so a rename needs no code change.
 - **Gemini browser-direct with a graceful link-out fallback (v1.11)** — keeps the no-backend design; the native `:generateContent` endpoint is confirmed working (not CORS-blocked); the note + link-out covers any future connection failure.
@@ -90,13 +96,13 @@ Minor decisions live in `docs/TECHNICAL.html`.
 - **Storage:** One private GitHub gist (account `TECGUNTHER`) holds all persona data. Per-browser localStorage holds the GitHub PAT, gist ID, default persona, Finnhub key, Gemini key + model + chat history, theme, and a shared 5-min quote cache. (A legacy Twelve Data key is read for backward-compat but unused.)
 - **Hosting:** GitHub Pages (free static), public repo `github.com/TECGUNTHER/startdashboard`.
 
-**Data model (v1.10):** each persona has `categories` (optional `color`), `widgets`, `watchlists` (array of `{id, title, symbols[]}`), `widgetOrder` (incl. composite `watchlist:<id>` keys), `widgetColors`, `hiddenWidgets`. Gemini chat is global, history outside the gist. Full schema in `docs/TECHNICAL.html`.
+**Backgrounds:** 10 presets defined in `BG_PRESETS`; each `{ id, name }` plus an **optional `accent`** (only Starlink, `#4F9CFF`). Picker grid + `applyPersonaTheme` swap a `.bg-<id>` CSS class. **Data model (v1.10):** each persona has `categories` (optional `color`), `widgets`, `watchlists` (array of `{id, title, symbols[]}`), `widgetOrder` (incl. composite `watchlist:<id>` keys), `widgetColors`, `hiddenWidgets`. Gemini chat is global, history outside the gist. Full schema in `docs/TECHNICAL.html`.
 
 ## File structure (key files only)
 
 ```
 projects/personal-dashboard/
-├── index.html               — the entire app (~5,357 lines)
+├── index.html               — the entire app (~5,380 lines)
 ├── README.md / INSTALL-FOR-OTHERS.md  — Tom's setup / fork-and-run guides
 ├── PROJECT-HUB.html         — project dashboard
 ├── HANDOFF.md               — this file
@@ -150,7 +156,7 @@ Then hard-reload (Safari Opt+Cmd+R, Chrome Cmd+Shift+R). Pages takes ~30–60s.
 - `README.md` — Tom's setup walkthrough · `INSTALL-FOR-OTHERS.md` — fork-and-run guide for anyone he shares with
 - `PROJECT-HUB.html` — Tom's home base · `HANDOFF.md` — this file
 - `docs/TECHNICAL.html` — architecture/decisions/how-to-modify · `docs/USER-EXPERIENCE.html` — features and workflows
-- `plans/` — approved build plans (through v1.13), read-only history
+- `plans/` — approved build plans (through v1.14), read-only history
 
 ---
 
@@ -174,10 +180,11 @@ Then hard-reload (Safari Opt+Cmd+R, Chrome Cmd+Shift+R). Pages takes ~30–60s.
 - Tom is the only user — no multi-user or sharing model. All data lives on his GitHub account; don't add third-party services without checking (Gemini is the one beyond data APIs).
 - Per-persona settings by default. Exceptions (per-device globals): theme, credentials, Gemini chat + history.
 - Markets is intentionally a single fixed index-proxy card — don't make it renamable or multiple. Watchlists are the renamable/multiple concept.
+- Backgrounds are CSS-only presets (now 10) or an image URL — no uploads. A preset may carry an optional `accent` (only Starlink today) that auto-applies on selection but stays overridable.
 - The Ask Gemini chat is a global panel, not a widget; a fresh assistant with no link to Tom's personal Gemini history. Auto-retries 503 "overloaded" (v1.13); a 429 is not retried.
 
 ## What he's likely to want next
-- More polish from real use (he iterates fast on friction). Near-term: verify v1.13; possibly the Crypto cache or a data backup/export; eventually a Custom embed widget or more financial widgets.
+- More polish from real use (he iterates fast on friction). Near-term: verify v1.14; possibly the Crypto cache or a data backup/export; eventually a Custom embed widget or more financial widgets.
 
 ---
 

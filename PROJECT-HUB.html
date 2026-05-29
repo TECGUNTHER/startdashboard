@@ -136,6 +136,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <h3>Recently completed</h3>
         <!-- HUB:RECENT_COMPLETED -->
         <ul>
+          <li><strong>v1.14 shipped &mdash; a new &ldquo;Starlink&rdquo; background.</strong> The background picker in Settings now has a 10th option, Starlink: a calm, cinematic deep-space scene &mdash; a near-black sky with a scattering of faint stars, a soft diagonal Milky Way band, and a few low-glow blue/teal/purple nebula washes. It&rsquo;s pure CSS (no images, no animation), so it loads instantly. Picking it also auto-switches that persona&rsquo;s accent to a matched Starlink electric-blue (&#35;4F9CFF) &mdash; you see the change live in the picker, and it saves when you Save. You can still override the accent to anything you like afterward; picking any of the other 9 backgrounds leaves your accent alone, exactly as before. Per-persona and synced like every other background. Only <code>index.html</code> changed; no new keys or dependencies.</li>
           <li><strong>v1.13 shipped &mdash; the Ask Gemini chat now rides out Google&rsquo;s overload blips.</strong> When Google&rsquo;s servers briefly say &ldquo;this model is experiencing high demand&rdquo; (a transient 503 &mdash; Google&rsquo;s side, not yours), the chat no longer shows you that error. It quietly retries up to twice (about 1.5s then 3s apart), keeping the &ldquo;thinking&hellip;&rdquo; indicator up, and most blips clear on the first retry. If it still can&rsquo;t get through, you get a plain-English note &mdash; &ldquo;Google&rsquo;s servers are briefly overloaded &mdash; this is on Google&rsquo;s side, not you. Try again in a moment.&rdquo; &mdash; with a one-click <strong>Retry</strong> button and the &ldquo;Open full Gemini&rdquo; link. Rate-limit (429) and connection errors behave exactly as before. Only <code>index.html</code> changed; no new keys or dependencies.</li>
           <li><strong>v1.12 shipped &mdash; richer weather forecast.</strong> Each day in the weather forecast now shows a condition icon (&#9728;&#65039;, &#9925;, &#9729;&#65039;, &#127783;&#65039;, etc.) plus a short label, alongside the high/low it already showed, and a chance-of-rain line (&ldquo;&#127783; NN%&rdquo;). The current-conditions line gained a matching icon too. If a day has no rain-chance data, that line is simply left off. Only <code>index.html</code> changed; no new keys or dependencies.</li>
           <li><strong>v1.11 shipped &mdash; a built-in &ldquo;Ask Gemini&rdquo; AI chat panel.</strong> A floating chat bubble in the bottom-right corner opens a slide-over panel where you can ask a question and get a concise, search-style answer without leaving the dashboard. Available from every persona. Powered by Google&rsquo;s free Gemini API.</li>
@@ -150,7 +151,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <h3>What's next</h3>
         <!-- HUB:WHATS_NEXT -->
         <ul>
-          <li><strong>Push v1.13 and verify the chat recovers from a 503.</strong> Commit the single-file <code>index.html</code> change, wait ~60s for GitHub Pages, hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R), then use the Ask Gemini chat normally. If you hit one of Google&rsquo;s &ldquo;high demand&rdquo; moments, the chat should keep showing &ldquo;thinking&hellip;&rdquo; and recover on its own rather than surfacing the error; in the rare case it can&rsquo;t, you&rsquo;ll get the plain-English overloaded note with a working <strong>Retry</strong> button.</li>
+          <li><strong>Push v1.14 and pick Starlink to see it.</strong> Commit the single-file <code>index.html</code> change, wait ~60s for GitHub Pages, hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R), then open <strong>Settings &rarr; background</strong> and choose <strong>Starlink</strong>. Confirm the deep-space scene paints and the accent jumps to electric blue in the picker; Save to keep it. Try overriding the accent afterward to confirm it&rsquo;s not locked.</li>
           <li><strong>Future option (not started): a backup / export of your dashboard data.</strong> A way to download your persona/bookmark data from the gist as a file (and re-import it) for peace of mind. Noted as a possible next build whenever you want it.</li>
         </ul>
         <!-- /HUB:WHATS_NEXT -->
@@ -235,6 +236,25 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h2>Session Log</h2>
     <!-- HUB:SESSION_LOG -->
     <article class="session-entry latest">
+      <div class="date">2026-05-29 &middot; Friday</div>
+      <div class="focus">v1.14 &mdash; new &ldquo;Starlink&rdquo; background preset (CSS-only deep-space scene) that also auto-applies a matched electric-blue accent when selected. Background presets now number 10. Real Build Agent + Documentation Agent subagent flow.</div>
+      <h4>Completed</h4>
+      <ul>
+        <li><strong>New Starlink background.</strong> Added a <code>.bg-starlink</code> CSS preset (placed right after <code>.bg-deep-space</code>): a near-black <code>#05060A</code> base, ~10 low-opacity radial-gradient star dots (fewer and calmer than Deep Space), a faint diagonal Milky Way band (<code>linear-gradient(48deg)</code>), and three soft off-center nebula washes (deep blue, faint teal, faint purple). Pure CSS &mdash; no images, no animation.</li>
+        <li><strong>Preset entry + new optional <code>accent</code> field.</strong> Added <code>{ id:'starlink', name:'Starlink', accent:'#4F9CFF' }</code> to <code>BG_PRESETS</code>, bringing the preset count to <strong>10</strong>. The <code>accent</code> field is a new, optional part of the preset shape &mdash; only Starlink uses it today.</li>
+        <li><strong>Accent auto-apply on selection.</strong> In the background-thumbnail click handler, if the clicked preset has an <code>accent</code>, the persona accent input is set to it (live preview), and Save persists it to <code>persona.accent</code>. So picking Starlink + Save sets the persona to electric blue (<code>#4F9CFF</code>) &mdash; fully overridable afterward. Presets without an <code>accent</code> leave the accent untouched, exactly as before.</li>
+        <li><strong>Thumbnail renders automatically.</strong> The picker grid already loops <code>BG_PRESETS</code> and applies the <code>bg-&lt;id&gt;</code> class to each thumbnail, so the Starlink swatch and live background both appear with no extra wiring.</li>
+        <li><strong>Scope.</strong> Only <code>index.html</code> changed (3 edits). <code>node --check</code> passes. Dark mode is its home; light mode and the other 9 presets are untouched. No new dependencies.</li>
+      </ul>
+      <h4>Decisions made</h4>
+      <ul>
+        <li><strong>Accent auto-applies but stays overridable.</strong> Selecting Starlink suggests the matched electric blue rather than locking it &mdash; the look is complete out of the box, but Tom can still set any accent he wants.</li>
+        <li><strong>Optional <code>accent</code> field on the preset, not a separate map.</strong> One small, optional property on the preset object keeps the &ldquo;preset can suggest an accent&rdquo; idea self-contained; only the one preset that wants it carries it.</li>
+        <li><strong>CSS-only, no Starlink light-mode variant.</strong> Consistent with every other background: dark is its home, and light mode keeps its existing shared light-surface override.</li>
+      </ul>
+    </article>
+
+    <article class="session-entry">
       <div class="date">2026-05-29 &middot; Friday</div>
       <div class="focus">v1.13 &mdash; Ask Gemini chat resilience: it now auto-retries Google&rsquo;s transient &ldquo;model overloaded&rdquo; 503s instead of surfacing them, with a Retry button if retries run out. Also closed the v1.11 Gemini CORS open question &mdash; Tom confirmed the chat works in his browser. Real Build Agent + Documentation Agent subagent flow.</div>
       <h4>Completed</h4>
