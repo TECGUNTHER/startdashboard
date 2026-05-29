@@ -435,14 +435,18 @@ header.dash-header {
 .search-bar .search-icon { font-size: 14px; color: var(--text-muted); }
 
 /* ---------- Widgets row ---------- */
+/* Masonry layout (CSS multi-column): cards keep their natural height and pack
+   vertically column-by-column, like Pinterest tiles. A tall card (e.g. a long
+   Watchlist) extends down on its own instead of stretching its neighbors to
+   match — which is what the old equal-height grid did. We ask for 4 columns
+   and the browser flows the cards into them top-to-bottom, left-to-right. */
 .widgets-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  column-count: 4;
+  column-gap: 16px;
   margin-bottom: 24px;
 }
-@media (max-width: 1100px) { .widgets-row { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 600px)  { .widgets-row { grid-template-columns: 1fr; } }
+@media (max-width: 1100px) { .widgets-row { column-count: 2; } }
+@media (max-width: 600px)  { .widgets-row { column-count: 1; } }
 
 .widget {
   background: var(--bg-elev-1);
@@ -454,6 +458,16 @@ header.dash-header {
   -webkit-backdrop-filter: blur(var(--blur));
   display: flex; flex-direction: column;
   position: relative;
+  /* Masonry item rules: each card must stay whole (never split across the
+     boundary between two columns), fill the column width, and supply its own
+     bottom gap — column-gap only spaces columns horizontally, not the cards
+     stacked within a column. The -webkit-/page-break- twins are Safari/legacy
+     fallbacks for break-inside. */
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  page-break-inside: avoid;
+  width: 100%;
+  margin-bottom: 16px;
 }
 .widget:hover { border-color: var(--border-strong); }
 .widget-head {
@@ -674,10 +688,14 @@ header.dash-header {
 .notes-textarea::placeholder { color: var(--text-muted); }
 
 /* ---------- Categories grid ---------- */
+/* Same masonry treatment as the widgets row. column-width:280px tells the
+   browser to make as many ~280px columns as fit the screen and pack category
+   cards vertically — reproducing the old auto-fill responsiveness while
+   letting short categories stay short instead of being stretched to match a
+   tall neighbor. */
 .categories-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
+  column-width: 280px;
+  column-gap: 16px;
 }
 .category {
   background: var(--bg-elev-1);
@@ -687,6 +705,13 @@ header.dash-header {
   backdrop-filter: blur(var(--blur));
   -webkit-backdrop-filter: blur(var(--blur));
   transition: border-color 0.2s, transform 0.2s;
+  /* Masonry item rules (see .widget): stay whole across columns, full width,
+     own bottom gap. */
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  page-break-inside: avoid;
+  width: 100%;
+  margin-bottom: 16px;
 }
 .category.drop-target {
   border-color: var(--accent);
@@ -912,6 +937,14 @@ header.dash-header {
   border-radius: var(--radius);
   color: var(--text-muted);
   font-size: 13px;
+  /* This "+ New category" tile is the last child of the masonry container, so
+     it follows the same column-item rules as a real category card: stay whole,
+     full column width, own bottom gap. */
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  page-break-inside: avoid;
+  width: 100%;
+  margin-bottom: 16px;
 }
 .new-category-card:hover {
   color: var(--accent);
@@ -1596,7 +1629,8 @@ body.light-mode .chat-overlay .chat-backdrop {
   header.dash-header { flex-wrap: wrap; gap: 8px; }
   .brand { border-right: none; border-bottom: 1px solid var(--border); padding-bottom: 8px; width: 100%; }
   .header-right { width: 100%; justify-content: flex-end; }
-  .categories-grid { grid-template-columns: 1fr; }
+  /* On narrow screens collapse categories to a single masonry column. */
+  .categories-grid { column-count: 1; column-width: auto; }
 }
 </style>
 </head>
