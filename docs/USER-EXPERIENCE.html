@@ -51,7 +51,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h1>StartDashboard</h1>
     <p class="subtitle">A personal home page that travels with you across every browser and every device, with separate "channels" for different sides of your life.</p>
     <!-- UX:LAST_UPDATED -->
-    <span class="last-updated">Last updated: 2026-05-28 · v1.9</span>
+    <span class="last-updated">Last updated: 2026-05-28 · v1.10</span>
     <!-- /UX:LAST_UPDATED -->
   </div>
 </header>
@@ -97,13 +97,25 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <div class="feature">
       <h3>Inline rename, drag-to-reorder with grip handles</h3>
       <p class="one-liner">Organize without ever leaving the page.</p>
-      <p class="walkthrough">Double-click anything &mdash; persona tab, category title, bookmark name &mdash; to rename. To reorder, grab the <strong>&#10303;</strong> grip handle (as of v1.9, every draggable item shows one) and drag up or down; a blue line shows where the item will land when you let go. This works for categories, bookmarks, and the lists inside the widget config (your stock tickers, weather cities, and clock zones). You can drag a bookmark within its category or drop it into a different category. Use the <strong>&#8599;</strong> icon on a bookmark to move it to a different persona entirely.</p>
+      <p class="walkthrough">Double-click anything &mdash; persona tab, category title, bookmark name &mdash; to rename. To reorder, grab the <strong>&#10303;</strong> grip handle (as of v1.9, every draggable item shows one) and drag; a blue line shows where the item will land when you let go. This works for categories, bookmarks, the lists inside the widget config (your stock tickers, weather cities, and clock zones), and &mdash; new in v1.10 &mdash; the <strong>widget cards themselves</strong>: grab the grip in any widget&rsquo;s header and drag it left or right to set the order you want. You can drag a bookmark within its category or drop it into a different category. Use the <strong>&#8599;</strong> icon on a bookmark to move it to a different persona entirely.</p>
     </div>
 
     <div class="feature">
       <h3>Per-persona widgets — show, hide, configure</h3>
       <p class="one-liner">Each persona shows only the widgets it needs.</p>
-      <p class="walkthrough">Seven widgets are available: <strong>Clock</strong> (multi time zone, 12 or 24 hour), <strong>Weather</strong> (free Open-Meteo, no key needed), <strong>To-do list</strong>, <strong>Sticky notes</strong>, <strong>Crypto</strong> (free CoinGecko, no key), <strong>Markets</strong> (S&amp;P, Nasdaq, Dow via Finnhub &mdash; needs a free API key), and <strong>Watchlist</strong> (your custom stocks, also Finnhub). Each persona picks which widgets to show via Settings ⚙. An AI Education persona can have zero widgets; an Investments persona might show only Markets, Crypto, and Watchlist.</p>
+      <p class="walkthrough">The available widgets: <strong>Clock</strong> (multi time zone, 12 or 24 hour), <strong>Weather</strong> (free Open-Meteo, no key needed), <strong>To-do list</strong>, <strong>Sticky notes</strong>, <strong>Crypto</strong> (free CoinGecko, no key), <strong>Markets</strong> (S&amp;P, Nasdaq, Dow via Finnhub &mdash; needs a free API key), and one or more <strong>Watchlists</strong> (your custom stocks, also Finnhub &mdash; as of v1.10 you can have several, each with its own title). Each persona picks which widgets to show via Settings ⚙, and (new in v1.10) which order they appear in by dragging their cards. An AI Education persona can have zero widgets; an Investments persona might show only Markets, Crypto, and a couple of watchlists.</p>
+    </div>
+
+    <div class="feature">
+      <h3>Multiple watchlists, each with its own title (v1.10)</h3>
+      <p class="one-liner">Group your stocks however makes sense &mdash; not just one big list.</p>
+      <p class="walkthrough">You used to have a single Watchlist. As of v1.10 you can have as many as you like &mdash; say &ldquo;Tech,&rdquo; &ldquo;Dividends,&rdquo; and &ldquo;Watching,&rdquo; each its own card with its own stocks. Add one with the <strong>&ldquo;+ Add watchlist&rdquo;</strong> button in Settings (just below the show/hide-widgets toggles). Each watchlist&rsquo;s <strong>&#9881;</strong> gear lets you rename it (the title updates as you type), add or remove tickers, and delete the whole list (with a confirm so you don&rsquo;t lose it by accident). Your old single watchlist carries over automatically as the first one. Markets stays a single card &mdash; it&rsquo;s the index view (S&amp;P/Nasdaq/Dow), separate from your personal lists.</p>
+    </div>
+
+    <div class="feature">
+      <h3>Per-card border and glow color (v1.10)</h3>
+      <p class="one-liner">Tint any card to make it stand out, with a one-click reset.</p>
+      <p class="walkthrough">Give any category card or widget card its own border and soft glow color. For a <strong>category</strong>, open its <strong>&ldquo;...&rdquo;</strong> menu and choose <strong>&ldquo;Card color&hellip;&rdquo;</strong>. For a <strong>widget</strong>, open its <strong>&#9881;</strong> gear and use the &ldquo;Card color&rdquo; section (the To-do and Notes widgets gained a small gear just for this). Either way you get preset swatches plus a custom color picker. The glow is subtle and doesn&rsquo;t move. To clear it, pick <strong>&ldquo;Default (theme)&rdquo;</strong> and the card goes back to the persona&rsquo;s accent color. Color is per-persona, so the same category can look different in Work vs Personal.</p>
     </div>
 
     <div class="feature">
@@ -252,6 +264,34 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     </div>
 
     <div class="workflow">
+      <h3>Reorder your widget cards (v1.10)</h3>
+      <ol>
+        <li>Find the <strong>&#10303;</strong> grip handle in the header of the widget card you want to move.</li>
+        <li>Click and hold it, then drag the card left or right. A blue line shows where it will land.</li>
+        <li>Release. The new widget order saves automatically and sticks across reloads and your other browsers.</li>
+      </ol>
+    </div>
+
+    <div class="workflow">
+      <h3>Add a second watchlist (v1.10)</h3>
+      <ol>
+        <li>Open <strong>Settings &#9881;</strong> and scroll to the widget show/hide toggles. Click <strong>&ldquo;+ Add watchlist.&rdquo;</strong></li>
+        <li>A new, empty watchlist card appears (default-titled, e.g. &ldquo;Watchlist 2&rdquo;). Click its <strong>&#9881;</strong> gear.</li>
+        <li>Rename it in the title field &mdash; the card&rsquo;s title updates as you type. Add tickers (type a symbol or search), and they start showing prices.</li>
+        <li>To remove a watchlist later, open its &#9881; gear and click <strong>Delete this watchlist</strong> (you&rsquo;ll be asked to confirm).</li>
+      </ol>
+    </div>
+
+    <div class="workflow">
+      <h3>Recolor a card (v1.10)</h3>
+      <ol>
+        <li><strong>For a category:</strong> click its <strong>&ldquo;...&rdquo;</strong> menu and choose <strong>&ldquo;Card color&hellip;&rdquo;</strong>. <strong>For a widget:</strong> click its <strong>&#9881;</strong> gear and find the <strong>&ldquo;Card color&rdquo;</strong> section (To-do and Notes have a gear just for this).</li>
+        <li>Pick a preset swatch, or use the color picker for a custom hex. The card&rsquo;s border and soft glow update right away.</li>
+        <li>To clear it, choose <strong>&ldquo;Default (theme)&rdquo;</strong> &mdash; the card returns to the persona&rsquo;s accent color. The color is saved per-persona.</li>
+      </ol>
+    </div>
+
+    <div class="workflow">
       <h3>Reorder items inside a box (v1.9)</h3>
       <ol>
         <li>Find the <strong>&#10303;</strong> grip handle at the left of the item you want to move &mdash; it's on categories, bookmarks, and the lists in widget config (stock tickers, weather cities, clock zones).</li>
@@ -306,7 +346,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <li><strong>Not real-time.</strong> Sync polls every 60 seconds in the background; saves are debounced about 2 seconds. Edit in two browsers at once and the most recent save wins.</li>
         <li><strong>Not a notes app.</strong> The Notes widget is a scratchpad, not a place to write long documents.</li>
         <li><strong>Not a task manager.</strong> The To-do widget is a quick checklist, not a project tracker.</li>
-        <li><strong>Not a widget marketplace</strong> &mdash; the seven built-in widgets (Clock, Weather, To-do, Notes, Crypto, Markets, Watchlist) are baked into the file. New widgets can be added later by editing <code>index.html</code> directly.</li>
+        <li><strong>Not a widget marketplace</strong> &mdash; the built-in widget types (Clock, Weather, To-do, Notes, Crypto, Markets, and Watchlists) are baked into the file. You can have multiple watchlists, but new widget <em>types</em> can only be added by editing <code>index.html</code> directly.</li>
         <li><strong>Not a browser extension.</strong> The bookmarklet does the same job without per-browser build overhead.</li>
         <li><strong>Not a mobile-native app.</strong> The web page is responsive and works on mobile Safari; there's no App Store version.</li>
       </ul>
@@ -318,7 +358,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
 
 <footer>
   <div class="container">
-    Generated and maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · v1.9 · later evening</span>
+    Generated and maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · v1.10 · late evening</span>
   </div>
 </footer>
 

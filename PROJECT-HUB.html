@@ -111,7 +111,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
       <span class="status-pill complete">Complete</span>
       <!-- /HUB:STATUS_OVERALL -->
       <!-- HUB:LAST_UPDATED -->
-      <span class="last-updated">2026-05-28 · Thu · later evening</span>
+      <span class="last-updated">2026-05-28 · Thu · late evening</span>
       <!-- /HUB:LAST_UPDATED -->
     </div>
   </div>
@@ -136,11 +136,11 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <h3>Recently completed</h3>
         <!-- HUB:RECENT_COMPLETED -->
         <ul>
-          <li><strong>v1.9 shipped &mdash; three big changes.</strong> (1) Stock data moved from Twelve Data to <strong>Finnhub</strong>, which fixes the chronic rate-limit (HTTP 429) errors Tom kept hitting. (2) A shared <strong>5-minute price cache</strong> that all browser tabs and reloads draw from, so quotes don&rsquo;t re-fetch constantly. (3) A <strong>drag-to-reorder overhaul</strong> &mdash; everything draggable now has a visible &ldquo;grip&rdquo; handle (the &#10303; dots) you can grab.</li>
-          <li><strong>Finnhub replaces Twelve Data for Markets and Watchlist.</strong> Twelve Data&rsquo;s free tier allowed only 8 price lookups a minute, and Tom&rsquo;s ~12 symbols blew past that &mdash; hence the constant 429 errors. Finnhub&rsquo;s free tier allows 60 a minute. Tom needs to generate a free Finnhub key (no credit card) at finnhub.io/register and paste it into Settings; the old Twelve Data key is just ignored. If one symbol fails to load it now shows &ldquo;&mdash;&rdquo; instead of breaking the whole widget.</li>
-          <li><strong>Shared price cache + smarter rate-limit handling.</strong> Prices are now cached for 5 minutes and shared across every tab and reload, so opening the dashboard in three tabs no longer triggers three rounds of API calls. If the rate limit is ever hit, the widget shows &ldquo;Rate limit reached &mdash; prices refresh shortly&rdquo; and quietly refreshes once 60 seconds later instead of hammering the API.</li>
-          <li><strong>Visible drag handles everywhere.</strong> The old drag-to-reorder was invisible &mdash; Tom couldn&rsquo;t tell what to grab. Now categories, bookmarks, and every list inside the widget config (stock tickers, weather cities, clock zones) show a &#10303; grip handle. Grab it, drag up or down, and a blue line shows where the item will land. Reordering works within a box and across boxes (e.g. moving a bookmark to another category).</li>
-          <li><strong>No dependencies added.</strong> Both Twelve Data and Finnhub are free REST APIs &mdash; this was a swap, not a new install. Crypto (CoinGecko) is unchanged.</li>
+          <li><strong>v1.10 shipped &mdash; the biggest release since v1.0.</strong> Three new features, all per-persona and synced to the gist: (1) <strong>drag widget cards to reorder them</strong>; (2) <strong>multiple watchlists, each with its own custom title</strong>; (3) <strong>per-card border/glow color</strong> on any category or widget card, with a one-click reset to the persona&rsquo;s theme color.</li>
+          <li><strong>Reorder your widget cards.</strong> Each widget card header now has a &#10303; grip handle (same handle pattern as categories and bookmarks). Grab it and drag a card left or right to set the order you want; the order is saved per-persona and sticks across reloads and other browsers.</li>
+          <li><strong>Multiple, renamable watchlists.</strong> You used to have exactly one Watchlist; now you can have as many as you like, each its own card with its own title and its own stocks. Add one via the new <strong>&ldquo;+ Add watchlist&rdquo;</strong> button in Settings. Each watchlist&rsquo;s &#9881; gear lets you rename it (the title updates live as you type), manage its symbols, and delete it (with a confirm). Markets stays a single card &mdash; it&rsquo;s the S&amp;P/Nasdaq/Dow index view, a different job from your own watchlists.</li>
+          <li><strong>Per-card color.</strong> Give any category or widget card a custom border and soft glow. For categories: the <strong>&ldquo;...&rdquo;</strong> menu &rarr; <strong>&ldquo;Card color&hellip;&rdquo;</strong>. For widgets: each widget&rsquo;s <strong>&#9881;</strong> gear has a &ldquo;Card color&rdquo; section (To-do and Notes got a new small gear just for this). Pick a preset swatch or a custom color, or hit <strong>&ldquo;Default (theme)&rdquo;</strong> to clear it back to the persona accent. The glow is subtle and static &mdash; no animation.</li>
+          <li><strong>Old data migrates automatically.</strong> Your existing single watchlist becomes the first watchlist in the new list (symbols preserved), and the new widget-order is filled in for every persona on load. Nothing to do on your end &mdash; an old-shape dashboard never crashes. No new dependencies; only <code>index.html</code> changed.</li>
         </ul>
         <!-- /HUB:RECENT_COMPLETED -->
       </div>
@@ -148,9 +148,9 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <h3>What's next</h3>
         <!-- HUB:WHATS_NEXT -->
         <ul>
-          <li><strong>Generate a free Finnhub API key</strong> at <a href="https://finnhub.io/register">finnhub.io/register</a> (no credit card) and paste it into the dashboard&rsquo;s Settings &mdash; the field is now labeled Finnhub, not Twelve Data. Without it, Markets and Watchlist show an &ldquo;add your Finnhub key&rdquo; prompt.</li>
-          <li><strong>Push v1.9 to GitHub</strong> (single-file commit of <code>index.html</code>), wait ~60s for GitHub Pages to refresh, then hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R).</li>
-          <li><strong>Smoke-test the three changes:</strong> (1) Markets and Watchlist load with no 429 / rate-limit errors. (2) The &#10303; grip handles are visible on categories, bookmarks, and the config lists &mdash; grab one and confirm dragging up/down reorders and that the new order sticks after a reload. (3) Reorder a bookmark into a different category and confirm it lands where you dropped it.</li>
+          <li><strong>Push v1.10 to GitHub</strong> (single-file commit of <code>index.html</code>), wait ~60s for GitHub Pages to refresh, then hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R).</li>
+          <li><strong>Verify all three features:</strong> (1) drag a widget card by its &#10303; grip and confirm the new order sticks after reload; (2) add a second watchlist from Settings, rename it, give it a couple of stocks, then delete it; (3) set a custom card color on a category and on a widget, then reset one back to &ldquo;Default (theme).&rdquo; Also confirm your existing single watchlist came across with its symbols intact and that Markets still works.</li>
+          <li><strong>Possible future tweak (not urgent):</strong> the Crypto widget re-fetches CoinGecko on every full render, and reordering now triggers more renders. If it ever starts feeling slow or hits a rate limit, add a shared cache like the 5-minute one the stock widgets already use. (Logged as an Open Item.)</li>
         </ul>
         <!-- /HUB:WHATS_NEXT -->
       </div>
@@ -230,6 +230,27 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h2>Session Log</h2>
     <!-- HUB:SESSION_LOG -->
     <article class="session-entry latest">
+      <div class="date">2026-05-28 &middot; Thursday &middot; late evening</div>
+      <div class="focus">v1.10 &mdash; the biggest release since v1.0: drag-to-reorder widget cards, multiple renamable watchlists, and per-card border/glow color. Real Build Agent + Documentation Agent subagent flow.</div>
+      <h4>Completed</h4>
+      <ul>
+        <li><strong>Feature 1 &mdash; reorder widget cards by dragging.</strong> Each widget card header now gets a &#10303; grip handle (the same pattern categories and bookmarks already use). Dragging is horizontal and position-aware; the order is saved to a new per-persona <code>widgetOrder</code> array and persists across reloads and browsers. Why it matters: until now the widget row was a fixed layout &mdash; Tom couldn&rsquo;t put, say, the clock first and the to-do list last. New helpers <code>buildWidgetCard</code> and <code>moveWidget</code> drive it.</li>
+        <li><strong>Feature 2 &mdash; multiple, renamable watchlists.</strong> The old single Watchlist became an array of watchlists (<code>persona.watchlists</code>), each with its own id, title, and symbols. Each renders as its own card. A new <strong>&ldquo;+ Add watchlist&rdquo;</strong> button in Settings (just below the show/hide-widgets toggles) creates more; each watchlist&rsquo;s &#9881; config gained a <strong>title rename</strong> field (updates live as you type), the existing symbol management, and a <strong>delete-this-watchlist</strong> button (a confirm-gated danger action). The widget show/hide list names each watchlist by its title. Markets deliberately stays a single card &mdash; it&rsquo;s the index-proxy view (SPY/QQQ/DIA), a different purpose from a personal watchlist. New helpers <code>addWatchlist</code>, <code>deleteWatchlist</code>, <code>renderStockWidgetFor</code>.</li>
+        <li><strong>Feature 3 &mdash; per-card border/glow color.</strong> Any category or widget card can now carry a custom hex color (stored in a new per-persona <code>widgetColors</code> map for widgets and <code>category.color</code> for categories); a colored card gets a colored border plus a soft outer glow (no animation). Categories: <strong>&ldquo;...&rdquo;</strong> menu &rarr; <strong>&ldquo;Card color&hellip;&rdquo;</strong> &rarr; a popover with preset swatches, a native color picker, and a <strong>&ldquo;Default (theme)&rdquo;</strong> reset. Widgets: each widget&rsquo;s &#9881; gear has a &ldquo;Card color&rdquo; section &mdash; To-do and Notes, which had no config before, got a new color-only gear modal. New helpers <code>applyCardColor</code>, <code>buildCardColorControl</code>, <code>openCategoryColorPopover</code>; new CSS classes <code>.card-color-control</code>, <code>.card-color-swatches</code>, <code>.card-color-row</code>, <code>.color-popover</code>.</li>
+        <li><strong>Schema + migration.</strong> <code>ensurePersonaSchema</code> plus a new <code>migrateWidgetOrder</code> helper handle the upgrade invisibly: the legacy singleton <code>widgets.watchlist</code> is converted to one watchlist titled &ldquo;Watchlist&rdquo; with its symbols preserved (and the old key deleted); new personas get one empty &ldquo;Watchlist.&rdquo; A new composite-key scheme means each watchlist card is keyed <code>watchlist:&lt;id&gt;</code> wherever a widget is referenced (order, hidden list, colors, visibility toggles, config). Any legacy bare <code>'watchlist'</code> key is remapped to the composite key(s); missing built-in widgets and new watchlists are appended to the order; stale watchlist keys are dropped. Verified against pre-widget-order, mid-version, and empty personas. No old-shape persona crashes.</li>
+        <li><strong>File grew from ~4,120 to ~4,610 lines.</strong> Still a single file, still no framework, no new dependencies (Markets/Finnhub, Crypto/CoinGecko, Weather/Open-Meteo, and gist sync all unchanged). Only <code>index.html</code> changed.</li>
+      </ul>
+      <h4>Decisions made</h4>
+      <ul>
+        <li><strong>Multiple watchlists via an array + composite <code>watchlist:&lt;id&gt;</code> keys.</strong> A clean, collision-proof way to let each watchlist participate in the same machinery (reorder, hide, color, config) as the built-in widgets, without special-casing it everywhere.</li>
+        <li><strong>The widget row is now rendered dynamically from <code>widgetOrder</code>, not static HTML.</strong> Required to support both reorder and multiple watchlist instances. The Notes textarea is regenerated on each render but keeps its <code>notes-textarea</code> id so nothing else breaks.</li>
+        <li><strong>Markets stays a singleton.</strong> It tracks index proxies (SPY/QQQ/DIA), a fundamentally different job from a user&rsquo;s personal watchlists &mdash; folding it in would muddy both.</li>
+        <li><strong>Watchlist rename updates live as you type</strong> &mdash; immediate feedback, no separate save step for the title.</li>
+        <li><strong>Closing a widget config now does a full re-render</strong> so any title/color/symbol change is reflected everywhere at once.</li>
+      </ul>
+    </article>
+
+    <article class="session-entry">
       <div class="date">2026-05-28 &middot; Thursday &middot; later evening</div>
       <div class="focus">v1.9 &mdash; migrated stock data from Twelve Data to Finnhub (fixes the chronic rate-limit errors), added a shared 5-minute price cache, and overhauled drag-to-reorder with visible grip handles.</div>
       <h4>Completed</h4>
@@ -454,6 +475,13 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h2>Open Items</h2>
     <!-- HUB:OPEN_ITEMS -->
     <div class="open-item">
+      <span class="type-tag feature">Feature</span>
+      <div class="body">
+        <strong>Cache the Crypto widget&rsquo;s price fetches.</strong> The Crypto widget re-fetches CoinGecko on every full render, and v1.10&rsquo;s drag-to-reorder triggers more renders than before. Not a regression (this is pre-existing behavior), but more frequent now. If rate-limiting ever shows up, add a shared cache like the 5-minute one the stock widgets already use.
+        <div class="added">Added: 2026-05-28</div>
+      </div>
+    </div>
+    <div class="open-item">
       <span class="type-tag feature">UX Fix (low priority)</span>
       <div class="body">
         <strong>iPhone slim mode.</strong> On phones, ~600px of widgets push the first bookmark below the fold. Proposed fix (same file, no fork): on small viewports, reorder categories above widgets, collapse widgets to a horizontal scroll row or hidden behind a toggle, swap to a solid background, enlarge tap targets, compact persona tabs, and add a web app manifest so "Add to Home Screen" feels native-app fullscreen.
@@ -481,7 +509,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
 
 <footer>
   <div class="container">
-    Maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · later evening</span>
+    Maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · late evening</span>
   </div>
 </footer>
 

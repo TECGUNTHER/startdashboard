@@ -962,6 +962,53 @@ header.dash-header {
 }
 .swatch.selected { border-color: var(--text-primary); }
 
+/* ---- Card color control ----
+   Reused in widget config modals and the category "Card color" popover.
+   A row of preset swatches, a native color picker, and a "Default (theme)"
+   reset button. The "Default" swatch shows when no custom color is set. */
+.card-color-control { margin-bottom: 6px; }
+.card-color-swatches {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.card-color-swatches .swatch.default-swatch {
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-elev-2);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.card-color-swatches .swatch.default-swatch.selected { color: var(--text-primary); }
+.card-color-row {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 12px; color: var(--text-secondary);
+}
+.card-color-row input[type="color"] {
+  width: 44px; height: 30px; padding: 2px; border-radius: 6px;
+  background: var(--input-bg); border: 1px solid var(--border); cursor: pointer;
+}
+.card-color-row .reset-link {
+  color: var(--accent); border-bottom: 1px dotted var(--accent);
+  cursor: pointer; font-size: 12px;
+}
+
+/* Category "Card color" popover floats near the ... menu like a context menu. */
+.color-popover {
+  position: fixed;
+  background: var(--modal-bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  padding: 12px;
+  width: 240px;
+  z-index: 200;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.55);
+}
+.color-popover .pop-title {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 8px;
+}
+
 .bg-preset-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1355,57 +1402,10 @@ body {
     </form>
   </div>
 
-  <section class="widgets-row" id="widgets-row">
-    <div class="widget" data-widget="clock">
-      <div class="widget-head">
-        <span class="widget-title">Clock</span>
-        <button class="widget-settings-btn" data-widget-settings="clock">⚙</button>
-      </div>
-      <div class="widget-body" id="widget-clock-body"></div>
-    </div>
-    <div class="widget" data-widget="weather">
-      <div class="widget-head">
-        <span class="widget-title">Weather</span>
-        <button class="widget-settings-btn" data-widget-settings="weather">⚙</button>
-      </div>
-      <div class="widget-body" id="widget-weather-body"></div>
-    </div>
-    <div class="widget" data-widget="todos">
-      <div class="widget-head">
-        <span class="widget-title">To-do</span>
-      </div>
-      <div class="widget-body" id="widget-todos-body"></div>
-    </div>
-    <div class="widget" data-widget="notes">
-      <div class="widget-head">
-        <span class="widget-title">Notes</span>
-      </div>
-      <div class="widget-body" id="widget-notes-body">
-        <textarea id="notes-textarea" class="notes-textarea" placeholder="Type anything…"></textarea>
-      </div>
-    </div>
-    <div class="widget" data-widget="crypto">
-      <div class="widget-head">
-        <span class="widget-title">Crypto</span>
-        <button class="widget-settings-btn" data-widget-settings="crypto">⚙</button>
-      </div>
-      <div class="widget-body" id="widget-crypto-body"></div>
-    </div>
-    <div class="widget" data-widget="markets">
-      <div class="widget-head">
-        <span class="widget-title">Markets</span>
-        <button class="widget-settings-btn" data-widget-settings="markets">⚙</button>
-      </div>
-      <div class="widget-body" id="widget-markets-body"></div>
-    </div>
-    <div class="widget" data-widget="watchlist">
-      <div class="widget-head">
-        <span class="widget-title">Watchlist</span>
-        <button class="widget-settings-btn" data-widget-settings="watchlist">⚙</button>
-      </div>
-      <div class="widget-body" id="widget-watchlist-body"></div>
-    </div>
-  </section>
+  <!-- Widget cards are built dynamically by renderWidgets() so they can be
+       reordered (drag), hidden per-persona, and so each watchlist gets its own
+       card. The container starts empty; JS fills it on every render. -->
+  <section class="widgets-row" id="widgets-row"></section>
 
   <section class="categories-grid" id="categories-grid"></section>
 
@@ -1465,6 +1465,7 @@ body {
 
     <label>This persona — widgets shown</label>
     <div class="widget-toggle-grid" id="set-widget-toggles"></div>
+    <button class="btn" id="set-add-watchlist" style="margin-top:8px;">+ Add watchlist</button>
 
     <label>Finnhub API key (for Markets &amp; Watchlist)</label>
     <div style="font-size: 12px; color: var(--text-secondary); background: var(--bg-elev-2); padding: 10px 12px; border-radius: 8px; margin-bottom: 8px; line-height: 1.55;">
@@ -1569,7 +1570,15 @@ body {
     <h2 id="widget-cfg-title">Configure widget</h2>
     <p class="sub" id="widget-cfg-sub">Search for a city. We'll handle the coordinates and timezone behind the scenes.</p>
 
-    <div class="city-search">
+    <!-- Watchlist-only: rename this watchlist. Hidden for other widgets. -->
+    <div id="widget-cfg-rename" class="hidden">
+      <label>Watchlist name</label>
+      <input type="text" id="widget-cfg-rename-input" placeholder="Watchlist name…" autocomplete="off" />
+    </div>
+
+    <!-- Search box (cities/coins/tickers). Hidden for color-only widgets
+         like To-do and Notes. -->
+    <div class="city-search" id="widget-cfg-search-wrap">
       <input type="text" id="widget-cfg-search" class="city-search-input" placeholder="Type a city name…" autocomplete="off" />
       <div id="widget-cfg-results" class="city-search-results hidden"></div>
     </div>
@@ -1583,10 +1592,21 @@ body {
       </div>
     </div>
 
-    <label>Currently added</label>
-    <ul class="widget-cfg-list" id="widget-cfg-list"></ul>
+    <!-- The "Currently added" item list (cities/zones/coins/tickers).
+         Hidden for color-only widgets. -->
+    <div id="widget-cfg-list-wrap">
+      <label>Currently added</label>
+      <ul class="widget-cfg-list" id="widget-cfg-list"></ul>
+    </div>
+
+    <!-- Card color control — present on every widget's config. JS fills the
+         swatches + custom picker + "Default (theme)" reset. -->
+    <label>Card color</label>
+    <div id="widget-cfg-color" class="card-color-control"></div>
 
     <div class="modal-actions">
+      <!-- Watchlist-only delete button, shown on the left. -->
+      <button class="btn danger hidden" id="widget-cfg-delete" style="margin-right:auto;">Delete this watchlist</button>
       <button class="btn primary" id="widget-cfg-close">Done</button>
     </div>
   </div>
@@ -1870,18 +1890,115 @@ function ensurePersonaSchema(p) {
   /* v1.2 widgets — finance. Each persona gets its own list. */
   if (!p.widgets.crypto)    p.widgets.crypto    = { coins: [] };
   if (!p.widgets.markets)   p.widgets.markets   = { symbols: [] };
-  if (!p.widgets.watchlist) p.widgets.watchlist = { symbols: [] };
+
+  /* ---- v1.10: multiple, renamable watchlists ----
+     Old shape (v1.2–v1.9) was a single watchlist living at
+     p.widgets.watchlist = { symbols: [...] }. New shape is an array of
+     named watchlists at p.watchlists = [{ id, title, symbols }]. Each
+     watchlist renders as its own card keyed "watchlist:<id>".
+
+     Migration rules:
+     - If the persona already has the new p.watchlists array, leave it alone.
+     - Else if the old singleton exists, convert it to one watchlist titled
+       "Watchlist", carrying over its symbols.
+     - Else (brand-new persona) start with one empty watchlist. */
+  if (!Array.isArray(p.watchlists)) {
+    const legacy = p.widgets.watchlist;
+    const legacySymbols = (legacy && Array.isArray(legacy.symbols)) ? legacy.symbols : [];
+    p.watchlists = [{ id: uid(), title: 'Watchlist', symbols: legacySymbols }];
+  }
+  /* Make sure every watchlist entry is well-formed (id/title/symbols). */
+  p.watchlists.forEach(wl => {
+    if (!wl.id) wl.id = uid();
+    if (!wl.title) wl.title = 'Watchlist';
+    if (!Array.isArray(wl.symbols)) wl.symbols = [];
+  });
+  /* Drop the legacy singleton so it doesn't linger and confuse later loads. */
+  if (p.widgets.watchlist) delete p.widgets.watchlist;
+
   /* Per-persona widget visibility. Empty array means "show every widget."
-     Tom can hide individual widgets via Settings on a per-persona basis. */
+     Tom can hide individual widgets via Settings on a per-persona basis.
+     Keys are widget names ("clock", "markets", …) plus composite
+     "watchlist:<id>" keys for each individual watchlist card. */
   if (!Array.isArray(p.hiddenWidgets)) p.hiddenWidgets = [];
+
+  /* ---- v1.10: widget render order ----
+     persona.widgetOrder is the list of widget card keys in display order.
+     Built-in keys are the fixed-card widgets; each watchlist contributes a
+     composite "watchlist:<id>" key so individual watchlists reorder freely
+     alongside the other cards. */
+  const watchlistKeys = p.watchlists.map(wl => 'watchlist:' + wl.id);
+  if (!Array.isArray(p.widgetOrder)) {
+    /* No saved order (persona predates v1.10). Use the historical fixed
+       order, expanding the single "watchlist" slot into one key per
+       watchlist so migrated symbols still appear. */
+    p.widgetOrder = ['clock', 'weather', 'todos', 'notes', 'crypto', 'markets', ...watchlistKeys];
+  } else {
+    /* Existing order — migrate the legacy bare "watchlist" key (used before
+       watchlists became multiple) into the composite per-watchlist keys, and
+       make sure nothing is missing or stale. */
+    p.widgetOrder = migrateWidgetOrder(p.widgetOrder, watchlistKeys);
+  }
+  /* hiddenWidgets may also still hold a legacy bare "watchlist" key — if a
+     persona had its single watchlist hidden, keep it hidden by mapping that
+     to the migrated watchlist's composite key(s). */
+  if (p.hiddenWidgets.includes('watchlist')) {
+    p.hiddenWidgets = p.hiddenWidgets.filter(k => k !== 'watchlist').concat(watchlistKeys);
+  }
+
+  /* ---- v1.10: per-card custom border/glow colors ----
+     persona.widgetColors maps a widget card key → hex color. A key absent
+     from this map means "inherit the persona accent" (the default look).
+     category.color is the same idea but stored on each category object. */
+  if (!p.widgetColors || typeof p.widgetColors !== 'object') p.widgetColors = {};
+  /* Migrate a legacy bare "watchlist" color key onto the migrated watchlist(s). */
+  if (p.widgetColors.watchlist) {
+    watchlistKeys.forEach(k => { if (!p.widgetColors[k]) p.widgetColors[k] = p.widgetColors.watchlist; });
+    delete p.widgetColors.watchlist;
+  }
+  /* category.color defaults to null (= inherit accent) when unset. */
+  p.categories.forEach(c => { if (c.color === undefined) c.color = null; });
 }
 
-/* Canonical list of all widget IDs in the order they render. New widgets
-   appended at the end so existing personas don't have their layout shuffled. */
-const ALL_WIDGETS = ['clock', 'weather', 'todos', 'notes', 'crypto', 'markets', 'watchlist'];
+/* Reconcile a saved widgetOrder against the current set of widgets.
+   - Replaces the legacy bare "watchlist" key with all current watchlist keys.
+   - Appends any built-in or watchlist key that's missing (e.g. a brand-new
+     watchlist, or a widget added in a later version).
+   - Drops any "watchlist:<id>" key whose watchlist no longer exists.
+   Built-in (non-watchlist) keys are preserved in their saved order. */
+function migrateWidgetOrder(order, watchlistKeys) {
+  const out = [];
+  const seen = new Set();
+  order.forEach(key => {
+    if (key === 'watchlist') {
+      /* Legacy single-watchlist slot → expand to every current watchlist. */
+      watchlistKeys.forEach(wk => { if (!seen.has(wk)) { out.push(wk); seen.add(wk); } });
+      return;
+    }
+    if (key.startsWith('watchlist:')) {
+      /* Keep only if that watchlist still exists. */
+      if (watchlistKeys.includes(key) && !seen.has(key)) { out.push(key); seen.add(key); }
+      return;
+    }
+    /* Built-in widget key — keep it (de-duped). */
+    if (BUILTIN_WIDGETS.includes(key) && !seen.has(key)) { out.push(key); seen.add(key); }
+  });
+  /* Append any built-in widget missing from the saved order (new widget in a
+     later version) so it doesn't silently vanish. */
+  BUILTIN_WIDGETS.forEach(k => { if (!seen.has(k)) { out.push(k); seen.add(k); } });
+  /* Append any watchlist not yet placed (newly added watchlist). */
+  watchlistKeys.forEach(k => { if (!seen.has(k)) { out.push(k); seen.add(k); } });
+  return out;
+}
+
+/* The built-in (fixed, single-instance) widgets, in their historical default
+   render order. Watchlists are NOT here — there can be many, and each gets a
+   composite "watchlist:<id>" key handled separately. The actual render order
+   per persona lives in persona.widgetOrder. */
+const BUILTIN_WIDGETS = ['clock', 'weather', 'todos', 'notes', 'crypto', 'markets'];
 const WIDGET_LABELS = {
   clock: 'Clock', weather: 'Weather', todos: 'To-do', notes: 'Notes',
-  crypto: 'Crypto', markets: 'Markets', watchlist: 'Watchlist'
+  crypto: 'Crypto', markets: 'Markets'
 };
 
 /* The seed personas applied on the very first run, per the plan. */
@@ -2180,15 +2297,22 @@ function addNewPersona() {
   const used = state.data.personas.length;
   const accent = DEFAULT_ACCENTS[used % DEFAULT_ACCENTS.length];
   const id = uid();
+  /* New personas default to one empty watchlist titled "Watchlist". We set
+     widgetOrder, watchlists and widgetColors inline here so the persona is
+     fully v1.10-shaped without waiting for the next load's schema pass. */
+  const wlId = uid();
   setState(d => {
     d.personas.push({
       id, name: name.trim(), accent, background: BG_PRESETS[used % BG_PRESETS.length].id,
-      categories: [{ id: uid(), name: 'Untitled', bookmarks: [] }],
+      categories: [{ id: uid(), name: 'Untitled', bookmarks: [], color: null }],
       widgets: {
         clock: { zones: [Intl.DateTimeFormat().resolvedOptions().timeZone] },
         weather: { cities: [] }, todos: [], notes: '',
-        crypto: { coins: [] }, markets: { symbols: [] }, watchlist: { symbols: [] },
+        crypto: { coins: [] }, markets: { symbols: [] },
       },
+      watchlists: [{ id: wlId, title: 'Watchlist', symbols: [] }],
+      widgetOrder: ['clock', 'weather', 'todos', 'notes', 'crypto', 'markets', 'watchlist:' + wlId],
+      widgetColors: {},
       /* New personas start with all widgets visible so the user can pick
          what to keep. Easy to hide via Settings ⚙ → "Widgets shown". */
       hiddenWidgets: [],
@@ -2221,6 +2345,8 @@ function renderCategory(cat) {
   const wrap = document.createElement('section');
   wrap.className = 'category';
   wrap.dataset.catId = cat.id;
+  /* Per-card custom color (border + soft glow). Null = inherit theme accent. */
+  applyCardColor(wrap, cat.color);
 
   /* Header: visible grip handle (the drag target) + title + ... menu.
      The grip is what the user grabs to reorder categories. We keep the
@@ -2543,11 +2669,13 @@ function openCategoryContextMenu(e, cat) {
   menu.innerHTML = `
     <button data-act="add">+ Add bookmark</button>
     <button data-act="rename">Rename</button>
+    <button data-act="color">Card color…</button>
     <button data-act="delete" class="danger">Delete category</button>
   `;
   menu.addEventListener('click', (ev) => {
     const act = ev.target.dataset.act;
     if (act === 'add') openManualAddBookmark(cat.id);
+    if (act === 'color') openCategoryColorPopover(ev, cat);
     if (act === 'rename') {
       const span = document.querySelector(`.category[data-cat-id="${cat.id}"] .category-title`);
       if (span) beginRenameCategory(cat.id, span);
@@ -2565,6 +2693,45 @@ function openCategoryContextMenu(e, cat) {
   });
   document.body.appendChild(menu);
   setTimeout(() => document.addEventListener('click', closeContextMenus, { once: true }), 0);
+}
+
+/* Floating "Card color" popover for a category. Uses the shared card-color
+   control (preset swatches + custom picker + "Default (theme)" reset) and
+   writes the chosen color to cat.color (null = inherit accent). */
+function openCategoryColorPopover(e, cat) {
+  closeContextMenus();
+  const pop = document.createElement('div');
+  pop.className = 'color-popover';
+  pop.style.left = Math.min(e.clientX, window.innerWidth - 260) + 'px';
+  pop.style.top = Math.min(e.clientY, window.innerHeight - 160) + 'px';
+  const title = document.createElement('div');
+  title.className = 'pop-title';
+  title.textContent = 'Card color — ' + cat.name;
+  pop.appendChild(title);
+  const control = document.createElement('div');
+  pop.appendChild(control);
+
+  const renderControl = () => {
+    /* Re-read the live color so the highlighted swatch stays correct. */
+    const cur = (currentPersona().categories.find(c => c.id === cat.id) || {}).color || null;
+    buildCardColorControl(control, cur, (hex) => {
+      setState(d => {
+        const c = d.personas.find(pp => pp.id === currentPersona().id).categories.find(cc => cc.id === cat.id);
+        if (c) c.color = hex || null;
+      });
+      renderControl();
+    });
+  };
+  renderControl();
+
+  document.body.appendChild(pop);
+  /* Click anywhere outside the popover closes it. */
+  setTimeout(() => {
+    const off = (ev) => {
+      if (!pop.contains(ev.target)) { pop.remove(); document.removeEventListener('click', off); }
+    };
+    document.addEventListener('click', off);
+  }, 0);
 }
 
 /* Open a popup-style "move to another persona" picker on a bookmark. */
@@ -2702,26 +2869,153 @@ function openManualAddBookmark(catId) {
 /* ============================================================
    Widgets
    ============================================================ */
-function renderWidgets(p) {
-  /* Honor per-persona widget visibility. Hidden widgets get a CSS class
-     that hides them outright (avoids reserving empty grid space). */
-  const hidden = new Set(p.hiddenWidgets || []);
-  ALL_WIDGETS.forEach(name => {
-    const card = document.querySelector('.widget[data-widget="' + name + '"]');
-    if (card) card.classList.toggle('hidden', hidden.has(name));
-  });
-  /* If every widget is hidden on this persona, drop the entire widgets row
-     so the categories grid starts right under the header. */
-  const allHidden = ALL_WIDGETS.every(n => hidden.has(n));
-  document.getElementById('widgets-row').classList.toggle('hidden', allHidden);
+/* Build one widget card shell: the <div class="widget"> with its header
+   (grip + title + ⚙ gear) and an empty body. Returns { card, body } so the
+   caller can render content into `body`. `key` is the widget card key used
+   for drag-reorder and color lookups (e.g. "clock" or "watchlist:abc123").
+   `cfgKey` is what openWidgetConfig() receives when the gear is clicked. */
+function buildWidgetCard(p, key, title, bodyId, cfgKey) {
+  const card = document.createElement('div');
+  card.className = 'widget';
+  card.dataset.widget = key;
 
-  if (!hidden.has('clock'))     renderClockWidget(p);
-  if (!hidden.has('weather'))   renderWeatherWidget(p);
-  if (!hidden.has('todos'))     renderTodosWidget(p);
-  if (!hidden.has('notes'))     renderNotesWidget(p);
-  if (!hidden.has('crypto'))    renderCryptoWidget(p);
-  if (!hidden.has('markets'))   renderMarketsWidget(p);
-  if (!hidden.has('watchlist')) renderWatchlistWidget(p);
+  /* Per-card custom color: a colored border + soft outer glow. When no color
+     is set for this key we leave the card alone so it keeps the default
+     accent-derived look. */
+  applyCardColor(card, p.widgetColors[key]);
+
+  const head = document.createElement('div');
+  head.className = 'widget-head';
+
+  /* Grip handle — drag this to reorder the card among the other widgets. */
+  const grip = document.createElement('span');
+  grip.className = 'grip';
+  grip.textContent = '⠿';
+  grip.title = 'Drag to reorder this widget';
+  grip.draggable = true;
+  grip.addEventListener('dragstart', (e) => {
+    e.dataTransfer.setData('application/x-widget-key', key);
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  head.appendChild(grip);
+
+  const titleEl = document.createElement('span');
+  titleEl.className = 'widget-title';
+  titleEl.textContent = title;
+  head.appendChild(titleEl);
+
+  /* Gear — opens the per-widget config modal. EVERY widget has one now,
+     including To-do and Notes (which open a color-only config). */
+  const gear = document.createElement('button');
+  gear.className = 'widget-settings-btn';
+  gear.textContent = '⚙';
+  gear.title = 'Configure';
+  gear.addEventListener('click', (e) => { e.stopPropagation(); openWidgetConfig(cfgKey); });
+  head.appendChild(gear);
+
+  card.appendChild(head);
+
+  const body = document.createElement('div');
+  body.className = 'widget-body';
+  if (bodyId) body.id = bodyId;
+  card.appendChild(body);
+
+  /* Position-aware drop target: dropping another widget's grip onto this card
+     reorders it before/after, with an accent drop-indicator line. */
+  card.addEventListener('dragover', (e) => {
+    if (!e.dataTransfer.types.includes('application/x-widget-key')) return;
+    e.preventDefault();
+    const rect = card.getBoundingClientRect();
+    const after = (e.clientX - rect.left) > rect.width / 2;
+    card.classList.toggle('drop-after', after);
+    card.classList.toggle('drop-before', !after);
+  });
+  card.addEventListener('dragleave', () => card.classList.remove('drop-before', 'drop-after'));
+  card.addEventListener('drop', (e) => {
+    const from = e.dataTransfer.getData('application/x-widget-key');
+    if (!from) return;
+    e.preventDefault();
+    card.classList.remove('drop-before', 'drop-after');
+    const rect = card.getBoundingClientRect();
+    const after = (e.clientX - rect.left) > rect.width / 2;
+    moveWidget(from, key, after);
+  });
+
+  return { card, body };
+}
+
+/* Apply (or clear) a per-card border + soft glow color, set inline so it
+   overrides the default styling only when a color is chosen. Passing a falsy
+   color clears it back to the theme default. */
+function applyCardColor(card, color) {
+  if (color) {
+    card.style.borderColor = color;
+    /* A 1px crisp ring plus a soft, subtle outer glow — no animation. */
+    card.style.boxShadow = '0 0 0 1px ' + color + ', 0 0 12px -2px ' + color;
+  } else {
+    card.style.borderColor = '';
+    card.style.boxShadow = '';
+  }
+}
+
+/* Reorder widget card `fromKey` to sit before/after `targetKey` in this
+   persona's widgetOrder, then persist + re-render. */
+function moveWidget(fromKey, targetKey, after) {
+  if (fromKey === targetKey) return;
+  setState(d => {
+    const p = d.personas.find(pp => pp.id === currentPersona().id);
+    const order = p.widgetOrder;
+    const fromIdx = order.indexOf(fromKey);
+    if (fromIdx < 0) return;
+    order.splice(fromIdx, 1);
+    /* Recompute target index after removal so same-row reorders land right. */
+    let tgtIdx = order.indexOf(targetKey);
+    if (tgtIdx < 0) { order.push(fromKey); return; }
+    if (after) tgtIdx += 1;
+    order.splice(tgtIdx, 0, fromKey);
+  });
+}
+
+/* Build and render every visible widget card in this persona's saved order.
+   Each card is created fresh, then the matching body-render function fills it.
+   Watchlist keys ("watchlist:<id>") expand to one card each. */
+function renderWidgets(p) {
+  const row = document.getElementById('widgets-row');
+  row.innerHTML = '';
+  const hidden = new Set(p.hiddenWidgets || []);
+
+  p.widgetOrder.forEach(key => {
+    if (hidden.has(key)) return; // honor per-persona visibility
+
+    if (key.startsWith('watchlist:')) {
+      /* One card per named watchlist. */
+      const id = key.slice('watchlist:'.length);
+      const wl = p.watchlists.find(w => w.id === id);
+      if (!wl) return; // stale key, watchlist deleted — skip
+      const bodyId = 'widget-wl-' + id + '-body';
+      const { card, body } = buildWidgetCard(p, key, wl.title || 'Watchlist', bodyId, key);
+      row.appendChild(card);
+      renderStockWidgetFor(p, wl, bodyId);
+      return;
+    }
+
+    /* Built-in single-instance widgets. */
+    const title = WIDGET_LABELS[key] || key;
+    const bodyId = 'widget-' + key + '-body';
+    const { card, body } = buildWidgetCard(p, key, title, bodyId, key);
+    row.appendChild(card);
+
+    if (key === 'clock')   renderClockWidget(p);
+    else if (key === 'weather') renderWeatherWidget(p);
+    else if (key === 'todos')   renderTodosWidget(p);
+    else if (key === 'notes')   { body.innerHTML = '<textarea id="notes-textarea" class="notes-textarea" placeholder="Type anything…"></textarea>'; renderNotesWidget(p); }
+    else if (key === 'crypto')  renderCryptoWidget(p);
+    else if (key === 'markets') renderMarketsWidget(p);
+  });
+
+  /* If nothing is visible, collapse the whole row so the categories grid
+     starts right under the header. */
+  row.classList.toggle('hidden', row.children.length === 0);
 }
 
 /* ---- Clock ---- */
@@ -2973,19 +3267,35 @@ async function renderCryptoWidget(p) {
    in localStorage as sd_finnhub_key). Default symbols are ETFs that
    track the major US indices. Finnhub's free tier is 60 calls/min. */
 function renderMarketsWidget(p) {
-  return renderStockWidget(p, 'markets', 'widget-markets-body', 'No markets yet. Defaults: SPY, QQQ, DIA.');
+  const symbols = (p.widgets.markets && p.widgets.markets.symbols) || [];
+  return renderStockWidget(symbols, 'widget-markets-body', 'No markets yet. Defaults: SPY, QQQ, DIA.', () => renderMarketsWidget(currentPersona()));
 }
-function renderWatchlistWidget(p) {
-  return renderStockWidget(p, 'watchlist', 'widget-watchlist-body', 'No symbols yet. Add stocks in widget settings (⚙).');
+/* Render one watchlist's card body. Reads symbols straight from the watchlist
+   object (p.watchlists[n]) rather than p.widgets, since watchlists are now
+   their own data array. The refresh closure re-finds the watchlist by id so a
+   rate-limit retry survives persona/data changes. */
+function renderStockWidgetFor(p, watchlist, bodyId) {
+  const symbols = watchlist.symbols || [];
+  const wlId = watchlist.id;
+  return renderStockWidget(symbols, bodyId, 'No symbols yet. Add stocks in widget settings (⚙).', () => {
+    const cur = currentPersona();
+    const wl = cur.watchlists.find(w => w.id === wlId);
+    if (wl) renderStockWidgetFor(cur, wl, bodyId);
+  });
 }
 
 /* Tracks scheduled 60-second rate-limit refresh timers per widget body, so we
    don't stack multiple pending refreshes if the user re-renders repeatedly. */
 const _rateLimitTimers = {};
 
-async function renderStockWidget(p, kind, bodyId, emptyMsg) {
+/* Renders a list of stock quotes into a widget body. `symbols` is the ticker
+   array to show, `bodyId` is the target element, `emptyMsg` shows when there
+   are no symbols, and `refresh` is called to re-render this same widget after
+   a rate-limit cooldown. Used by both Markets and each watchlist. */
+async function renderStockWidget(symbols, bodyId, emptyMsg, refresh) {
   const body = document.getElementById(bodyId);
-  const symbols = (p.widgets[kind] && p.widgets[kind].symbols) || [];
+  if (!body) return; // card not on screen (hidden or removed)
+  symbols = symbols || [];
   if (!state.finnhubKey) {
     body.innerHTML = '<div class="fin-empty">Add your <a href="https://finnhub.io/register" target="_blank" rel="noopener" style="color: var(--accent); border-bottom: 1px dotted var(--accent);">Finnhub API key</a> in Settings (⚙).</div>';
     return;
@@ -3050,8 +3360,9 @@ async function renderStockWidget(p, kind, bodyId, emptyMsg) {
       if (_rateLimitTimers[bodyId]) clearTimeout(_rateLimitTimers[bodyId]);
       _rateLimitTimers[bodyId] = setTimeout(() => {
         _rateLimitTimers[bodyId] = null;
-        /* Re-render with the live persona/body in case things changed. */
-        renderStockWidget(currentPersona(), kind, bodyId, emptyMsg);
+        /* Re-render this widget via the caller-supplied refresh closure, which
+           re-finds the live persona/watchlist in case things changed. */
+        if (refresh) refresh();
       }, 60 * 1000);
     } else {
       body.innerHTML = '<div class="fin-error">Quote load failed: ' + escapeHtml(e.message) + '</div>';
@@ -3335,14 +3646,22 @@ function openSettingsModal() {
   document.getElementById('set-bg-image-url').value =
     (p.background && p.background.startsWith('url:')) ? p.background.slice(4) : '';
 
-  /* Per-persona widget visibility checkboxes. */
+  /* Per-persona widget visibility checkboxes. Built-in widgets first, then a
+     checkbox per watchlist (labeled by its title) since each is individually
+     hide/show-able. */
   const togglesEl = document.getElementById('set-widget-toggles');
   togglesEl.innerHTML = '';
   const hidden = new Set(p.hiddenWidgets || []);
-  ALL_WIDGETS.forEach(w => {
+  const toggleEntries = BUILTIN_WIDGETS.map(w => ({ key: w, label: WIDGET_LABELS[w] }))
+    .concat(p.watchlists.map(wl => ({ key: 'watchlist:' + wl.id, label: wl.title || 'Watchlist' })));
+  toggleEntries.forEach(entry => {
     const label = document.createElement('label');
-    label.innerHTML = '<input type="checkbox" data-widget-toggle="' + w + '"' +
-      (hidden.has(w) ? '' : ' checked') + '> ' + WIDGET_LABELS[w];
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.dataset.widgetToggle = entry.key;
+    cb.checked = !hidden.has(entry.key);
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode(' ' + entry.label));
     togglesEl.appendChild(label);
   });
 
@@ -3560,21 +3879,82 @@ function dismissCrossAddBanner() {
 let _widgetCfgFor = null;
 let _citySearchTimer = null;
 
-function openWidgetConfig(widgetName) {
-  _widgetCfgFor = widgetName;
+/* Preset swatch colors offered in every card-color picker — reuses the
+   persona accent palette so colors feel on-brand. */
+const CARD_COLOR_PRESETS = DEFAULT_ACCENTS;
+
+/* Build a reusable card-color control into `container`. Shows a "Default
+   (theme)" reset chip, the preset swatches, and a native color picker.
+   `current` is the currently-set hex (or null/undefined for theme default).
+   `onPick(hex|null)` fires whenever the user chooses a color or resets. */
+function buildCardColorControl(container, current, onPick) {
+  container.innerHTML = '';
+  const grid = document.createElement('div');
+  grid.className = 'card-color-swatches';
+
+  /* The "Default (theme)" chip clears the custom color. */
+  const def = document.createElement('div');
+  def.className = 'swatch default-swatch' + (!current ? ' selected' : '');
+  def.textContent = '∅';
+  def.title = 'Default (theme accent)';
+  def.addEventListener('click', () => onPick(null));
+  grid.appendChild(def);
+
+  CARD_COLOR_PRESETS.forEach(hex => {
+    const sw = document.createElement('div');
+    sw.className = 'swatch' + (current && current.toLowerCase() === hex.toLowerCase() ? ' selected' : '');
+    sw.style.background = hex;
+    sw.title = hex;
+    sw.addEventListener('click', () => onPick(hex));
+    grid.appendChild(sw);
+  });
+  container.appendChild(grid);
+
+  /* Custom native color picker + an explicit "Default (theme)" text reset. */
+  const row = document.createElement('div');
+  row.className = 'card-color-row';
+  const picker = document.createElement('input');
+  picker.type = 'color';
+  picker.value = normalizeHex(current || currentPersona().accent);
+  picker.title = 'Pick a custom color';
+  picker.addEventListener('input', () => onPick(picker.value));
+  const label = document.createElement('span');
+  label.textContent = 'Custom';
+  const reset = document.createElement('span');
+  reset.className = 'reset-link';
+  reset.textContent = 'Default (theme)';
+  reset.addEventListener('click', () => onPick(null));
+  row.appendChild(picker);
+  row.appendChild(label);
+  row.appendChild(reset);
+  container.appendChild(row);
+}
+
+function openWidgetConfig(widgetKey) {
+  _widgetCfgFor = widgetKey;
+  const p = currentPersona();
+  const isWatchlist = widgetKey.startsWith('watchlist:');
+  const baseKind = isWatchlist ? 'watchlist' : widgetKey;
+  /* To-do and Notes have no list/search — they're color-only. */
+  const colorOnly = (baseKind === 'todos' || baseKind === 'notes');
+
   const titles = {
     weather:   'Weather — add cities',
     clock:     'Clock — add time zones',
     crypto:    'Crypto — add coins',
     markets:   'Markets — add tickers',
-    watchlist: 'Watchlist — add stocks',
+    watchlist: 'Watchlist',
+    todos:     'To-do — settings',
+    notes:     'Notes — settings',
   };
   const subs = {
     weather:   "Type a city name and pick from the list. We handle the coordinates behind the scenes.",
     clock:     "Type a city or capital. We map it to the correct timezone so the clock stays right through DST.",
     crypto:    "Type a coin name or symbol (Bitcoin, ETH, Solana…). Powered by CoinGecko — no key needed.",
     markets:   "Add ticker symbols (SPY, QQQ, DIA, etc.). Indices are typically tracked via ETF proxies on the free tier.",
-    watchlist: "Add stocks you want to follow daily (AAPL, MSFT, NVDA…).",
+    watchlist: "Rename this watchlist, manage its stocks, set its card color, or delete it.",
+    todos:     "Set this card's color.",
+    notes:     "Set this card's color.",
   };
   const placeholders = {
     weather:   'e.g. Charlotte, Tokyo, Berlin…',
@@ -3583,18 +3963,55 @@ function openWidgetConfig(widgetName) {
     markets:   'Search ticker — e.g. SPY, QQQ',
     watchlist: 'Search ticker — e.g. AAPL, NVDA',
   };
-  document.getElementById('widget-cfg-title').textContent = titles[widgetName] || 'Configure widget';
-  document.getElementById('widget-cfg-sub').textContent   = subs[widgetName] || '';
+
+  document.getElementById('widget-cfg-title').textContent = titles[baseKind] || 'Configure widget';
+  document.getElementById('widget-cfg-sub').textContent   = subs[baseKind] || '';
+
+  /* Search box + item list: hidden entirely for color-only widgets. */
+  document.getElementById('widget-cfg-search-wrap').classList.toggle('hidden', colorOnly);
+  document.getElementById('widget-cfg-list-wrap').classList.toggle('hidden', colorOnly);
   const input = document.getElementById('widget-cfg-search');
   input.value = '';
-  input.placeholder = placeholders[widgetName] || 'Search…';
+  input.placeholder = placeholders[baseKind] || 'Search…';
   document.getElementById('widget-cfg-results').classList.add('hidden');
+
+  /* Watchlist rename field — only for watchlist cards. */
+  const renameWrap = document.getElementById('widget-cfg-rename');
+  renameWrap.classList.toggle('hidden', !isWatchlist);
+  if (isWatchlist) {
+    const wlId = widgetKey.slice('watchlist:'.length);
+    const wl = p.watchlists.find(w => w.id === wlId);
+    const renameInput = document.getElementById('widget-cfg-rename-input');
+    renameInput.value = wl ? wl.title : '';
+    /* Live rename — updates the data (and the card title) as the user types. */
+    renameInput.oninput = () => {
+      const v = renameInput.value.trim() || 'Watchlist';
+      setState(d => {
+        const w = d.personas.find(pp => pp.id === currentPersona().id).watchlists.find(x => x.id === wlId);
+        if (w) w.title = v;
+      });
+    };
+  }
+
+  /* Delete button — watchlist cards only. */
+  const delBtn = document.getElementById('widget-cfg-delete');
+  delBtn.classList.toggle('hidden', !isWatchlist);
+  if (isWatchlist) {
+    const wlId = widgetKey.slice('watchlist:'.length);
+    delBtn.onclick = () => {
+      openConfirm('Delete this watchlist?', 'Removes the watchlist and its symbols from this persona.', () => {
+        deleteWatchlist(wlId);
+        document.getElementById('widget-cfg-modal').classList.add('hidden');
+        _widgetCfgFor = null;
+      });
+    };
+  }
 
   /* Clock-specific extras — show the 12/24 hour radio only for the clock. */
   const clockExtra = document.getElementById('widget-cfg-clock-extra');
-  clockExtra.classList.toggle('hidden', widgetName !== 'clock');
-  if (widgetName === 'clock') {
-    const use12 = (currentPersona().widgets.clock.hour12 !== false);
+  clockExtra.classList.toggle('hidden', baseKind !== 'clock');
+  if (baseKind === 'clock') {
+    const use12 = (p.widgets.clock.hour12 !== false);
     document.querySelectorAll('input[name="cfg-hour12"]').forEach(r => {
       r.checked = (r.value === String(use12));
       r.onchange = () => {
@@ -3606,22 +4023,66 @@ function openWidgetConfig(widgetName) {
     });
   }
 
-  renderWidgetCfgList();
+  /* Card color control — present on every widget. Writes to
+     persona.widgetColors[widgetKey]; null clears back to the theme accent. */
+  const colorEl = document.getElementById('widget-cfg-color');
+  const renderColor = () => {
+    const cur = currentPersona().widgetColors[widgetKey] || null;
+    buildCardColorControl(colorEl, cur, (hex) => {
+      setState(d => {
+        const pp = d.personas.find(x => x.id === currentPersona().id);
+        if (hex) pp.widgetColors[widgetKey] = hex;
+        else delete pp.widgetColors[widgetKey];
+      });
+      renderColor(); // refresh the selected-swatch highlight
+    });
+  };
+  renderColor();
+
+  if (!colorOnly) renderWidgetCfgList();
   document.getElementById('widget-cfg-modal').classList.remove('hidden');
-  setTimeout(() => input.focus(), 50);
+  if (!colorOnly) setTimeout(() => input.focus(), 50);
+}
+
+/* Add a new empty watchlist to the current persona. Picks the next free
+   default title ("Watchlist", "Watchlist 2", "Watchlist 3", …), appends its
+   card to widgetOrder so it shows immediately, and persists. */
+function addWatchlist() {
+  const newId = uid();
+  setState(d => {
+    const p = d.personas.find(pp => pp.id === currentPersona().id);
+    /* Find the next available "Watchlist N" title. A bare "Watchlist" counts
+       as N=1, so the next default is "Watchlist 2". */
+    const titles = new Set(p.watchlists.map(w => (w.title || '').trim()));
+    let title = 'Watchlist';
+    if (titles.has('Watchlist')) {
+      let n = 2;
+      while (titles.has('Watchlist ' + n)) n++;
+      title = 'Watchlist ' + n;
+    }
+    p.watchlists.push({ id: newId, title, symbols: [] });
+    p.widgetOrder.push('watchlist:' + newId);
+  });
+}
+
+/* Remove a watchlist and all references to it (widgetOrder, hiddenWidgets,
+   widgetColors), then persist + re-render. */
+function deleteWatchlist(wlId) {
+  const key = 'watchlist:' + wlId;
+  setState(d => {
+    const p = d.personas.find(pp => pp.id === currentPersona().id);
+    p.watchlists = p.watchlists.filter(w => w.id !== wlId);
+    p.widgetOrder = p.widgetOrder.filter(k => k !== key);
+    p.hiddenWidgets = p.hiddenWidgets.filter(k => k !== key);
+    if (p.widgetColors) delete p.widgetColors[key];
+  });
 }
 
 function closeWidgetConfig() {
   document.getElementById('widget-cfg-modal').classList.add('hidden');
-  /* Re-render the widget itself so the new items show up right away. */
-  if (state.data) {
-    const p = currentPersona();
-    if (_widgetCfgFor === 'weather')   renderWeatherWidget(p);
-    if (_widgetCfgFor === 'clock')     renderClockWidget(p);
-    if (_widgetCfgFor === 'crypto')    renderCryptoWidget(p);
-    if (_widgetCfgFor === 'markets')   renderMarketsWidget(p);
-    if (_widgetCfgFor === 'watchlist') renderWatchlistWidget(p);
-  }
+  /* A full render rebuilds every widget card from the current data, so any
+     symbol/zone/color changes show up right away. */
+  if (state.data) render();
   _widgetCfgFor = null;
 }
 
@@ -3765,11 +4226,20 @@ function renderWidgetCfgList() {
       });
       ul.appendChild(li);
     });
-  } else if (_widgetCfgFor === 'markets' || _widgetCfgFor === 'watchlist') {
-    /* Capture which list ('markets'/'watchlist') so the per-item handlers
-       below don't depend on the mutable _widgetCfgFor global. */
-    const kind = _widgetCfgFor;
-    const symbols = p.widgets[kind].symbols || [];
+  } else if (_widgetCfgFor === 'markets' || _widgetCfgFor.startsWith('watchlist:')) {
+    /* Stock symbol management — shared by Markets (singleton) and each
+       individual watchlist. getSymbols() returns the right array for whichever
+       is being configured, so the add/remove/reorder handlers stay generic. */
+    const isWatchlist = _widgetCfgFor.startsWith('watchlist:');
+    const wlId = isWatchlist ? _widgetCfgFor.slice('watchlist:'.length) : null;
+    const getSymbols = (persona) => {
+      if (isWatchlist) {
+        const wl = persona.watchlists.find(w => w.id === wlId);
+        return wl ? wl.symbols : [];
+      }
+      return persona.widgets.markets.symbols;
+    };
+    const symbols = getSymbols(p) || [];
     if (!symbols.length) {
       ul.innerHTML = '<li class="widget-cfg-empty">No symbols yet — search above to add one, or type one in directly and press Enter.</li>';
       return;
@@ -3784,13 +4254,13 @@ function renderWidgetCfgList() {
         '</span>';
       li.querySelector('.remove-btn').addEventListener('click', () => {
         setState(d => {
-          d.personas.find(pp => pp.id === currentPersona().id).widgets[kind].symbols.splice(i, 1);
+          getSymbols(d.personas.find(pp => pp.id === currentPersona().id)).splice(i, 1);
         });
         renderWidgetCfgList();
       });
       makeCfgItemDraggable(li, i, (from, to) => {
         setState(d => {
-          const arr = d.personas.find(pp => pp.id === currentPersona().id).widgets[kind].symbols;
+          const arr = getSymbols(d.personas.find(pp => pp.id === currentPersona().id));
           const [m] = arr.splice(from, 1);
           arr.splice(to, 0, m);
         });
@@ -3819,7 +4289,7 @@ function setupWidgetCfgSearch() {
      directly — useful for indices/ETFs the search may not surface. */
   input.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
-    if (_widgetCfgFor !== 'markets' && _widgetCfgFor !== 'watchlist') return;
+    if (_widgetCfgFor !== 'markets' && !_widgetCfgFor.startsWith('watchlist:')) return;
     const raw = input.value.trim().toUpperCase();
     if (!raw) return;
     e.preventDefault();
@@ -3839,7 +4309,7 @@ function setupWidgetCfgSearch() {
 function dispatchWidgetSearch(q, resultsEl) {
   if (_widgetCfgFor === 'weather' || _widgetCfgFor === 'clock') return doCitySearch(q, resultsEl);
   if (_widgetCfgFor === 'crypto') return doCryptoSearch(q, resultsEl);
-  if (_widgetCfgFor === 'markets' || _widgetCfgFor === 'watchlist') return doStockSearch(q, resultsEl);
+  if (_widgetCfgFor === 'markets' || _widgetCfgFor.startsWith('watchlist:')) return doStockSearch(q, resultsEl);
 }
 
 /* Open-Meteo geocoding (cities / timezones). */
@@ -3991,15 +4461,19 @@ async function doStockSearch(q, resultsEl) {
   }
 }
 
-/* Shared helper: add a stock ticker to the currently-configuring widget. */
+/* Shared helper: add a stock ticker to the currently-configuring widget,
+   which is either Markets (singleton) or a specific watchlist. */
 function addSymbolToWidget(symbol) {
   const upper = symbol.trim().toUpperCase();
   if (!upper) return;
+  const isWatchlist = _widgetCfgFor.startsWith('watchlist:');
+  const wlId = isWatchlist ? _widgetCfgFor.slice('watchlist:'.length) : null;
   setState(d => {
     const pp = d.personas.find(x => x.id === currentPersona().id);
-    if (!pp.widgets[_widgetCfgFor].symbols.includes(upper)) {
-      pp.widgets[_widgetCfgFor].symbols.push(upper);
-    }
+    const arr = isWatchlist
+      ? (pp.watchlists.find(w => w.id === wlId) || { symbols: [] }).symbols
+      : pp.widgets.markets.symbols;
+    if (arr && !arr.includes(upper)) arr.push(upper);
   });
   renderWidgetCfgList();
 }
@@ -4033,6 +4507,30 @@ document.getElementById('set-save').addEventListener('click', saveSettings);
 document.getElementById('set-delete-persona').addEventListener('click', () => {
   confirmDeletePersona(currentPersona().id);
 });
+/* "+ Add watchlist" in Settings: create a new empty watchlist on this
+   persona, append it to the widget order (shown by default), and refresh the
+   settings toggles so the new one appears immediately. */
+document.getElementById('set-add-watchlist').addEventListener('click', () => {
+  addWatchlist();
+  /* Rebuild the visibility toggles in the open Settings modal to include the
+     new watchlist without closing/reopening Settings. */
+  const p = currentPersona();
+  const togglesEl = document.getElementById('set-widget-toggles');
+  togglesEl.innerHTML = '';
+  const hidden = new Set(p.hiddenWidgets || []);
+  const entries = BUILTIN_WIDGETS.map(w => ({ key: w, label: WIDGET_LABELS[w] }))
+    .concat(p.watchlists.map(wl => ({ key: 'watchlist:' + wl.id, label: wl.title || 'Watchlist' })));
+  entries.forEach(entry => {
+    const label = document.createElement('label');
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.dataset.widgetToggle = entry.key;
+    cb.checked = !hidden.has(entry.key);
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode(' ' + entry.label));
+    togglesEl.appendChild(label);
+  });
+});
 document.getElementById('set-copy-gist-id').addEventListener('click', () => {
   navigator.clipboard.writeText(state.gistId).then(() => showToast('Gist ID copied.'));
 });
@@ -4061,14 +4559,8 @@ document.getElementById('desc-textarea').addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeDescEdit();
 });
 
-/* Widget-level gear icons (⚙ on Weather, Clock cards): open the per-widget
-   config modal. Bound at boot since these buttons live in static HTML. */
-document.querySelectorAll('[data-widget-settings]').forEach(btn => {
-  btn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    openWidgetConfig(btn.dataset.widgetSettings);
-  });
-});
+/* Widget gear icons are wired inside buildWidgetCard() now (cards are built
+   dynamically), so there's nothing to bind statically at boot. */
 document.getElementById('widget-cfg-close').addEventListener('click', closeWidgetConfig);
 setupWidgetCfgSearch();
 
