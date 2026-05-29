@@ -51,7 +51,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h1>StartDashboard</h1>
     <p class="subtitle">A personal home page that travels with you across every browser and every device, with separate "channels" for different sides of your life.</p>
     <!-- UX:LAST_UPDATED -->
-    <span class="last-updated">Last updated: 2026-05-28 · v1.10</span>
+    <span class="last-updated">Last updated: 2026-05-28 · v1.11</span>
     <!-- /UX:LAST_UPDATED -->
   </div>
 </header>
@@ -80,6 +80,12 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
       <h3>Personas (channels)</h3>
       <p class="one-liner">Multiple complete dashboards under one URL.</p>
       <p class="walkthrough">A tab bar across the top shows your personas &mdash; Work, Personal, Investments, anything you create. One click switches the whole dashboard: different bookmarks, different widgets, different background. Each persona is fully independent. Add a new persona with the <strong>+</strong> button; rename by double-clicking a tab; reorder by dragging; right-click for delete and "make default on this device."</p>
+    </div>
+
+    <div class="feature">
+      <h3>Ask Gemini &mdash; AI chat without leaving the dashboard (v1.11)</h3>
+      <p class="one-liner">A floating bubble opens a chat panel for quick, search-style answers.</p>
+      <p class="walkthrough">A floating chat bubble sits in the bottom-right corner on every persona. Click it and a panel slides over from the right. Type a question, press Enter, and you get a concise answer &mdash; the assistant is tuned for short, direct, search-style replies rather than long essays, and it remembers your recent back-and-forth for follow-ups. It&rsquo;s powered by Google&rsquo;s <strong>free</strong> Gemini API: generate a key at <a href="https://aistudio.google.com/app/apikey">aistudio.google.com/app/apikey</a> (no credit card) and paste it into Settings once per browser. A header <strong>&ldquo;Open full Gemini &#8599;&rdquo;</strong> button jumps to gemini.google.com when you want your real, logged-in Gemini account. Note: this in-dashboard chat is a <em>separate, fresh assistant</em> &mdash; it doesn&rsquo;t see your personal Gemini history; the link-out is for that. Your chat here is saved on this device (not synced to your other devices), and &ldquo;Clear chat&rdquo; wipes it. If you haven&rsquo;t added a key yet, the panel shows a one-line prompt; if Gemini is ever unreachable, you get a short note with the link-out rather than an error.</p>
     </div>
 
     <div class="feature">
@@ -179,6 +185,11 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     </div>
 
     <div class="screen">
+      <h3>Ask Gemini chat panel (v1.11)</h3>
+      <p>A slide-over panel triggered by the floating chat bubble (bottom-right of the main dashboard). Header with the title, the model name, an &ldquo;Open full Gemini &#8599;&rdquo; link-out, and a close &#10005;; a scrollable message area below; an input row at the bottom; and a &ldquo;Clear chat&rdquo; footer. It overlays the dashboard but sits beneath the Settings/config modals, and works in both light and dark mode. On a phone it goes full-width.</p>
+    </div>
+
+    <div class="screen">
       <h3>Settings modal</h3>
       <p>Triggered by the gear icon in the header. The first block at the top is now a focal "Default persona on this browser/device" picker (🖥 icon, accent-tinted background, explanatory subtext) so per-device defaults are obvious instead of buried. Below that: dashboard title, this persona's name + accent color + background, clock zones, weather cities, search engine, gist ID (for copying to other browsers). Includes a Bookmarklet button that shows the drag-to-install link, and a Danger Zone block at the bottom for destructive actions (Delete persona, Reset This Browser).</p>
     </div>
@@ -191,6 +202,17 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h2>Primary Workflows</h2>
     <p class="section-lead">Step-by-step walkthroughs of the most common things users do in this app.</p>
     <!-- UX:WORKFLOWS -->
+
+    <div class="workflow">
+      <h3>Ask a quick question without leaving the dashboard (v1.11)</h3>
+      <ol>
+        <li>Click the floating <strong>chat bubble</strong> in the bottom-right corner. A panel slides over from the right.</li>
+        <li>Type your question and press <strong>Enter</strong> (Shift+Enter for a new line). A concise answer appears in the panel; ask follow-ups and it keeps the recent context.</li>
+        <li>One-time: if you see &ldquo;Add your free Gemini API key,&rdquo; open Settings, generate a free key at <a href="https://aistudio.google.com/app/apikey">aistudio.google.com/app/apikey</a>, paste it in, and Save.</li>
+        <li>Want your real Gemini account (with its history and your logged-in features)? Click <strong>&ldquo;Open full Gemini &#8599;&rdquo;</strong> in the panel header.</li>
+        <li>Close the panel with the <strong>&#10005;</strong>, the Escape key, or by clicking outside it. Use <strong>&ldquo;Clear chat&rdquo;</strong> to wipe the conversation on this device.</li>
+      </ol>
+    </div>
 
     <div class="workflow">
       <h3>Add a bookmark while reading an article</h3>
@@ -358,7 +380,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
 
 <footer>
   <div class="container">
-    Generated and maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · v1.10 · late evening</span>
+    Generated and maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · v1.11 · night</span>
   </div>
 </footer>
 

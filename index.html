@@ -1304,6 +1304,222 @@ body {
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
+/* =====================================================================
+   Gemini chat (v1.11) — floating button + slide-over panel
+   All colors come from the theme tokens so light/dark + the per-persona
+   accent work automatically, exactly like the rest of the app.
+   ===================================================================== */
+
+/* The floating chat bubble, bottom-right. z-index 90 keeps it above page
+   content but BELOW the modal overlays (which sit at z-index 100), so an
+   open Settings/confirm dialog covers it instead of fighting with it. */
+.chat-fab {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  border: none;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 90;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  display: grid;
+  place-items: center;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.chat-fab:hover { transform: translateY(-2px); filter: brightness(1.08); }
+
+/* The slide-over container is a full-screen layer holding a translucent
+   backdrop plus the panel itself. It sits above the chat button (95) but
+   still below the settings/confirm modals (100). */
+.chat-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+}
+.chat-overlay .chat-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+body.light-mode .chat-overlay .chat-backdrop {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+/* The panel — a tall card pinned to the right edge that slides in. */
+.chat-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 380px;
+  max-width: 100%;
+  background: var(--modal-bg);
+  border-left: 1px solid var(--border-strong);
+  box-shadow: -16px 0 50px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.22s ease;
+}
+/* When the overlay is shown (no .hidden), the panel slides into view. */
+.chat-overlay:not(.hidden) .chat-panel { transform: translateX(0); }
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.chat-header .chat-title { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.chat-header .chat-model {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono';
+  background: var(--bg-elev-2);
+  padding: 2px 6px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+/* Push the link-out + close button to the right edge of the header. */
+.chat-header .chat-header-spacer { flex: 1; }
+.chat-header .chat-openfull {
+  font-size: 11px;
+  color: var(--accent);
+  border-bottom: 1px dotted var(--accent);
+  white-space: nowrap;
+}
+.chat-header .chat-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+.chat-header .chat-close:hover { color: var(--text-primary); }
+
+/* Scrollable message list takes all the room between header and input. */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.chat-empty {
+  margin: auto;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+  max-width: 240px;
+}
+.chat-empty a { color: var(--accent); border-bottom: 1px dotted var(--accent); }
+
+/* A single chat bubble. User messages are accent-tinted and right-aligned;
+   model messages sit on an elevated surface, left-aligned. pre-wrap keeps
+   the line breaks the user (or Gemini) actually typed. */
+.chat-msg {
+  max-width: 85%;
+  padding: 9px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  color: var(--text-primary);
+}
+.chat-msg.user {
+  align-self: flex-end;
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+}
+.chat-msg.model {
+  align-self: flex-start;
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border);
+}
+/* Error/info bubbles (rate-limit, CORS, network) read as model-side notes
+   but with a muted, italic treatment so they don't look like real answers. */
+.chat-msg.note {
+  align-self: flex-start;
+  background: var(--bg-elev-1);
+  border: 1px dashed var(--border-strong);
+  color: var(--text-secondary);
+  font-style: normal;
+}
+.chat-msg.note a { color: var(--accent); border-bottom: 1px dotted var(--accent); font-weight: 600; }
+/* The "Gemini is thinking…" placeholder. */
+.chat-msg.thinking { color: var(--text-muted); font-style: italic; }
+
+/* Input row pinned to the bottom of the panel. */
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.chat-input-row textarea {
+  flex: 1;
+  resize: none;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 11px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-primary);
+  max-height: 120px;
+  line-height: 1.4;
+}
+.chat-input-row textarea:focus { border-color: var(--accent); outline: none; }
+.chat-input-row .chat-send {
+  background: var(--accent);
+  color: var(--on-accent);
+  border: none;
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.chat-input-row .chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* The "Clear chat" footer control. */
+.chat-footer {
+  padding: 8px 16px 12px;
+  flex-shrink: 0;
+  text-align: center;
+}
+.chat-footer .chat-clear {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+.chat-footer .chat-clear:hover { color: var(--text-primary); }
+
+/* On a phone, the panel goes full-width so it isn't a cramped sliver. */
+@media (max-width: 480px) {
+  .chat-panel { width: 100%; border-left: none; }
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 700px) {
   .app { padding: 14px 14px 60px; }
@@ -1479,6 +1695,24 @@ body {
     </div>
     <input type="password" id="set-finnhub-key" class="mono" placeholder="Paste your Finnhub API key…" autocomplete="off" />
 
+    <label>Gemini API key (for the Ask Gemini chat)</label>
+    <div style="font-size: 12px; color: var(--text-secondary); background: var(--bg-elev-2); padding: 10px 12px; border-radius: 8px; margin-bottom: 8px; line-height: 1.55;">
+      The chat bubble is powered by Google's free Gemini API — no credit card.
+      <ol style="margin: 8px 0 0 18px; padding: 0;">
+        <li>Open <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="color: var(--accent); border-bottom: 1px dotted var(--accent);">aistudio.google.com/app/apikey</a></li>
+        <li>Sign in with your Google account</li>
+        <li>Click "Create API key" — copy it</li>
+        <li>Paste below and Save</li>
+      </ol>
+    </div>
+    <input type="password" id="set-gemini-key" class="mono" placeholder="Paste your Gemini API key…" autocomplete="off" />
+
+    <label>Gemini model (optional)</label>
+    <input type="text" id="set-gemini-model" class="mono" placeholder="gemini-2.5-flash" autocomplete="off" />
+    <p style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">
+      Leave as <code class="mono">gemini-2.5-flash</code> unless Google renames the model — then paste the new name here.
+    </p>
+
     <p style="font-size: 12px; color: var(--text-muted); margin-top: 12px; padding: 8px 10px; background: var(--bg-elev-2); border-radius: 6px;">
       Configure individual widgets (cities for weather/clock, coins for crypto, tickers for markets/watchlist) via the small <strong>⚙</strong> icon on each widget card on the dashboard.
     </p>
@@ -1629,6 +1863,35 @@ body {
 <!-- Toast for transient messages -->
 <div id="toast" class="toast"></div>
 
+<!-- =====================================================================
+     Gemini chat (v1.11) — floating button + slide-over panel.
+     The button is shown only on the dashboard view (hidden during setup
+     and the bookmarklet add overlay). The panel itself is hidden until
+     the button is clicked.
+     ===================================================================== -->
+<button id="chat-fab" class="chat-fab hidden" title="Ask Gemini" aria-label="Ask Gemini">💬</button>
+
+<div id="chat-overlay" class="chat-overlay hidden">
+  <div class="chat-backdrop" id="chat-backdrop"></div>
+  <div class="chat-panel" role="dialog" aria-label="Ask Gemini">
+    <div class="chat-header">
+      <span class="chat-title">Ask Gemini</span>
+      <span class="chat-model" id="chat-model-label">gemini-2.5-flash</span>
+      <span class="chat-header-spacer"></span>
+      <a class="chat-openfull" href="https://gemini.google.com" target="_blank" rel="noopener">Open full Gemini ↗</a>
+      <button class="chat-close" id="chat-close" aria-label="Close">✕</button>
+    </div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-input-row">
+      <textarea id="chat-input" rows="1" placeholder="Ask a quick question…"></textarea>
+      <button class="chat-send" id="chat-send">Send</button>
+    </div>
+    <div class="chat-footer">
+      <button class="chat-clear" id="chat-clear">Clear chat</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ============================================================
    StartDashboard — App JavaScript
@@ -1655,7 +1918,34 @@ const LS = {
   /* Light/dark mode preference. Per-browser like the default persona —
      Tom can have one device light and another dark. */
   THEME: 'sd_theme',
+  /* Gemini AI chat (v1.11). The API key is a credential, so — like the
+     GitHub PAT and Finnhub key — it lives per-browser and is NEVER synced
+     to the gist. The model string lets Tom switch models without a code
+     edit if Google renames things. Chat history is also per-device on
+     purpose (so transcripts don't bloat the synced gist). */
+  GEMINI_KEY: 'sd_gemini_key',
+  GEMINI_MODEL: 'sd_gemini_model',
+  CHAT_HISTORY: 'sd_chat_history',
 };
+
+/* Default Gemini model — the current free "Flash" tier (fast, no credit
+   card). Tom can override it in Settings if Google renames the model. */
+const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
+
+/* System instruction sent with every Gemini request. It's what makes the
+   panel answer like a search result's AI summary instead of rambling. The
+   user's own wording is never altered — only this instruction enforces
+   brevity. */
+const GEMINI_SYSTEM_PROMPT =
+  'You are a quick-answer assistant embedded in a personal dashboard. ' +
+  'Answer concisely and directly, like a search result\'s AI summary — ' +
+  'a few sentences or a short list. Skip preamble and filler. ' +
+  'If the user explicitly asks for more detail, expand.';
+
+/* Cap on how many chat messages we keep in localStorage. Prevents the
+   history from growing without bound on a device that's used for a long
+   time. Only the most recent CHAT_HISTORY_CAP messages are retained. */
+const CHAT_HISTORY_CAP = 50;
 
 /* ---------- Background preset list ---------- */
 const BG_PRESETS = [
@@ -1698,6 +1988,14 @@ const state = {
   /* 'dark' (default) or 'light'. Drives the theme-toggle button glyph and
      the .light-mode class on <body>. */
   theme: localStorage.getItem(LS.THEME) || 'dark',
+  /* Gemini chat (v1.11), all per-browser. geminiKey may be null until Tom
+     adds one in Settings. geminiModel falls back to the default if unset.
+     chatHistory is an array of { role: 'user'|'model', text } — parsed from
+     localStorage on boot, defaulting to an empty conversation. */
+  geminiKey: localStorage.getItem(LS.GEMINI_KEY) || null,
+  geminiModel: localStorage.getItem(LS.GEMINI_MODEL) || DEFAULT_GEMINI_MODEL,
+  chatHistory: loadChatHistory(),
+  chatSending: false,          // True while a Gemini request is in flight
   data: null,                  // Loaded from gist after setup
   currentPersonaId: null,      // Which persona is being viewed
   syncStatus: 'synced',        // 'synced' | 'saving' | 'stale' | 'error'
@@ -3494,6 +3792,9 @@ function showSetup() {
   document.getElementById('setup').classList.remove('hidden');
   document.getElementById('dashboard').classList.add('hidden');
   document.getElementById('add-overlay').classList.add('hidden');
+  /* The Ask Gemini bubble only belongs on the live dashboard, not on the
+     first-run setup screen. */
+  document.getElementById('chat-fab').classList.add('hidden');
 
   const modeRadios = document.querySelectorAll('input[name="setup-mode"]');
   modeRadios.forEach(r => r.addEventListener('change', () => {
@@ -3557,6 +3858,8 @@ function showDashboard() {
   document.getElementById('setup').classList.add('hidden');
   document.getElementById('add-overlay').classList.add('hidden');
   document.getElementById('dashboard').classList.remove('hidden');
+  /* Reveal the Ask Gemini bubble now that the dashboard is live. */
+  document.getElementById('chat-fab').classList.remove('hidden');
   render();
 }
 
@@ -3567,6 +3870,8 @@ function showAddOverlay(url, titleHint) {
   document.getElementById('setup').classList.add('hidden');
   document.getElementById('dashboard').classList.add('hidden');
   document.getElementById('add-overlay').classList.remove('hidden');
+  /* No chat bubble in the lightweight bookmarklet "add a link" popup. */
+  document.getElementById('chat-fab').classList.add('hidden');
 
   document.getElementById('add-title-line').textContent = titleHint || url;
   document.getElementById('add-url-preview').textContent = url;
@@ -3643,6 +3948,11 @@ function openSettingsModal() {
   document.getElementById('set-search-engine').value = state.data.searchEngine || 'google';
   document.getElementById('set-gist-id').textContent = state.gistId;
   document.getElementById('set-finnhub-key').value = state.finnhubKey || '';
+  /* Gemini key + model. Same pattern as the Finnhub key above: pre-fill with
+     the stored value so Tom can see a key is set; on save, an empty field
+     means "leave it alone" rather than "delete" (see saveSettings). */
+  document.getElementById('set-gemini-key').value = state.geminiKey || '';
+  document.getElementById('set-gemini-model').value = state.geminiModel || DEFAULT_GEMINI_MODEL;
   document.getElementById('set-bg-image-url').value =
     (p.background && p.background.startsWith('url:')) ? p.background.slice(4) : '';
 
@@ -3753,6 +4063,24 @@ async function saveSettings() {
     localStorage.setItem(LS.FINNHUB_KEY, fhKey);
     state.finnhubKey = fhKey;
   }
+
+  /* Gemini API key — same non-destructive rule as Finnhub: an empty field
+     means "no change," never "delete." (Explicit clearing is Danger Zone →
+     Reset browser.) */
+  const gemKey = document.getElementById('set-gemini-key').value.trim();
+  if (gemKey) {
+    localStorage.setItem(LS.GEMINI_KEY, gemKey);
+    state.geminiKey = gemKey;
+  }
+
+  /* Gemini model override. If the field is empty, fall back to the default
+     model rather than storing an empty string. */
+  const gemModel = document.getElementById('set-gemini-model').value.trim() || DEFAULT_GEMINI_MODEL;
+  localStorage.setItem(LS.GEMINI_MODEL, gemModel);
+  state.geminiModel = gemModel;
+  /* Keep the panel's visible model label in sync with whatever was just saved. */
+  const modelLabel = document.getElementById('chat-model-label');
+  if (modelLabel) modelLabel.textContent = gemModel;
 
   /* Apply immediately AND flush to the gist now (no 1.5s debounce) so a
      fast reload always sees the new state. */
@@ -4496,6 +4824,236 @@ function normalizeHex(c) {
 }
 
 /* ============================================================
+   Gemini chat (v1.11)
+   A floating "Ask Gemini" assistant. Sends questions straight from the
+   browser to Google's free Gemini API and shows concise answers in a
+   slide-over panel. History is per-device (localStorage), never synced.
+   ============================================================ */
+
+/* Read the saved chat history from localStorage on boot. Returns an array
+   of { role, text }. Anything malformed (or absent) yields an empty chat
+   rather than throwing — a corrupt key should never break the dashboard. */
+function loadChatHistory() {
+  try {
+    const raw = localStorage.getItem(LS.CHAT_HISTORY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/* Persist the current chat history, trimmed to the most recent
+   CHAT_HISTORY_CAP messages so localStorage can't grow without bound. */
+function saveChatHistory() {
+  if (state.chatHistory.length > CHAT_HISTORY_CAP) {
+    state.chatHistory = state.chatHistory.slice(-CHAT_HISTORY_CAP);
+  }
+  try {
+    localStorage.setItem(LS.CHAT_HISTORY, JSON.stringify(state.chatHistory));
+  } catch { /* storage full / disabled — chat still works for this session */ }
+}
+
+/* Open the slide-over panel: sync the model label, paint the conversation,
+   focus the input. */
+function openChatPanel() {
+  document.getElementById('chat-model-label').textContent = state.geminiModel || DEFAULT_GEMINI_MODEL;
+  document.getElementById('chat-overlay').classList.remove('hidden');
+  renderChatMessages();
+  /* Wait a tick so the slide-in transition has started before we focus. */
+  setTimeout(() => document.getElementById('chat-input').focus(), 50);
+}
+
+function closeChatPanel() {
+  document.getElementById('chat-overlay').classList.add('hidden');
+}
+
+/* Paint the message list from state.chatHistory. Shows the no-key empty
+   state when there's no Gemini key yet, otherwise renders each turn as a
+   styled bubble. Always scrolls to the newest message. */
+function renderChatMessages() {
+  const box = document.getElementById('chat-messages');
+  box.innerHTML = '';
+
+  /* No key yet → prompt Tom to add one (the link-out still works). */
+  if (!state.geminiKey) {
+    const empty = document.createElement('div');
+    empty.className = 'chat-empty';
+    empty.innerHTML = 'Add your free Gemini API key in Settings to chat here.' +
+      '<br><br>Or <a href="https://gemini.google.com" target="_blank" rel="noopener">open full Gemini ↗</a>';
+    box.appendChild(empty);
+    return;
+  }
+
+  /* Key present but no messages yet → a gentle prompt. */
+  if (!state.chatHistory.length) {
+    const empty = document.createElement('div');
+    empty.className = 'chat-empty';
+    empty.textContent = 'Ask a quick question to get started.';
+    box.appendChild(empty);
+    return;
+  }
+
+  state.chatHistory.forEach(m => box.appendChild(makeChatBubble(m.role, m.text)));
+  box.scrollTop = box.scrollHeight;
+}
+
+/* Build one chat bubble element. role 'user' / 'model' / 'note' picks the
+   styling; 'note' carries small HTML (the link-out in error messages), so
+   only notes get innerHTML — user/model text is escaped via textContent. */
+function makeChatBubble(role, text, isHtml) {
+  const el = document.createElement('div');
+  el.className = 'chat-msg ' + role;
+  if (isHtml) el.innerHTML = text;
+  else el.textContent = text;
+  return el;
+}
+
+/* Append a transient bubble (not stored in history) and scroll to it.
+   Used for the "thinking…" indicator and for error/info notes. */
+function appendTransientBubble(role, text, isHtml) {
+  const box = document.getElementById('chat-messages');
+  /* Clear any empty-state placeholder first so notes don't sit beside it. */
+  const placeholder = box.querySelector('.chat-empty');
+  if (placeholder) placeholder.remove();
+  const el = makeChatBubble(role, text, isHtml);
+  box.appendChild(el);
+  box.scrollTop = box.scrollHeight;
+  return el;
+}
+
+/* Enable/disable the Send button + input while a request is in flight. */
+function setChatSending(sending) {
+  state.chatSending = sending;
+  document.getElementById('chat-send').disabled = sending;
+}
+
+/* The link-out snippet reused in CORS/network error notes. */
+function geminiLinkOut() {
+  return '<a href="https://gemini.google.com" target="_blank" rel="noopener">Open full Gemini ↗</a>';
+}
+
+/* Send the textarea contents to Gemini. This is the heart of the feature:
+   it records the user's turn, calls the API, and records (or explains the
+   failure of) the model's reply. */
+async function sendChatMessage() {
+  if (state.chatSending) return;
+
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  /* No key → don't fire a doomed request; just re-show the empty-state
+     prompt that points Tom at Settings. */
+  if (!state.geminiKey) {
+    renderChatMessages();
+    appendTransientBubble('note', 'Add your free Gemini API key in Settings to chat here.', false);
+    return;
+  }
+
+  /* Record + render the user's turn, then clear the box. */
+  state.chatHistory.push({ role: 'user', text });
+  saveChatHistory();
+  input.value = '';
+  autoGrowChatInput();
+  renderChatMessages();
+
+  /* Show the "thinking…" placeholder while the request is out. */
+  setChatSending(true);
+  const thinking = appendTransientBubble('model thinking', 'Gemini is thinking…', false);
+
+  const model = state.geminiModel || DEFAULT_GEMINI_MODEL;
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/' +
+    encodeURIComponent(model) + ':generateContent';
+
+  /* Send only the last ~10 turns for follow-up context — enough for the
+     conversation to make sense without ballooning the request. */
+  const recent = state.chatHistory.slice(-10);
+  const body = {
+    system_instruction: { parts: [{ text: GEMINI_SYSTEM_PROMPT }] },
+    contents: recent.map(m => ({ role: m.role, parts: [{ text: m.text }] })),
+  };
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': state.geminiKey,
+      },
+      body: JSON.stringify(body),
+    });
+
+    thinking.remove();
+
+    /* Non-OK HTTP responses: translate the common ones into plain English,
+       fall back to status + the API's own error.message for the rest. */
+    if (!res.ok) {
+      if (res.status === 429) {
+        appendTransientBubble('note', 'Gemini is rate-limited right now — wait a moment and try again.', false);
+      } else {
+        let detail = res.status + ' ' + res.statusText;
+        try {
+          const errJson = await res.json();
+          if (errJson && errJson.error && errJson.error.message) detail = errJson.error.message;
+        } catch { /* response wasn't JSON — keep the status line */ }
+        appendTransientBubble('note', 'Gemini couldn\'t answer: ' + detail, false);
+      }
+      setChatSending(false);
+      return;
+    }
+
+    /* Success — pull the text out of the first candidate. */
+    const data = await res.json();
+    const reply = data &&
+      data.candidates &&
+      data.candidates[0] &&
+      data.candidates[0].content &&
+      data.candidates[0].content.parts &&
+      data.candidates[0].content.parts[0] &&
+      data.candidates[0].content.parts[0].text;
+
+    if (reply) {
+      state.chatHistory.push({ role: 'model', text: reply });
+      saveChatHistory();
+      renderChatMessages();
+    } else {
+      /* 200 OK but no text — usually a safety block or an empty candidate. */
+      appendTransientBubble('note', 'Gemini returned an empty answer. Try rephrasing your question.', false);
+    }
+  } catch (e) {
+    /* A thrown fetch means the browser never got a usable response — almost
+       always a network outage or a CORS block (the browser refuses to hand
+       us the response). This is the documented fallback: explain plainly and
+       make the link-out to the full site prominent. NO backend/proxy. */
+    thinking.remove();
+    appendTransientBubble(
+      'note',
+      'Couldn\'t reach Gemini from the browser (network or CORS). ' +
+      'You can use the full site instead → ' + geminiLinkOut() + '.',
+      true
+    );
+  } finally {
+    setChatSending(false);
+  }
+}
+
+/* Wipe the conversation: clear state, the localStorage key, and re-render
+   the (now empty) panel. */
+function clearChat() {
+  state.chatHistory = [];
+  try { localStorage.removeItem(LS.CHAT_HISTORY); } catch {}
+  renderChatMessages();
+}
+
+/* Grow the input textarea with its content up to the CSS max-height. */
+function autoGrowChatInput() {
+  const ta = document.getElementById('chat-input');
+  ta.style.height = 'auto';
+  ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+}
+
+/* ============================================================
    Global event wiring
    ============================================================ */
 document.getElementById('search-form').addEventListener('submit', handleSearchSubmit);
@@ -4605,6 +5163,25 @@ setInterval(() => {
   if (!state.data) return;
   renderClockWidget(currentPersona());
 }, 60000);
+
+/* ---------- Gemini chat wiring (v1.11) ---------- */
+document.getElementById('chat-fab').addEventListener('click', openChatPanel);
+document.getElementById('chat-close').addEventListener('click', closeChatPanel);
+/* Clicking the dimmed backdrop (but not the panel) closes the chat. */
+document.getElementById('chat-backdrop').addEventListener('click', closeChatPanel);
+document.getElementById('chat-send').addEventListener('click', sendChatMessage);
+document.getElementById('chat-clear').addEventListener('click', clearChat);
+/* Enter sends; Shift+Enter inserts a newline (textarea default). */
+document.getElementById('chat-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+});
+document.getElementById('chat-input').addEventListener('input', autoGrowChatInput);
+/* Escape closes the chat panel when it's open. */
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !document.getElementById('chat-overlay').classList.contains('hidden')) {
+    closeChatPanel();
+  }
+});
 </script>
 </body>
 </html>

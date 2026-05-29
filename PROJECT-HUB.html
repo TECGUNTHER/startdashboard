@@ -111,7 +111,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
       <span class="status-pill complete">Complete</span>
       <!-- /HUB:STATUS_OVERALL -->
       <!-- HUB:LAST_UPDATED -->
-      <span class="last-updated">2026-05-28 · Thu · late evening</span>
+      <span class="last-updated">2026-05-28 · Thu · night</span>
       <!-- /HUB:LAST_UPDATED -->
     </div>
   </div>
@@ -136,11 +136,11 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <h3>Recently completed</h3>
         <!-- HUB:RECENT_COMPLETED -->
         <ul>
-          <li><strong>v1.10 shipped &mdash; the biggest release since v1.0.</strong> Three new features, all per-persona and synced to the gist: (1) <strong>drag widget cards to reorder them</strong>; (2) <strong>multiple watchlists, each with its own custom title</strong>; (3) <strong>per-card border/glow color</strong> on any category or widget card, with a one-click reset to the persona&rsquo;s theme color.</li>
-          <li><strong>Reorder your widget cards.</strong> Each widget card header now has a &#10303; grip handle (same handle pattern as categories and bookmarks). Grab it and drag a card left or right to set the order you want; the order is saved per-persona and sticks across reloads and other browsers.</li>
-          <li><strong>Multiple, renamable watchlists.</strong> You used to have exactly one Watchlist; now you can have as many as you like, each its own card with its own title and its own stocks. Add one via the new <strong>&ldquo;+ Add watchlist&rdquo;</strong> button in Settings. Each watchlist&rsquo;s &#9881; gear lets you rename it (the title updates live as you type), manage its symbols, and delete it (with a confirm). Markets stays a single card &mdash; it&rsquo;s the S&amp;P/Nasdaq/Dow index view, a different job from your own watchlists.</li>
-          <li><strong>Per-card color.</strong> Give any category or widget card a custom border and soft glow. For categories: the <strong>&ldquo;...&rdquo;</strong> menu &rarr; <strong>&ldquo;Card color&hellip;&rdquo;</strong>. For widgets: each widget&rsquo;s <strong>&#9881;</strong> gear has a &ldquo;Card color&rdquo; section (To-do and Notes got a new small gear just for this). Pick a preset swatch or a custom color, or hit <strong>&ldquo;Default (theme)&rdquo;</strong> to clear it back to the persona accent. The glow is subtle and static &mdash; no animation.</li>
-          <li><strong>Old data migrates automatically.</strong> Your existing single watchlist becomes the first watchlist in the new list (symbols preserved), and the new widget-order is filled in for every persona on load. Nothing to do on your end &mdash; an old-shape dashboard never crashes. No new dependencies; only <code>index.html</code> changed.</li>
+          <li><strong>v1.11 shipped &mdash; a built-in &ldquo;Ask Gemini&rdquo; AI chat panel.</strong> A floating chat bubble in the bottom-right corner opens a slide-over panel where you can ask a question and get a concise, search-style answer without leaving the dashboard. Available from every persona. Powered by Google&rsquo;s free Gemini API.</li>
+          <li><strong>Tuned for quick answers.</strong> The assistant is primed (via a system instruction) to give short, direct, search-style replies rather than long essays &mdash; the same kind of fast answer you get from Google Search&rsquo;s AI. Follow-up questions keep recent context (it sends the last ~10 turns).</li>
+          <li><strong>&ldquo;Open full Gemini&rdquo; link-out.</strong> A header button jumps to gemini.google.com when you want your real Gemini account (with its history and your logged-in features). The in-dashboard chat is a separate, fresh assistant &mdash; it doesn&rsquo;t see your personal Gemini history.</li>
+          <li><strong>Per-device chat history.</strong> Your conversation is saved in the browser (last 50 messages) so it&rsquo;s there when you come back, but it is <em>not</em> synced through the gist to your other devices &mdash; deliberately, to avoid bloating your synced data with chat transcripts. &ldquo;Clear chat&rdquo; wipes it.</li>
+          <li><strong>Friendly errors, never a stack trace.</strong> If Gemini is rate-limited or unreachable, you get a short in-panel note with a prominent &ldquo;Open full Gemini&rdquo; link rather than a technical error. No key set yet? The panel shows a one-line prompt to add one in Settings. No new dependencies; only <code>index.html</code> changed.</li>
         </ul>
         <!-- /HUB:RECENT_COMPLETED -->
       </div>
@@ -148,9 +148,9 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <h3>What's next</h3>
         <!-- HUB:WHATS_NEXT -->
         <ul>
-          <li><strong>Push v1.10 to GitHub</strong> (single-file commit of <code>index.html</code>), wait ~60s for GitHub Pages to refresh, then hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R).</li>
-          <li><strong>Verify all three features:</strong> (1) drag a widget card by its &#10303; grip and confirm the new order sticks after reload; (2) add a second watchlist from Settings, rename it, give it a couple of stocks, then delete it; (3) set a custom card color on a category and on a widget, then reset one back to &ldquo;Default (theme).&rdquo; Also confirm your existing single watchlist came across with its symbols intact and that Markets still works.</li>
-          <li><strong>Possible future tweak (not urgent):</strong> the Crypto widget re-fetches CoinGecko on every full render, and reordering now triggers more renders. If it ever starts feeling slow or hits a rate limit, add a shared cache like the 5-minute one the stock widgets already use. (Logged as an Open Item.)</li>
+          <li><strong>Generate your free Gemini key.</strong> Go to <a href="https://aistudio.google.com/app/apikey">aistudio.google.com/app/apikey</a> (free, no credit card), create a key, and copy it. (There&rsquo;s an inline walkthrough in Settings too.)</li>
+          <li><strong>Push v1.11 to GitHub</strong> (single-file commit of <code>index.html</code>), wait ~60s for GitHub Pages, hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R). Then open <strong>Settings &rarr; Gemini API key</strong>, paste the key, and Save.</li>
+          <li><strong>Verify the chat works.</strong> Click the floating bubble (bottom-right), ask a question, confirm you get a concise answer. <strong>This first real query is also the one empirical unknown:</strong> the Build Agent couldn&rsquo;t fully confirm the browser-direct call to Gemini works without CORS trouble. If it&rsquo;s blocked, you&rsquo;ll see a friendly &ldquo;Couldn&rsquo;t reach Gemini&rdquo; note with an &ldquo;Open full Gemini&rdquo; link &mdash; the fallback covers it, no fix needed. (Logged as an Open Item.)</li>
         </ul>
         <!-- /HUB:WHATS_NEXT -->
       </div>
@@ -195,6 +195,8 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <li><strong>GitHub repo</strong> (for code edits): <a href="https://github.com/TECGUNTHER/startdashboard">github.com/TECGUNTHER/startdashboard</a></li>
         <li><strong>GitHub Pages settings:</strong> <a href="https://github.com/TECGUNTHER/startdashboard/settings/pages">github.com/TECGUNTHER/startdashboard/settings/pages</a></li>
         <li><strong>Personal Access Tokens</strong> (to revoke or regenerate): <a href="https://github.com/settings/tokens">github.com/settings/tokens</a></li>
+        <li><strong>Finnhub signup</strong> (stock widgets): <a href="https://finnhub.io/register">finnhub.io/register</a></li>
+        <li><strong>Gemini API key</strong> (the Ask Gemini chat, v1.11 &mdash; free, no card): <a href="https://aistudio.google.com/app/apikey">aistudio.google.com/app/apikey</a> &rarr; paste into <strong>Settings &rarr; Gemini API key</strong></li>
         <li><strong>Find your gist ID:</strong> open the dashboard &rarr; <strong>Settings (&#9881;)</strong> &rarr; <strong>Sync &rarr; Gist ID</strong></li>
       </ul>
     </div>
@@ -221,6 +223,8 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <li><strong>Changes not appearing across browsers</strong> &middot; Reload the other browser. Sync polls every ~60s; reload is instant.</li>
         <li><strong>Markets / Watchlist say "Add your Finnhub API key"</strong> &middot; As of v1.9, stock widgets use Finnhub, not Twelve Data. Generate a free key at <a href="https://finnhub.io/register">finnhub.io/register</a> and paste it into Settings. The old Twelve Data key is ignored.</li>
         <li><strong>"Rate limit reached" on Markets / Watchlist</strong> &middot; Finnhub&rsquo;s free tier is 60 calls/min. The widget backs off and auto-refreshes once after 60 seconds &mdash; no action needed.</li>
+        <li><strong>Ask Gemini chat says "Add your free Gemini API key"</strong> &middot; No key set. Generate one free at <a href="https://aistudio.google.com/app/apikey">aistudio.google.com/app/apikey</a> and paste it into <strong>Settings &rarr; Gemini API key</strong>. The link-out button still works without a key.</li>
+        <li><strong>Chat says "Couldn&rsquo;t reach Gemini"</strong> &middot; Either a network hiccup, a rate limit, or the browser blocked the direct call (CORS). Use the <strong>"Open full Gemini"</strong> link in the note to continue in your real Gemini account.</li>
       </ul>
     </div>
     <!-- /HUB:HOW_TO_RUN -->
@@ -230,6 +234,35 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h2>Session Log</h2>
     <!-- HUB:SESSION_LOG -->
     <article class="session-entry latest">
+      <div class="date">2026-05-28 &middot; Thursday &middot; night</div>
+      <div class="focus">v1.11 &mdash; a built-in &ldquo;Ask Gemini&rdquo; AI chat panel inside the dashboard: floating bubble &rarr; slide-over panel, concise quick answers, per-device history, and a link-out to the full Gemini. Real Build Agent + Documentation Agent subagent flow.</div>
+      <h4>Completed</h4>
+      <ul>
+        <li><strong>In-dashboard AI chat panel.</strong> A floating chat bubble (bottom-right, theme- and accent-aware) opens a slide-over &ldquo;Ask Gemini&rdquo; panel from any persona. Header has the title, the model label, an &ldquo;Open full Gemini &#8599;&rdquo; button, and a close &#10005;; below that a scrollable message history, an input row (Enter sends, Shift+Enter for a newline, Escape/backdrop/&#10005; closes), and a &ldquo;Clear chat&rdquo; footer. The bubble is hidden on the setup and add-bookmark screens and shown only on the main dashboard. New functions include <code>openChatPanel</code>, <code>closeChatPanel</code>, <code>renderChatMessages</code>, <code>sendChatMessage</code>, and <code>clearChat</code>.</li>
+        <li><strong>Powered by Google&rsquo;s free Gemini API, browser-direct, no backend.</strong> Sends a <code>POST</code> to <code>generativelanguage.googleapis.com/&hellip;:generateContent</code> with the key in a header; default model is <code>gemini-2.5-flash</code>. It passes a system instruction that primes short, direct, search-style answers, plus the last ~10 turns for follow-up context. This keeps the dashboard&rsquo;s zero-backend design intact.</li>
+        <li><strong>Quick-answer tuning.</strong> A concise-answer system prompt (<code>GEMINI_SYSTEM_PROMPT</code>) makes replies short and direct by default &mdash; the same fast-answer feel as Google Search&rsquo;s AI, rather than long essays.</li>
+        <li><strong>Per-device chat history.</strong> The conversation is stored in this browser&rsquo;s localStorage (capped at the last 50 messages) so it survives reloads, but it is deliberately <em>not</em> synced through the gist &mdash; chat transcripts would bloat the synced data, and history is genuinely a per-device thing. &ldquo;Clear chat&rdquo; empties it.</li>
+        <li><strong>&ldquo;Open full Gemini&rdquo; link-out.</strong> The header button opens gemini.google.com for Tom&rsquo;s real, logged-in Gemini account &mdash; works even with no key set. The in-panel chat is a separate, fresh assistant with no access to that account&rsquo;s history.</li>
+        <li><strong>Settings: Gemini key + optional model field.</strong> A new &ldquo;Gemini API key&rdquo; password field (with an inline AI Studio walkthrough link &mdash; free, no card) and an optional model-override field sit just after the Finnhub key. Both follow the v1.8 non-destructive save rule: an empty field means &ldquo;no change,&rdquo; and an empty model falls back to the default.</li>
+        <li><strong>Friendly error handling.</strong> A 429 shows a rate-limited note; a network/CORS failure shows &ldquo;Couldn&rsquo;t reach Gemini&hellip;&rdquo; with a prominent &ldquo;Open full Gemini&rdquo; link; a missing key shows an empty-state prompt and makes no request. All errors render as in-panel notes &mdash; never a stack trace. All chat text is inserted as plain text; only the trusted link string uses markup.</li>
+        <li><strong>No new dependencies.</strong> Only <code>index.html</code> changed (grew to ~5,190 lines). New external service: Google Gemini (free tier). Markets/Finnhub, Crypto/CoinGecko, Weather/Open-Meteo, and gist sync are all unchanged.</li>
+      </ul>
+      <h4>Decisions made</h4>
+      <ul>
+        <li><strong>Gemini Flash, not Claude or OpenAI.</strong> It&rsquo;s free with no credit card, and it&rsquo;s the same model family behind the Google Search AI answers Tom already reaches for. Claude and OpenAI have no free tier, and the use case here is a fast quick answer &mdash; which Flash fits best.</li>
+        <li><strong>Browser-direct call with a graceful link-out fallback, instead of adding a backend.</strong> Keeps the dashboard&rsquo;s zero-backend architecture. Worst case (if the browser blocks the call) is a friendly message plus the &ldquo;Open full Gemini&rdquo; link &mdash; not a broken feature.</li>
+        <li><strong>Chat history per-device, not synced to the gist.</strong> Transcripts would bloat the synced data, and which conversation you&rsquo;re mid-way through is naturally a per-device thing.</li>
+        <li><strong>Concise system prompt.</strong> Tunes the assistant toward short, search-style answers by default rather than long-form responses.</li>
+        <li><strong>Model is a Settings override.</strong> The model name lives in a Settings field (defaulting to <code>gemini-2.5-flash</code>), so if Google renames or retires the model Tom can switch without a code change.</li>
+        <li><strong>CORS confirmed only on first real use.</strong> The Build Agent couldn&rsquo;t definitively prove the browser-direct <code>:generateContent</code> call works without Tom&rsquo;s own key. The commonly-reported Gemini CORS error is about the OpenAI-compat endpoint, not the native endpoint this build calls &mdash; but Tom&rsquo;s first query is the real test. The fallback makes a worst case graceful. (Logged as an Open Item.)</li>
+      </ul>
+      <h4>Tom action required</h4>
+      <ul>
+        <li>Generate a free Gemini key at <a href="https://aistudio.google.com/app/apikey">aistudio.google.com/app/apikey</a>, paste it into <strong>Settings &rarr; Gemini API key</strong>, and Save.</li>
+      </ul>
+    </article>
+
+    <article class="session-entry">
       <div class="date">2026-05-28 &middot; Thursday &middot; late evening</div>
       <div class="focus">v1.10 &mdash; the biggest release since v1.0: drag-to-reorder widget cards, multiple renamable watchlists, and per-card border/glow color. Real Build Agent + Documentation Agent subagent flow.</div>
       <h4>Completed</h4>
@@ -475,6 +508,13 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h2>Open Items</h2>
     <!-- HUB:OPEN_ITEMS -->
     <div class="open-item">
+      <span class="type-tag question">Question</span>
+      <div class="body">
+        <strong>Confirm the Gemini browser-direct call works on the first real query.</strong> The v1.11 chat calls Gemini directly from the browser; the Build Agent couldn&rsquo;t fully verify that path doesn&rsquo;t hit a CORS block without Tom&rsquo;s own key. If it&rsquo;s blocked, the &ldquo;Open full Gemini&rdquo; link-out fallback already covers it (a backend is deliberately not planned). Tom&rsquo;s first query settles it.
+        <div class="added">Added: 2026-05-28</div>
+      </div>
+    </div>
+    <div class="open-item">
       <span class="type-tag feature">Feature</span>
       <div class="body">
         <strong>Cache the Crypto widget&rsquo;s price fetches.</strong> The Crypto widget re-fetches CoinGecko on every full render, and v1.10&rsquo;s drag-to-reorder triggers more renders than before. Not a regression (this is pre-existing behavior), but more frequent now. If rate-limiting ever shows up, add a shared cache like the 5-minute one the stock widgets already use.
@@ -509,7 +549,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
 
 <footer>
   <div class="container">
-    Maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · late evening</span>
+    Maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · night</span>
   </div>
 </footer>
 

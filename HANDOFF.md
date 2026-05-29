@@ -24,7 +24,7 @@
 **Name:** StartDashboard
 **Folder:** `projects/personal-dashboard/` in Tom's `tom-workspace`
 **Current status:** Complete (in active use; iterating on polish)
-**Current phase:** Complete (with v1.10 shipped)
+**Current phase:** Complete (with v1.11 shipped)
 **Last updated:** 2026-05-28
 **Live URL:** https://tecgunther.github.io/startdashboard/
 **Code repo:** https://github.com/TECGUNTHER/startdashboard
@@ -44,31 +44,39 @@ A single-file web app that becomes Tom's home page across every browser and devi
 
 As of v1.10, the widget cards can be dragged to reorder, and any category or widget card can be given a custom border/glow color.
 
+**Also: an "Ask Gemini" AI chat panel (v1.11).** This is a **global panel, not a per-persona widget**. A floating chat bubble in the bottom-right corner opens a slide-over panel where Tom can ask a question and get a concise, search-style answer without leaving the dashboard. It's available from every persona, is powered by the free Google Gemini API, and has an "Open full Gemini" link-out to his real account.
+
 ---
 
 # Where We Are
 
-## Most recent session (2026-05-28 — v1.10)
+## Most recent session (2026-05-28 — v1.11)
 
-The biggest release since v1.0. Three new features, all per-persona and synced to the gist:
+Shipped a built-in **"Ask Gemini" AI chat panel** inside the dashboard.
 
-- **Drag widget cards to reorder them.** Each widget card header has a ⠿ grip; dragging is horizontal and position-aware. Order is stored in a new per-persona `widgetOrder` array and persists across reloads/browsers. Helpers: `buildWidgetCard`, `moveWidget`. The widget row, previously static HTML, is now built dynamically by `renderWidgets` from `widgetOrder` (this is the structural change that makes reorder and multiple watchlists possible).
-- **Multiple, renamable watchlists.** The old single `widgets.watchlist` became `persona.watchlists` — an array of `{ id, title, symbols[] }`, each rendered as its own card. A "+ Add watchlist" button in Settings (below the widget show/hide toggles) creates more. Each watchlist's ⚙ config gained a title rename (live as you type), the existing symbol management, and a delete-this-watchlist button (confirm-gated). Each watchlist card is keyed by a **composite key** `watchlist:<id>` used everywhere a widget is referenced. Markets stays a single, un-renamable index-proxy card. Helpers: `addWatchlist`, `deleteWatchlist`, `renderStockWidgetFor`.
-- **Per-card border/glow color.** Any category or widget card can carry a custom hex color (`category.color` for categories, a new `persona.widgetColors` map for widgets; absent/null = inherit the persona accent). A colored card gets a colored border + soft static glow. Categories: "..." menu → "Card color…" → popover. Widgets: each ⚙ gear has a "Card color" section; To-do and Notes (no config before) got a new color-only gear. The picker has preset swatches, a custom color picker, and a "Default (theme)" reset. Helpers: `applyCardColor`, `buildCardColorControl`, `openCategoryColorPopover`.
+- **Floating chat bubble → slide-over panel.** A bottom-right chat FAB (theme- and accent-aware, shown only on the main dashboard) opens a slide-over panel: header (title, model label, "Open full Gemini ↗", close ✕), scrollable history, an input row (Enter sends, Shift+Enter newline, Escape/backdrop/✕ closes), and a "Clear chat" footer.
+- **Powered by Google's free Gemini API, browser-direct, no backend.** `sendChatMessage` POSTs to `generativelanguage.googleapis.com/v1beta/models/<model>:generateContent` with the key in an `x-goog-api-key` header. Body is `{ system_instruction: { parts:[{text: GEMINI_SYSTEM_PROMPT}] }, contents: [ ...last ~10 turns as {role:'user'|'model', parts:[{text}]} ] }`; the reply is parsed from `candidates[0].content.parts[0].text`. Default model `gemini-2.5-flash`, overridable in Settings.
+- **Quick-answer tuning.** `GEMINI_SYSTEM_PROMPT` primes short, direct, search-style answers rather than long essays — the same fast-answer feel as Google Search's AI.
+- **Per-device chat history.** Stored in `sd_chat_history` (localStorage, capped at the last 50 messages, `CHAT_HISTORY_CAP`), so it survives reloads but is **not** synced through the gist (avoids transcript bloat). "Clear chat" empties it.
+- **"Open full Gemini ↗" link-out** opens gemini.google.com for Tom's real account — works even with no key set. The in-panel chat is a separate, fresh assistant with no access to that account's history.
+- **Settings:** a "Gemini API key" password field (with an inline AI Studio walkthrough link — free, no card) plus an optional model-override field, placed after the Finnhub key. Both follow the v1.8 non-destructive save rule (empty = no change; empty model falls back to the default).
+- **Friendly errors, never stack traces.** 429 → rate-limited note; network/CORS failure → "Couldn't reach Gemini…" with a prominent "Open full Gemini" link; missing key → empty-state prompt and no request; other non-OK → status + message. All as in-panel dashed note bubbles. Chat text is inserted as plain text; only the trusted link string uses markup.
 
-Schema migration is invisible: `ensurePersonaSchema` + `migrateWidgetOrder` convert the legacy singleton watchlist to one titled "Watchlist" (symbols preserved), give new personas one empty "Watchlist," remap any legacy bare `'watchlist'` key to the composite key(s), append missing built-ins/new watchlists to `widgetOrder`, and drop stale keys. Verified against pre-widget-order, mid-version, and empty personas; an old-shape persona never crashes. No new dependencies; only `index.html` changed (~4,120 → ~4,610 lines).
+No new dependencies; only `index.html` changed (~4,610 → ~5,190 lines). New external service: Google Gemini (free tier). Markets/Finnhub, Crypto/CoinGecko, Weather/Open-Meteo, and gist sync are all unchanged.
+
+**One empirical unknown:** the Build Agent could not definitively confirm the browser-direct `:generateContent` call works without hitting a CORS block (the commonly-reported Gemini CORS error is about the OpenAI-compat endpoint, not the native endpoint this build calls). The client was built per plan with a robust fallback, so the worst case is graceful (message + link-out). Tom's first real query settles it.
 
 ## Sessions before that
 
-- **v1.9 (2026-05-28, later evening):** Migrated stock data from Twelve Data to **Finnhub** (Twelve Data's free tier was 8 calls/min; Tom's ~12 symbols hit chronic HTTP 429s — Finnhub is 60/min, also free). Added a shared 5-minute localStorage stock-quote cache (`sd_quote_cache`) across all tabs/reloads. On a rate limit, the widget backs off 60s instead of retrying immediately. Overhauled drag-to-reorder with visible ⠿ grip handles on categories, bookmarks, and config lists. **Tom must paste a free Finnhub key (finnhub.io/register) into Settings.**
-- **v1.8 hotfix (2026-05-28, evening):** Empty Settings key field no longer wipes the stored API key. Finance widgets gained a one-shot cold-start retry at 2s. Active persona tab restyled to a soft-accent fill + accent outline + bold text. New `INSTALL-FOR-OTHERS.md` guide. (v1.9 dropped the stock-widget retry; crypto kept it.)
-- **v1.7 hotfix (2026-05-28, late afternoon):** Negative finance prices fixed to 2 decimals (`formatPrice()` branches on `Math.abs()` and re-applies sign). Bookmark description popover spacing bumped to 28px to clear Safari's native ellipsis tooltip. Active persona tab made solid-accent to fix "no tab selected on first frame" (softened in v1.8).
+- **v1.10 (2026-05-28, late evening):** Biggest release since v1.0. Three per-persona, gist-synced features: (1) **drag widget cards to reorder** (each card header has a ⠿ grip; order stored in a new `widgetOrder` array); (2) **multiple, renamable watchlists** (the old single `widgets.watchlist` became `persona.watchlists`, an array of `{id, title, symbols[]}`, each keyed by a composite `watchlist:<id>`; "+ Add watchlist" in Settings); (3) **per-card border/glow color** (`category.color` + a `persona.widgetColors` map; picker with swatches + custom color + "Default (theme)" reset). The widget row is now built dynamically by `renderWidgets`. Migration is invisible (`ensurePersonaSchema` + `migrateWidgetOrder`). Only `index.html` changed.
+- **v1.9 (2026-05-28, later evening):** Migrated stock data from Twelve Data to **Finnhub** (Twelve Data's free tier was 8 calls/min; Tom's ~12 symbols hit chronic HTTP 429s — Finnhub is 60/min, also free). Added a shared 5-minute localStorage stock-quote cache (`sd_quote_cache`). On a rate limit the widget backs off 60s. Overhauled drag-to-reorder with visible ⠿ grip handles. **Tom must paste a free Finnhub key (finnhub.io/register) into Settings.**
+- **v1.8 hotfix (2026-05-28, evening):** Empty Settings key field no longer wipes the stored API key. Finance widgets gained a one-shot cold-start retry at 2s. Active persona tab restyled to a soft-accent fill + accent outline + bold text. New `INSTALL-FOR-OTHERS.md` guide.
 
 ## Immediate next step
 
-1. **Push v1.10 to GitHub** (single-file commit of `index.html`), wait ~60s for Pages, hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R).
-2. **Verify all three features:** (a) drag a widget card by its ⠿ grip and confirm the order sticks after reload; (b) add a second watchlist from Settings, rename it, add a couple of stocks, then delete it; (c) set a custom card color on a category and a widget, then reset one to "Default (theme)." Also confirm the existing single watchlist migrated with its symbols intact and Markets still works.
-3. **(If a Finnhub key isn't already set)** generate a free key at finnhub.io/register and paste it into Settings — Markets/Watchlists need it.
+1. **Generate a free Gemini key** at https://aistudio.google.com/app/apikey (no credit card).
+2. **Push v1.11 to GitHub** (single-file commit of `index.html`), wait ~60s for Pages, hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R). Open **Settings → Gemini API key**, paste the key, Save.
+3. **Verify the chat:** click the floating bubble (bottom-right), ask a question, confirm a concise answer comes back. This first query also confirms the browser-direct CORS path; if it's blocked you'll get a friendly "Couldn't reach Gemini" note with an "Open full Gemini" link — the fallback covers it, no fix needed.
 
 ---
 
@@ -79,19 +87,23 @@ Schema migration is invisible: `ensurePersonaSchema` + `migrateWidgetOrder` conv
 - **Per-persona widgets, backgrounds, accent colors, visibility, order, and per-card colors** — the whole point of personas is mental separation. Each persona is fully independent.
 - **Per-device default persona** (localStorage) — Tom's work Mac opens to Work, iPhone opens to Personal. Not synced through the gist.
 - **Per-device theme choice** (localStorage, v1.6) — light vs dark is a per-environment preference, not a per-account one.
-- **Multiple watchlists via an array + composite `watchlist:<id>` keys (v1.10)** — the single `widgets.watchlist` became `persona.watchlists` (an array). Each watchlist is addressed everywhere by a composite key so it participates in the same reorder/hide/color/config machinery as a built-in widget, without special-casing it throughout the code.
-- **Widget row converted from static HTML to fully dynamic rendering (v1.10)** — `renderWidgets` rebuilds every card from `persona.widgetOrder`. Required to support both card reorder and multiple watchlist instances. Side effects: the Notes textarea is regenerated each render (keeps its `notes-textarea` id), and closing a widget config now does a full `render()` so title/color/symbol edits propagate at once.
-- **Markets kept as a singleton, not folded into watchlists (v1.10)** — Markets is the fixed index-proxy view (SPY/QQQ/DIA); watchlists are user-curated lists. Different purposes; combining them would muddy both.
-- **Per-card color stored in `persona.widgetColors` map + `category.color` (v1.10)** — all widget colors live in one per-persona map keyed by widget key (including composite watchlist keys); categories use `category.color`. Absent/null = inherit accent. One predictable location for the picker, the reset, and migration. Glow is a static `box-shadow` — deliberately no animation.
-- **Finnhub for stocks, replacing Twelve Data (v1.9)** — Twelve Data's free tier was 8 calls/min; Tom's ~12 symbols blew past it and hit chronic HTTP 429s. Finnhub's free tier is 60/min (also free, no credit card). Both REST APIs, so this was a swap with no new dependency. CoinGecko (crypto, no key) is unchanged.
-- **Shared 5-minute localStorage quote cache (v1.9)** — replaced the old per-tab in-memory cache. Multiple tabs/reloads were multiplying API calls toward the rate limit; a shared 5-min cache means only stale/missing symbols hit the network. (Covers stock quotes only, not crypto.)
-- **On a 429, back off 60 seconds instead of retrying immediately (v1.9)** — v1.8's 2-second retry made rate-limiting worse. One delayed refresh recovers cleanly. Per-symbol failures degrade to "—" instead of retrying.
-- **Visible ⠿ grip handles for drag-to-reorder (v1.9)** — bare HTML5 drag had no affordance; Tom couldn't find what to grab. An explicit grip on categories, bookmarks, and config-list items (and, in v1.10, widget card headers) makes the target obvious; a drop-indicator line shows where it'll land.
-- **Light mode replaces the persona background with a single clean light surface** (v1.6) — not per-persona light gradients (would double config burden). Persona accent color is preserved in both themes.
-- **CSS palette tokenized for theming** (v1.6) — the whole `body.light-mode` skin is one override block. Future themes are cheap.
+- **Ask Gemini uses Gemini Flash, not Claude or OpenAI (v1.11)** — it's free with no credit card, and it's the same model family behind the Google Search AI answers Tom already reaches for, so it fits the "fast quick answer" use case. Claude/OpenAI have no free tier. The model name is a Settings override field defaulting to `gemini-2.5-flash`, so a Google rename doesn't require a code change.
+- **Browser-direct Gemini call with a graceful link-out fallback, not a backend (v1.11)** — preserves the zero-backend, single-file architecture. If the browser blocks the call (CORS), the panel shows a friendly message plus the "Open full Gemini" link rather than breaking. CORS on the native `:generateContent` endpoint is unconfirmed until Tom's first real query; the fallback makes the worst case graceful.
+- **Chat history per-device in localStorage, not synced to the gist (v1.11)** — transcripts would bloat the synced data on every save, and the in-progress conversation is naturally a per-device thing (same reasoning as the per-device theme and default persona).
+- **Quick-answer system prompt (v1.11)** — `GEMINI_SYSTEM_PROMPT` tunes Gemini toward short, direct, search-style replies; only the last ~10 turns are sent for follow-up context.
+- **Multiple watchlists via an array + composite `watchlist:<id>` keys (v1.10)** — the single `widgets.watchlist` became `persona.watchlists`. Each watchlist is addressed everywhere by a composite key so it participates in the same reorder/hide/color/config machinery as a built-in widget, without special-casing throughout the code.
+- **Widget row converted from static HTML to fully dynamic rendering (v1.10)** — `renderWidgets` rebuilds every card from `persona.widgetOrder`. Required to support both card reorder and multiple watchlist instances. Side effects: the Notes textarea is regenerated each render (keeps its `notes-textarea` id), and closing a widget config does a full `render()` so edits propagate at once.
+- **Markets kept as a singleton, not folded into watchlists (v1.10)** — Markets is the fixed index-proxy view (SPY/QQQ/DIA); watchlists are user-curated. Different purposes; combining them would muddy both.
+- **Per-card color stored in `persona.widgetColors` map + `category.color` (v1.10)** — all widget colors in one per-persona map keyed by widget key (incl. composite watchlist keys); categories use `category.color`. Absent/null = inherit accent. Glow is a static `box-shadow` — no animation.
+- **Finnhub for stocks, replacing Twelve Data (v1.9)** — Twelve Data's free tier was 8 calls/min; Tom's ~12 symbols blew past it (chronic HTTP 429s). Finnhub's free tier is 60/min (also free, no card). Both REST APIs, so a swap with no new dependency. CoinGecko (crypto, no key) unchanged.
+- **Shared 5-minute localStorage quote cache (v1.9)** — replaced the old per-tab in-memory cache. Multiple tabs/reloads were multiplying API calls; a shared 5-min cache means only stale/missing symbols hit the network. (Stock quotes only, not crypto.)
+- **On a 429, back off 60 seconds instead of retrying immediately (v1.9)** — v1.8's 2-second retry made rate-limiting worse. Per-symbol failures degrade to "—".
+- **Visible ⠿ grip handles for drag-to-reorder (v1.9)** — bare HTML5 drag had no affordance. Explicit grips on categories, bookmarks, config-list items, and (v1.10) widget card headers; a drop-indicator line shows where it'll land.
+- **Light mode replaces the persona background with one clean light surface (v1.6)** — not per-persona light gradients (would double config burden). Accent color preserved in both themes.
+- **CSS palette tokenized for theming (v1.6)** — the whole `body.light-mode` skin is one override block.
 - **Bookmarklet over a browser extension** — one JS snippet works everywhere; no per-browser build burden.
 - **Backgrounds: CSS-only presets + image URL only (no upload)** — image upload would bloat the gist with base64 on every save.
-- **API key per-browser in localStorage (parallel to GitHub PAT)** — rate limits are per-key; don't sync credentials through a gist.
+- **API key per-browser in localStorage (parallel to GitHub PAT)** — rate limits are per-key; don't sync credentials through a gist. Applies to the Finnhub and Gemini keys too.
 - **Markets uses ETF proxies (SPY, QQQ, DIA)** for major indices since the actual indices need higher API tiers.
 - **Clock zones stored as {name, tz} objects (since v1.3)** — allows multiple cities in the same timezone to render as separate rows.
 - **`formatPrice` shows 2 decimals ≥ $0.01, 4 below; negative-aware formatters branch on `Math.abs()` and re-apply the sign (v1.6/v1.7)** — prices that look like prices; negatives don't fall through to the wrong branch.
@@ -111,19 +123,20 @@ Schema migration is invisible: `ensurePersonaSchema` + `migrateWidgetOrder` conv
   - Open-Meteo (free weather + geocoding, no key) — `api.open-meteo.com` + `geocoding-api.open-meteo.com`
   - CoinGecko (free crypto prices + search, no key) — `api.coingecko.com`
   - **Finnhub** (stock quotes + symbol search, free tier with key, 60 calls/min) — `finnhub.io/api/v1/quote` + `finnhub.io/api/v1/search` *(replaced Twelve Data in v1.9)*
+  - **Google Gemini** (AI chat, free tier with key, browser-direct, no backend) — `generativelanguage.googleapis.com/v1beta/models/<model>:generateContent`, default model `gemini-2.5-flash` *(since v1.11)*
   - Google Favicon service (best-effort bookmark icons) — `www.google.com/s2/favicons`
-- **Storage:** One private GitHub gist on Tom's account (`TECGUNTHER`); per-browser localStorage holds the GitHub PAT, gist ID, default persona, Finnhub API key, theme choice, and a shared 5-minute stock-quote cache. (The legacy Twelve Data key is still read for backward-compat but unused.)
+- **Storage:** One private GitHub gist on Tom's account (`TECGUNTHER`); per-browser localStorage holds the GitHub PAT, gist ID, default persona, Finnhub API key, Gemini API key + model + chat history, theme choice, and a shared 5-minute stock-quote cache. (The legacy Twelve Data key is still read for backward-compat but unused.)
 - **Hosting:** GitHub Pages (free static), public repo at `github.com/TECGUNTHER/startdashboard`
 
 ## Data model notes (v1.10)
 
-Each persona now carries: `categories` (each with an optional `color`), `widgets` (clock, weather, todos, notes, crypto, markets — the old `watchlist` key is gone), `watchlists` (array of `{ id, title, symbols[] }`), `widgetOrder` (array of widget keys incl. composite `watchlist:<id>` keys), `widgetColors` (map of widgetKey → hex), and `hiddenWidgets` (now also holds composite `watchlist:<id>` keys).
+Each persona carries: `categories` (each with an optional `color`), `widgets` (clock, weather, todos, notes, crypto, markets — the old `watchlist` key is gone), `watchlists` (array of `{ id, title, symbols[] }`), `widgetOrder` (array of widget keys incl. composite `watchlist:<id>` keys), `widgetColors` (map of widgetKey → hex), and `hiddenWidgets` (also holds composite `watchlist:<id>` keys). The Gemini chat is global, not per-persona, and its history lives outside the gist in localStorage.
 
 ## File structure (key files only)
 
 ```
 projects/personal-dashboard/
-├── index.html               — the entire app (HTML + CSS + JS in one file, ~4,610 lines)
+├── index.html               — the entire app (HTML + CSS + JS in one file, ~5,190 lines)
 ├── README.md                — Tom's own TECGUNTHER-specific setup walkthrough
 ├── INSTALL-FOR-OTHERS.md    — clean install guide for someone else to fork and run their own
 ├── PROJECT-HUB.html         — project dashboard for Tom
@@ -133,7 +146,8 @@ projects/personal-dashboard/
 │   └── USER-EXPERIENCE.html — features, screens, workflows, scope
 └── plans/
     ├── 2026-05-27-personal-dashboard-v1.md            — original v1.0 build plan
-    └── 2026-05-28-v1.10-widgets-watchlists-colors.md  — the v1.10 plan (this session)
+    ├── 2026-05-28-v1.10-widgets-watchlists-colors.md  — the v1.10 plan
+    └── 2026-05-28-v1.11-gemini-chat-panel.md          — the v1.11 plan (this session)
 ```
 
 ---
@@ -147,6 +161,7 @@ projects/personal-dashboard/
 - **GitHub Pages settings:** https://github.com/TECGUNTHER/startdashboard/settings/pages
 - **GitHub tokens** (to revoke/regenerate): https://github.com/settings/tokens
 - **Finnhub signup:** https://finnhub.io/register
+- **Gemini API key (free, no card):** https://aistudio.google.com/app/apikey
 - **Find your gist ID:** open the dashboard → Settings (⚙) → Sync → Gist ID
 
 ## Port: none (static page served by GitHub Pages)
@@ -163,7 +178,7 @@ git push -u origin main
 
 Then in GitHub: **Settings → Pages → Deploy from a branch → main / (root)**.
 
-Generate a Personal Access Token at `github.com/settings/tokens` with `gist` read/write scope, and paste it into the dashboard's setup screen. For the stock widgets, generate a free Finnhub key at `finnhub.io/register` and paste it into Settings.
+Generate a Personal Access Token at `github.com/settings/tokens` with `gist` read/write scope, and paste it into the dashboard's setup screen. For the stock widgets, generate a free Finnhub key at `finnhub.io/register` and paste it into Settings. For the Ask Gemini chat, generate a free Gemini key at `aistudio.google.com/app/apikey` and paste it into Settings → Gemini API key.
 
 ## To launch
 
@@ -196,6 +211,8 @@ Then hard-reload the dashboard (Safari: Option+Cmd+R, Chrome: Cmd+Shift+R). GitH
 - **A single stock row shows "—" (v1.9)** → That one symbol's quote call failed (bad ticker or transient error). The rest of the widget still renders; the dash means "no data for this symbol," not a widget-wide failure.
 - **Crypto widget hangs on "Loading…" for ~2 seconds (v1.8)** → CoinGecko's cold-start retry doing its job (one retry at 2s before a red error). Stocks no longer do this immediate retry as of v1.9.
 - **An old single watchlist seems to have "moved" after the v1.10 update** → expected. v1.10 turned the one watchlist into a list of watchlists; your old one is now the first entry (titled "Watchlist") with its symbols intact. Add more via Settings → "+ Add watchlist."
+- **Ask Gemini chat says "Add your free Gemini API key" (v1.11)** → No key set. Generate one free at aistudio.google.com/app/apikey and paste it into Settings → Gemini API key. The "Open full Gemini" link-out works even without a key.
+- **Chat says "Couldn't reach Gemini" (v1.11)** → A network hiccup, a rate limit, or the browser blocked the direct call (CORS). Use the "Open full Gemini" link in the note to continue in your real Gemini account.
 
 ---
 
@@ -209,12 +226,14 @@ Then hard-reload the dashboard (Safari: Option+Cmd+R, Chrome: Cmd+Shift+R). GitH
 - `docs/TECHNICAL.html` — architecture, decisions, file map, how-to-modify
 - `docs/USER-EXPERIENCE.html` — what the app does, plain English
 - `plans/2026-05-27-personal-dashboard-v1.md` — the approved v1.0 build plan
-- `plans/2026-05-28-v1.10-widgets-watchlists-colors.md` — the approved v1.10 plan (widget reorder, multiple watchlists, per-card colors)
+- `plans/2026-05-28-v1.10-widgets-watchlists-colors.md` — the approved v1.10 plan
+- `plans/2026-05-28-v1.11-gemini-chat-panel.md` — the approved v1.11 plan (Gemini chat panel)
 
 ---
 
 # Open Items
 
+- **(Question)** Confirm the Gemini browser-direct call works on the first real query (v1.11). If the browser blocks it (CORS), the "Open full Gemini" link-out fallback already covers it; no backend planned. (added 2026-05-28)
 - **(Feature)** Cache the Crypto widget's price fetches — it re-fetches CoinGecko on every full render, and v1.10's drag-to-reorder triggers more renders. Add a shared cache like the stock widgets' 5-minute one if rate-limiting appears. (added 2026-05-28)
 - **(Low priority)** iPhone slim mode — deferred indefinitely (Tom's phone is inbound-link-driven, not outbound surfing). (added 2026-05-27)
 - **(Question)** Mobile Safari drag-drop behavior on iPhone — only matters if Tom starts managing bookmarks on phone. (added 2026-05-27)
@@ -237,17 +256,19 @@ Then hard-reload the dashboard (Safari: Option+Cmd+R, Chrome: Cmd+Shift+R). GitH
 - Single-file HTML by design — don't suggest splitting into modules unless there's a real reason.
 - Workspace's persistent documents (PROJECT-HUB, MASTER-HUB, TECHNICAL, UX) use a light/restrained aesthetic. The dashboard *app itself* (`index.html`) is dark/modern/tech by default, with a v1.6 light-mode option that pulls from the same workspace palette. Don't mix the visual systems in either direction.
 - Tom is the only user. No multi-user features, no sharing model.
-- All data lives on Tom's GitHub account. Don't add third-party services without checking first.
-- He prefers per-persona settings over global. **Exceptions:** theme (light/dark) and credentials (GitHub PAT, Finnhub key) are per-browser globals stored in localStorage, not synced through the gist.
+- All data lives on Tom's GitHub account. Don't add third-party services without checking first. (v1.11's Gemini chat adds one external service — Google's free Gemini API — called browser-direct with no backend; the key is per-browser like the others.)
+- He prefers per-persona settings over global. **Exceptions:** theme (light/dark), credentials (GitHub PAT, Finnhub key, Gemini key), and the Ask Gemini chat + its history are per-browser/per-device globals stored in localStorage, not synced through the gist.
 - Markets is intentionally a single, fixed index-proxy card (SPY/QQQ/DIA) — don't make it renamable or multiple. Watchlists are the renamable/multiple concept (v1.10).
+- The Ask Gemini chat is a global panel, not a widget — it doesn't go through the persona/widget order/visibility machinery, and it's a fresh assistant with no link to Tom's personal Gemini account history.
 
 ## Multi-agent flow (as of v1.6)
 
-- For major changes Tom expects the actual multi-agent flow: **Design Agent** plans, Tom approves, **Build Agent** subagent writes code and returns a standard Agent Report, **Documentation Agent** subagent updates docs from that report. v1.1–v1.5 were done by one Claude playing all roles; v1.6 onward use real subagents. v1.10 followed this flow. Tom wants this to be the pattern going forward.
+- For major changes Tom expects the actual multi-agent flow: **Design Agent** plans, Tom approves, **Build Agent** subagent writes code and returns a standard Agent Report, **Documentation Agent** subagent updates docs from that report. v1.1–v1.5 were done by one Claude playing all roles; v1.6 onward use real subagents. v1.10 and v1.11 followed this flow. Tom wants this to be the pattern going forward.
 
 ## What he's likely to want next
 
 - More polish based on actual use (he iterates fast when he finds friction).
+- Confirming the Gemini chat works on first use (the one open empirical question); possibly tuning the system prompt or default model afterward.
 - Possibly the Crypto cache (see Open Items) if reorder-driven re-fetching gets noticeable.
 - Eventually: a Custom embed widget for arbitrary iframes (calendar, RSS).
 - Maybe: more financial widgets (international markets, futures, FX) if he leans further into Investments.
