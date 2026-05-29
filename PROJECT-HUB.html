@@ -111,7 +111,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
       <span class="status-pill complete">Complete</span>
       <!-- /HUB:STATUS_OVERALL -->
       <!-- HUB:LAST_UPDATED -->
-      <span class="last-updated">2026-05-28 · Thu · late night</span>
+      <span class="last-updated">2026-05-29 · Fri</span>
       <!-- /HUB:LAST_UPDATED -->
     </div>
   </div>
@@ -136,6 +136,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <h3>Recently completed</h3>
         <!-- HUB:RECENT_COMPLETED -->
         <ul>
+          <li><strong>v1.13 shipped &mdash; the Ask Gemini chat now rides out Google&rsquo;s overload blips.</strong> When Google&rsquo;s servers briefly say &ldquo;this model is experiencing high demand&rdquo; (a transient 503 &mdash; Google&rsquo;s side, not yours), the chat no longer shows you that error. It quietly retries up to twice (about 1.5s then 3s apart), keeping the &ldquo;thinking&hellip;&rdquo; indicator up, and most blips clear on the first retry. If it still can&rsquo;t get through, you get a plain-English note &mdash; &ldquo;Google&rsquo;s servers are briefly overloaded &mdash; this is on Google&rsquo;s side, not you. Try again in a moment.&rdquo; &mdash; with a one-click <strong>Retry</strong> button and the &ldquo;Open full Gemini&rdquo; link. Rate-limit (429) and connection errors behave exactly as before. Only <code>index.html</code> changed; no new keys or dependencies.</li>
           <li><strong>v1.12 shipped &mdash; richer weather forecast.</strong> Each day in the weather forecast now shows a condition icon (&#9728;&#65039;, &#9925;, &#9729;&#65039;, &#127783;&#65039;, etc.) plus a short label, alongside the high/low it already showed, and a chance-of-rain line (&ldquo;&#127783; NN%&rdquo;). The current-conditions line gained a matching icon too. If a day has no rain-chance data, that line is simply left off. Only <code>index.html</code> changed; no new keys or dependencies.</li>
           <li><strong>v1.11 shipped &mdash; a built-in &ldquo;Ask Gemini&rdquo; AI chat panel.</strong> A floating chat bubble in the bottom-right corner opens a slide-over panel where you can ask a question and get a concise, search-style answer without leaving the dashboard. Available from every persona. Powered by Google&rsquo;s free Gemini API.</li>
           <li><strong>Tuned for quick answers.</strong> The assistant is primed (via a system instruction) to give short, direct, search-style replies rather than long essays &mdash; the same kind of fast answer you get from Google Search&rsquo;s AI. Follow-up questions keep recent context (it sends the last ~10 turns).</li>
@@ -149,8 +150,8 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <h3>What's next</h3>
         <!-- HUB:WHATS_NEXT -->
         <ul>
-          <li><strong>Push v1.12 and verify the weather detail.</strong> Commit the single-file <code>index.html</code> change, wait ~60s for GitHub Pages, hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R), then check a Weather widget: each forecast day should show a condition icon + short label + high/low + a &ldquo;&#127783; NN%&rdquo; chance-of-rain line, and the current line should show a matching icon.</li>
-          <li><strong>Still pending from v1.11: the Gemini key + chat verify.</strong> If you haven&rsquo;t yet, generate a free Gemini key at <a href="https://aistudio.google.com/app/apikey">aistudio.google.com/app/apikey</a> (no credit card), paste it into <strong>Settings &rarr; Gemini API key</strong>, then click the floating bubble and ask a question. That first real query is also the one empirical unknown &mdash; if the browser blocks the direct call you&rsquo;ll get a friendly &ldquo;Couldn&rsquo;t reach Gemini&rdquo; note with an &ldquo;Open full Gemini&rdquo; link, which covers it. (Logged as an Open Item.)</li>
+          <li><strong>Push v1.13 and verify the chat recovers from a 503.</strong> Commit the single-file <code>index.html</code> change, wait ~60s for GitHub Pages, hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R), then use the Ask Gemini chat normally. If you hit one of Google&rsquo;s &ldquo;high demand&rdquo; moments, the chat should keep showing &ldquo;thinking&hellip;&rdquo; and recover on its own rather than surfacing the error; in the rare case it can&rsquo;t, you&rsquo;ll get the plain-English overloaded note with a working <strong>Retry</strong> button.</li>
+          <li><strong>Future option (not started): a backup / export of your dashboard data.</strong> A way to download your persona/bookmark data from the gist as a file (and re-import it) for peace of mind. Noted as a possible next build whenever you want it.</li>
         </ul>
         <!-- /HUB:WHATS_NEXT -->
       </div>
@@ -234,6 +235,29 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h2>Session Log</h2>
     <!-- HUB:SESSION_LOG -->
     <article class="session-entry latest">
+      <div class="date">2026-05-29 &middot; Friday</div>
+      <div class="focus">v1.13 &mdash; Ask Gemini chat resilience: it now auto-retries Google&rsquo;s transient &ldquo;model overloaded&rdquo; 503s instead of surfacing them, with a Retry button if retries run out. Also closed the v1.11 Gemini CORS open question &mdash; Tom confirmed the chat works in his browser. Real Build Agent + Documentation Agent subagent flow.</div>
+      <h4>Completed</h4>
+      <ul>
+        <li><strong>Auto-retry on Google&rsquo;s &ldquo;overloaded&rdquo; 503.</strong> A new <code>chatIsOverload(res)</code> check treats a non-OK reply as overloaded if it&rsquo;s HTTP 503 or its error text contains &ldquo;overloaded&rdquo;/&ldquo;high demand&rdquo; (case-insensitive). When that happens the chat waits a short backoff (<code>CHAT_OVERLOAD_BACKOFFS = [1500, 3000]</code> ms plus up to 500ms random jitter) and re-issues the same request, up to <code>CHAT_OVERLOAD_MAX_RETRIES = 2</code> (so 1 initial try + up to 2 retries = 3 total). Most transient blips clear on the first retry.</li>
+        <li><strong>No error flashes mid-retry.</strong> The &ldquo;Gemini is thinking&hellip;&rdquo; indicator is created once before the retry loop and removed only at a terminal outcome, so it stays up across retries &mdash; the user never sees an interim error.</li>
+        <li><strong>Plain-English give-up note + Retry button.</strong> If all retries fail, a new <code>appendOverloadNote()</code> shows a dashed note bubble: &ldquo;Google&rsquo;s servers are briefly overloaded &mdash; this is on Google&rsquo;s side, not you. Try again in a moment,&rdquo; with an &ldquo;Open full Gemini &#8599;&rdquo; link-out and a <strong>Retry</strong> button. Retry re-runs the request directly (it removes its own note first, doesn&rsquo;t re-add the user&rsquo;s message, and is guarded by <code>chatSending</code>). New CSS: <code>.chat-msg.note .chat-retry</code> (+ <code>:disabled</code>), styled like the send button from theme tokens &mdash; light and dark safe.</li>
+        <li><strong>Internal refactor to make Retry clean.</strong> <code>sendChatMessage</code> was split into <code>sendChatMessage</code> (validates, pushes the user turn to history exactly once) and <code>runChatRequest</code> (builds and issues the API call with the last ~10 turns and holds the retry loop). This lets the Retry button reuse the request without duplicating the user&rsquo;s message.</li>
+        <li><strong>Everything else unchanged.</strong> 429 rate-limit handling (no retry) and network/CORS handling are untouched. No new dependencies, no new keys; only <code>index.html</code> changed (chat CSS + chat JS).</li>
+      </ul>
+      <h4>Decisions made</h4>
+      <ul>
+        <li><strong>Short auto-retry, not long exponential backoff.</strong> A chat needs to feel responsive, so retries are capped at 2 with ~1.5s/3s waits rather than 30s+ exponential backoff.</li>
+        <li><strong>No automatic model-switching fallback.</strong> The default <code>gemini-2.5-flash</code> tier is already relatively stable; auto-retry on the same model is the targeted fix, and swapping models is out of scope.</li>
+        <li><strong>503 is distinct from 429.</strong> A 503 (Google overloaded) auto-retries; a 429 (your rate limit) does not &mdash; retrying a rate limit just makes it worse.</li>
+      </ul>
+      <h4>Resolved</h4>
+      <ul>
+        <li><strong>v1.11 open question closed: the Gemini browser-direct call works.</strong> Tom confirmed the Ask Gemini chat works in his browser &mdash; the native <code>:generateContent</code> endpoint is not CORS-blocked. That open item is now removed from the Open Items list. (The graceful link-out fallback remains for any future connection hiccup.)</li>
+      </ul>
+    </article>
+
+    <article class="session-entry">
       <div class="date">2026-05-28 &middot; Thursday &middot; late night</div>
       <div class="focus">v1.12 &mdash; weather forecast detail: each day now shows a condition icon + short label and a chance-of-rain line, alongside the existing high/low. Real Build Agent + Documentation Agent subagent flow.</div>
       <h4>Completed</h4>
@@ -321,197 +345,47 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
 
     <article class="session-entry">
       <div class="date">2026-05-28 &middot; Thursday &middot; evening</div>
-      <div class="focus">v1.8 hotfix &mdash; API key persistence, cold-start retry on finance widgets, and a calmer active-tab style (three small fixes on top of v1.7), plus a new install guide for third-party users.</div>
-      <h4>Completed</h4>
-      <ul>
-        <li><strong>Settings no longer wipes the Twelve Data API key when the field is left empty.</strong> In v1.7, <code>saveSettings</code> read the input, and on an empty trimmed value it called <code>localStorage.removeItem(LS.TWELVE_DATA_KEY)</code> and set <code>state.twelveDataKey = null</code> &mdash; meaning every time Tom opened Settings to change something else and hit Save, the API key got nuked (Safari's <code>type=&quot;password&quot;</code> fields don't reliably re-populate from autofill). v1.8 deletes that destructive <code>else</code> branch entirely: empty input means &ldquo;no change.&rdquo; Only a non-empty trimmed value updates the stored key. A comment above the block calls out the Safari rationale and points users at Danger Zone &rarr; Reset browser if they ever genuinely need to clear the key.</li>
-        <li><strong>Cold-start retry on Crypto, Markets, and Watchlist.</strong> Refactored <code>renderCryptoWidget</code> and <code>renderTwelveDataWidget</code> to wrap the fetch + render body in an internal <code>doFetch(isRetry)</code> async helper. On the first failure, the widget restores its &ldquo;Loading prices&hellip;&rdquo; / &ldquo;Loading quotes&hellip;&rdquo; placeholder and schedules <code>setTimeout(() =&gt; doFetch(true), 2000)</code>. On the second failure (<code>isRetry === true</code>), it falls through to the existing <code>fin-error</code> message. Exactly one retry per widget per load, at 2000ms. Both Markets and Watchlist inherit this automatically since they both route through <code>renderTwelveDataWidget</code>. The <code>_tdCache</code> / <code>TD_CACHE_MS</code> logic in <code>fetchTwelveDataQuotes</code> is untouched &mdash; retry sits above that layer. Why this matters: Tom kept seeing red &ldquo;Could not load&rdquo; states on first load that resolved on a second manual reload &mdash; classic transient first-fetch flake on a cold tab.</li>
-        <li><strong>Active persona tab restyled to a soft fill, not a solid slab.</strong> v1.7's solid <code>var(--accent)</code> fill with <code>var(--on-accent)</code> text was high-contrast but visually loud against the rest of the row. v1.8 keeps the <code>font-weight: 600</code> bolding but dials the colors back: background is now <code>var(--accent-soft)</code>, text is <code>var(--text-primary)</code>, border keeps <code>var(--accent)</code> for the outline. The active-tab dot reverted from <code>var(--on-accent)</code> back to <code>var(--accent)</code> (it now reads on the soft fill instead of the solid slab); <code>opacity: 1</code> on the dot is preserved. The comment above the rule was rewritten to describe the new soft-fill + accent-outline intent.</li>
-        <li><strong>Install guide for third-party users added.</strong> New file <code>INSTALL-FOR-OTHERS.md</code> at the project root &mdash; a self-contained walkthrough someone else can follow to fork the repo, enable GitHub Pages on their own fork, generate their own PAT, and run their own private StartDashboard with their own gist. README stays Tom-specific (with a note at the top pointing newcomers at the new file). Fourth doc card added to PROJECT-HUB's Documentation row. Doc audit also ran clean: fixed three small staleness issues &mdash; the v1.0 weather-widget workflow in UX (replaced with the v1.1+ city-search flow), the &ldquo;four widgets baked in&rdquo; line (it's been seven since v1.2), and the TECHNICAL line-count claim (3,750 &rarr; 3,860).</li>
-      </ul>
-      <h4>Decisions made</h4>
-      <ul>
-        <li><strong>Empty Settings input means &ldquo;no change&rdquo; for credentials.</strong> Don't make a save operation accidentally destructive. The only way to explicitly clear the API key is Danger Zone &rarr; Reset browser, where destructive intent is unambiguous. Reusable principle for any future credential UI.</li>
-        <li><strong>Cold-start retry: one retry, 2000ms, then fall through to the existing error.</strong> Two retries would mask real outages too long; zero retries leaves Tom doing manual reloads for what's clearly a transient flake. One retry at 2 seconds is the sweet spot.</li>
-        <li><strong>Soft-fill active tab over solid slab.</strong> The v1.7 solid fill solved discoverability (Tom couldn't tell which tab was active on cold load) but overshot &mdash; the slab read as visually loud. Soft fill + bold text + accent outline keeps the discoverability win without the loudness. <code>font-weight: 600</code> is doing as much of the lifting as the color now.</li>
-      </ul>
-      <h4>New troubleshooting tips</h4>
-      <ul>
-        <li><strong>Widget shows &ldquo;Loading&hellip;&rdquo; for ~2 seconds before resolving.</strong> That's the new cold-start retry doing its job &mdash; the first fetch failed transiently and the widget is automatically retrying once before falling through to an error. Not a hang.</li>
-        <li><strong>Need to explicitly clear the Twelve Data API key?</strong> Settings &rarr; Danger Zone &rarr; Reset browser. The Settings field can no longer remove the key (empty means &ldquo;no change&rdquo;), specifically because Safari's password-type field can't reliably re-populate from autofill.</li>
-      </ul>
+      <div class="focus">v1.8 hotfix &mdash; stopped Settings from wiping the API key on empty save, added a one-time cold-start retry to the finance widgets, softened the active-tab style, and added <code>INSTALL-FOR-OTHERS.md</code>. Shipped.</div>
     </article>
 
     <article class="session-entry">
       <div class="date">2026-05-28 &middot; Thursday &middot; late afternoon</div>
-      <div class="focus">v1.7 hotfix &mdash; three small bug fixes on top of v1.6 (negative-price decimals, popover/tooltip overlap, active-tab highlight).</div>
-      <h4>Completed</h4>
-      <ul>
-        <li><strong>Negative finance prices now show 2 decimals.</strong> <code>formatPrice()</code> in v1.6 used a raw <code>n &gt;= 0.01</code> comparison, so any negative value fell through to the 4-decimal branch (<code>-89.4463</code> &rarr; <code>-$89.4463</code>). Rewritten to branch on <code>Math.abs(n)</code> and re-apply the sign at output. Old <code>.replace('$-', '-$')</code> band-aids at the two call sites (<code>renderCryptoWidget</code> and <code>renderTwelveDataWidget</code>) are gone &mdash; each call site is just <code>formatPrice(dollarChange)</code> now. Verified against Tom's screenshot: <code>-89.4463 &rarr; -$89.45</code>, <code>-2477.0102 &rarr; -$2,477.01</code>, <code>-0.13 &rarr; -$0.13</code>.</li>
-        <li><strong>Bookmark description popover no longer collides with the browser's native truncation tooltip.</strong> Safari (and some Chromium builds) show a native tooltip for ellipsis-truncated bookmark titles, even though the <code>title</code> attribute is gone. That tooltip was overlapping the description popover. CSS rule <code>.bookmark .bk-desc-popover</code> margin-top bumped from <code>4px</code> to <code>28px</code>, with a code comment noting the cross-browser reason &mdash; we leave room for the native tooltip rather than trying to suppress it.</li>
-        <li><strong>Active persona tab is now highlighted on initial page load.</strong> Two fixes:
-          <ul>
-            <li><em>Ordering bug:</em> <code>render()</code> called <code>renderPersonaTabs()</code> before <code>currentPersona()</code>, but <code>currentPersona()</code> lazily initializes <code>state.currentPersonaId</code> on first call. So on the very first frame, no tab had the <code>.active</code> class. Moved <code>const p = currentPersona();</code> above <code>renderPersonaTabs()</code>; a comment now flags the ordering constraint.</li>
-            <li><em>Visual bug:</em> the previous active style used <code>var(--accent-soft)</code> background, which read as nearly invisible against most personas. Now uses solid <code>var(--accent)</code> with <code>font-weight: 600</code>, and text color <code>var(--on-accent)</code> for contrast (the v1.6 token: near-black in dark mode, white in light mode). Active-tab dot also swapped to <code>--on-accent</code> so it stays visible against the now-solid accent fill.</li>
-          </ul>
-        </li>
-      </ul>
-      <h4>Decisions made</h4>
-      <ul>
-        <li><strong>Use <code>--on-accent</code> for active-tab text instead of <code>--text-primary</code>.</strong> The plan called for <code>--text-primary</code>, but against a solid accent fill that loses contrast in light mode. <code>--on-accent</code> is the token specifically designed to ride on top of the accent color in both themes.</li>
-        <li><strong>Accommodate the browser's native truncation tooltip, don't try to suppress it.</strong> Safari ignores most suppression tricks for ellipsis tooltips. Pushing the popover down 28px is cheaper than trying to fight the browser.</li>
-        <li><strong>Math.abs + sign re-application is the right pattern for any negative-aware formatter.</strong> Captured as a troubleshooting note in TECHNICAL so future formatters don't repeat the mistake.</li>
-      </ul>
+      <div class="focus">v1.7 hotfix &mdash; three small fixes: negative finance prices show 2 decimals (Math.abs + re-applied sign), the description popover no longer collides with the browser's truncation tooltip, and the active persona tab highlights correctly on first load. Shipped.</div>
     </article>
 
     <article class="session-entry">
       <div class="date">2026-05-28 &middot; Thursday &middot; mid-afternoon</div>
-      <div class="focus">v1.6 &mdash; light/dark mode + UX polish via real subagent flow.</div>
-      <h4>Completed</h4>
-      <ul>
-        <li><strong>Light/dark theme toggle.</strong> New sun/moon icon button (☀ in dark mode, 🌙 in light mode) sits in the header next to the gear. Click flips the whole UI; choice persists in <code>localStorage.sd_theme</code> per browser. Light mode replaces the persona's gradient background with a clean light surface; the persona's accent color is preserved so tab indicators, hover states, and focus rings still reflect the active persona.</li>
-        <li><strong>Finance prices trimmed to 2 decimals.</strong> <code>formatPrice()</code> rewritten: any value ≥ $0.01 shows 2 decimals (e.g. <code>$1,990.20</code>, <code>-$92.23</code>); sub-cent altcoins still show 4 decimals so they don't display as <code>$0.00</code>. Applies to Crypto, Markets, and Watchlist.</li>
-        <li><strong>Bookmark description popover no longer fights the browser URL tooltip.</strong> The bookmark <code>&lt;a&gt;</code>'s <code>title</code> attribute is gone; the URL now lives inside the popover on a small monospace footer line beneath the description. Hovering a bookmark with no description still shows a tiny popover with just the URL.</li>
-        <li><strong>"Default persona on this browser/device" surfaced in Settings.</strong> The per-device default has always existed but Tom never noticed it. Now it sits at the top of Settings in an accent-tinted block with a 🖥 icon and explanatory subtext ("Each browser/device sets its own &mdash; your work Mac can open to Work while your iPhone opens to Personal").</li>
-        <li><strong>CSS palette tokenized.</strong> Added <code>--modal-bg</code>, <code>--input-bg</code>, <code>--popover-bg</code>, <code>--on-accent</code> tokens. The entire light-mode skin is one <code>body.light-mode</code> override block &mdash; no per-component overrides needed.</li>
-        <li><strong>Real subagent flow used.</strong> Per Tom's explicit ask ("make sure that our agents are engaged for some of these major changes"), this build spawned the <strong>Build Agent</strong> as an actual subagent for the code changes and the <strong>Documentation Agent</strong> as an actual subagent for the doc updates. Both returned standard Agent Reports.</li>
-      </ul>
-      <h4>Decisions made</h4>
-      <ul>
-        <li><strong>Tokenize, don't override per-rule.</strong> Four new CSS variables replaced the hardcoded dark surface colors. The <code>body.light-mode</code> block just re-defines those tokens. One change covers every component instead of dozens of per-component light overrides.</li>
-        <li><strong>Light palette pulled from <code>agent-system/agents/briefs/hub-design-brief.md § 3</code></strong> (<code>--bg: #FAFAF7</code>, <code>--bg-elev-1: #FFFFFF</code>, <code>--text-primary: #1A1A1A</code>, <code>--border: #E8E6E0</code>) so the dashboard's light mode matches the rest of Tom's workspace docs visually.</li>
-        <li><strong>Persona accent + accent-soft are NOT overridden in light mode.</strong> They're set per-persona at runtime; the plan wanted the persona color preserved in both themes.</li>
-        <li><strong>Light mode replaces the persona background</strong> with <code>.bg-light-surface</code>; there is no per-persona light gradient (would double the config burden for marginal benefit).</li>
-        <li><strong><code>--on-accent</code></strong> is white in light mode, near-black in dark mode &mdash; so accent-colored button text reads correctly in both.</li>
-        <li><strong>Popover URL line uses an adjacent-sibling selector</strong> so the separator border only renders when there's a description above it; URL-only popovers have no border.</li>
-        <li><strong>Modal backdrop gets a light-mode override</strong> (<code>rgba(255, 255, 255, 0.55)</code>) &mdash; without it the backdrop flashed pure black on light-mode modal opens.</li>
-      </ul>
+      <div class="focus">v1.6 &mdash; light/dark theme toggle (per-browser), 2-decimal finance prices, popover/URL-tooltip fix, per-device default persona surfaced in Settings, CSS palette tokenized. First build to use real Build + Documentation subagents. Shipped.</div>
     </article>
 
     <article class="session-entry">
       <div class="date">2026-05-28 &middot; Thursday &middot; later afternoon (earlier)</div>
-      <div class="focus">v1.5 polish &mdash; description redesign, dollar-change on finance widgets, API key walkthrough, doc refresh.</div>
-      <h4>Completed</h4>
-      <ul>
-        <li><strong>Bookmark description redesigned per Tom's spec.</strong> Hidden by default (accent dot signals presence). Hover popover with full text, 0.5s show delay, instant hide. Edit via modal with multi-line auto-growing textarea &mdash; room for reminders, asterisks, line breaks. Cmd+Enter saves.</li>
-        <li><strong>Crypto widget shows dollar change</strong> alongside percent. Derived from CoinGecko's percent + current price (CoinGecko doesn't return absolute change).</li>
-        <li><strong>Markets and Watchlist show dollar change</strong> alongside percent. Twelve Data returns this directly.</li>
-        <li><strong>Twelve Data API key walkthrough</strong> added inline in Settings &mdash; four-step setup guide with link to signup, right above the input.</li>
-        <li><strong>Documentation refresh.</strong> <code>HANDOFF.md</code> rewritten to v1.5 state (was stuck at v1.0). <code>docs/TECHNICAL.html</code> updated: new widgets in stack, all v1.1&ndash;v1.5 decisions captured, current gist schema documented, how-to-modify expanded. <code>docs/USER-EXPERIENCE.html</code> updated: new features (descriptions, finance widgets, dollar change), new workflows (description edit, Twelve Data setup).</li>
-      </ul>
-      <h4>Decisions made</h4>
-      <ul>
-        <li>Description popover with asymmetric timing: 0.5s show delay (so it doesn't pop on brief mouseovers), 0s hide delay (so it disappears immediately when hover ends).</li>
-        <li>For CoinGecko dollar change, derive previous price from <code>current / (1 + pct/100)</code> rather than the cheaper <code>current * pct/100</code> &mdash; tiny accuracy bump at no cost.</li>
-        <li>Confirmed honestly to Tom: this multi-agent system runs as one Claude playing all roles in a single session. Documentation Agent's job is being done by me when I make doc edits per the documentation-agent.md spec. Tom asked &mdash; doc files brought current as proof.</li>
-      </ul>
+      <div class="focus">v1.5 polish &mdash; redesigned bookmark descriptions (hidden, hover popover, multi-line edit), added dollar-change to all finance widgets, inline Twelve Data key walkthrough, and brought HANDOFF/TECHNICAL/UX docs current from v1.0. Shipped.</div>
     </article>
 
     <article class="session-entry">
       <div class="date">2026-05-28 &middot; Thursday &middot; afternoon</div>
-      <div class="focus">v1.4 polish &mdash; 12/24hr clock toggle, bookmark descriptions, Danger zone for destructive Settings actions.</div>
-      <h4>Completed</h4>
-      <ul>
-        <li><strong>Per-persona 12hr/24hr clock toggle.</strong> Lives under the clock widget's ⚙. Default 12hr; flip to 24hr per persona.</li>
-        <li><strong>Bookmark descriptions.</strong> Each bookmark can have an optional one-line description below the title. Always visible when set. Edit via the 📝 icon in the action row, or double-click an existing description. Same inline-edit pattern as rename.</li>
-        <li><strong>Settings → Danger zone.</strong> Delete persona and Reset browser moved into a visually-distinct block with explanatory subtext, so they're harder to click by accident. Confirm dialogs unchanged (still required before destruction).</li>
-      </ul>
-      <h4>Decisions made</h4>
-      <ul>
-        <li>Bookmark description visibility: always show when set, never show a placeholder when empty &mdash; keeps long lists clean. Add via 📝 action icon.</li>
-        <li>Clock toggle scoped per-persona (not global) &mdash; consistent with how every other widget setting is scoped.</li>
-      </ul>
+      <div class="focus">v1.4 polish &mdash; per-persona 12/24hr clock toggle, optional one-line bookmark descriptions, and a Settings &ldquo;Danger zone&rdquo; isolating Delete persona / Reset browser. Shipped.</div>
     </article>
 
     <article class="session-entry">
       <div class="date">2026-05-28 &middot; Thursday</div>
-      <div class="focus">v1.3 hotfix &mdash; the background bug that was lurking since v1.0, plus clock zone duplicates and a duplicate Settings UI.</div>
-      <h4>Completed</h4>
-      <ul>
-        <li><strong>Background rendering bug fixed (CSS specificity).</strong> <code>#background { background: var(--bg) }</code> was overriding every <code>.bg-*</code> class rule due to ID-vs-class specificity. Result: every preset rendered as the same solid dark color since v1.0. Tom never actually saw Midnight Mesh, Aurora, Synthwave, etc. — they exist now. Removed the conflicting rule.</li>
-        <li><strong>Clock zone duplicates bug fixed.</strong> Zones were stored as IANA strings, so adding "Atlanta" silently failed if NYC was already there (same TZ). Migrated to <code>{ name, tz }</code> objects so two cities sharing a timezone render as separate rows. Backward-compat: old string-format zones auto-migrate on load.</li>
-        <li><strong>Removed duplicate Clock/Weather config from main Settings.</strong> The original "comma-separated IANA names" and "Name, lat, lon" fields competed with the widget-gear search UIs added in v1.1. One way to configure each widget now: its ⚙ icon. Main Settings panel got a one-line pointer instead.</li>
-        <li><strong>saveSettings now flushes immediately</strong> (await instead of relying on the 1.5s debounce). Fast reloads no longer risk missing the save.</li>
-      </ul>
-      <h4>Decisions made</h4>
-      <ul>
-        <li>Schema migration is invisible to Tom &mdash; old gists with string zones load cleanly and re-save in the new shape on first edit.</li>
-        <li>Clock allows duplicate timezones with different city labels (Atlanta + NYC both EST is fine); de-dupe only on exact name + tz match.</li>
-      </ul>
+      <div class="focus">v1.3 hotfix &mdash; fixed the long-standing background bug (CSS specificity made every preset render the same dark color since v1.0), fixed clock-zone duplicates (migrated zones to <code>{name, tz}</code> objects), and removed duplicate Clock/Weather config from main Settings. Shipped.</div>
     </article>
 
     <article class="session-entry">
       <div class="date">2026-05-27 &middot; Wednesday &middot; late evening</div>
-      <div class="focus">v1.2 expansion &mdash; per-persona widget visibility, three finance widgets, 3 bug fixes.</div>
-      <h4>Completed</h4>
-      <ul>
-        <li><strong>Per-persona widget visibility.</strong> Each persona can independently show/hide any widget via Settings ⚙. Default: Work and Personal hide the new finance widgets; new personas show everything.</li>
-        <li><strong>Crypto widget</strong> (CoinGecko, no API key). Search any coin by name or symbol; shows price + 24h % change.</li>
-        <li><strong>Markets widget</strong> (Twelve Data). Defaults to SPY / QQQ / DIA for S&amp;P / Nasdaq / Dow. Pretty-prints friendly names.</li>
-        <li><strong>Watchlist widget</strong> (Twelve Data). Add any stock by ticker or via search.</li>
-        <li>60-second client cache on Twelve Data quotes so the free 8-req/min limit isn't burned by re-renders.</li>
-        <li><strong>Bug fix:</strong> 12-hour clock (was 24-hr).</li>
-        <li><strong>Bug fix:</strong> background save was silently failing if no thumbnail was clicked in settings — now reads the current background as fallback and properly marks the pre-selected thumb.</li>
-        <li><strong>Bug fix:</strong> cross-add banner Switch button now reloads the gist before switching personas, so the just-added bookmark appears immediately (no manual refresh needed).</li>
-        <li>File grew from ~2,860 to ~3,360 lines. Still single file, still no framework.</li>
-      </ul>
-      <h4>Decisions made</h4>
-      <ul>
-        <li>Twelve Data API key stored per-browser in localStorage (parallel to GitHub PAT) &mdash; rate limits are per-key, and we shouldn't sync credentials through the gist.</li>
-        <li>Markets uses ETF proxies (SPY, QQQ, DIA) for indices &mdash; the actual indices (^GSPC etc.) sometimes need higher Twelve Data tiers.</li>
-        <li>Crypto uses CoinGecko's free public API directly &mdash; no key, no rate-limit headaches for personal use.</li>
-        <li>Widget visibility is per-persona, not global &mdash; matches the persona-as-channel mental model.</li>
-        <li>For Markets/Watchlist, the search input also supports "type ticker, press Enter" so tickers Twelve Data search doesn't surface (rare indices) can still be added directly.</li>
-      </ul>
+      <div class="focus">v1.2 expansion &mdash; per-persona widget visibility plus three finance widgets (Crypto via CoinGecko, Markets + Watchlist via Twelve Data) and three bug fixes (12hr clock, background save, cross-add banner). Shipped.</div>
     </article>
 
     <article class="session-entry">
       <div class="date">2026-05-27 &middot; Wednesday &middot; evening</div>
-      <div class="focus">v1.1 polish round &mdash; fixed the four Open Items surfaced during cross-browser testing.</div>
-      <h4>Completed</h4>
-      <ul>
-        <li><strong>Wired widget gear icons.</strong> The ⚙ buttons on Weather and Clock cards previously did nothing (handler oversight). Now open a per-widget config modal.</li>
-        <li><strong>Replaced lat/lon and IANA inputs with city search.</strong> Both widgets now use the free Open-Meteo geocoding endpoint. Type a city, pick a match, coordinates / timezone stored invisibly.</li>
-        <li><strong>Cross-persona bookmark add banner.</strong> When the bookmarklet popup writes a bookmark to a persona other than the one you're viewing, the main window now shows a banner: <em>Just added "X" to Personal › Daily [Switch to Personal] [Dismiss]</em>. Driven by a `storage` event on `localStorage`.</li>
-        <li><strong>Bookmark action icons visible by default.</strong> The ✎ / ↗ / × icons on every bookmark row are now dim (opacity 0.4) by default and brighten on hover &mdash; no more hover-only invisibility.</li>
-        <li>File grew from ~2,000 to ~2,860 lines. All vanilla, single file.</li>
-        <li>Touch-specific affordances (long-press on iPhone) deferred indefinitely &mdash; Tom's phone is inbound-link-driven, not bookmark-management-driven.</li>
-      </ul>
-      <h4>Decisions made</h4>
-      <ul>
-        <li>Single shared widget-config modal (not separate modals per widget) &mdash; keeps the file smaller and the UX consistent.</li>
-        <li>Used Open-Meteo's geocoding endpoint for both widgets, including for clock timezone lookup &mdash; one API surface instead of two.</li>
-        <li>Banner uses last-write-wins via `localStorage`, no acknowledgment from main window required. Dismiss clears the key so it doesn't re-appear on next reload.</li>
-      </ul>
+      <div class="focus">v1.1 polish &mdash; fixed the four Open Items from cross-browser testing: wired the widget gear icons, replaced lat/lon and IANA inputs with city search (Open-Meteo geocoding), added the cross-persona add banner, and made bookmark action icons visible by default. Shipped.</div>
     </article>
 
     <article class="session-entry">
       <div class="date">2026-05-27 &middot; Wednesday</div>
-      <div class="focus">Designed, built, documented, and deployed StartDashboard v1 end-to-end.</div>
-      <h4>Completed</h4>
-      <ul>
-        <li>Drafted and revised the build plan after two rounds of input (added personas + customizable backgrounds based on Tom's feedback during planning).</li>
-        <li>Built the four agent-system templates (PROJECT-HUB, MASTER-HUB, TECHNICAL, UX).</li>
-        <li>Built <code>index.html</code> &mdash; single-file dashboard with persona tabs, GitHub gist sync, four widgets (clock, weather, todos, notes), eight CSS-only background presets, drag-drop bookmark adds, and a bookmarklet popup flow.</li>
-        <li>Wrote README with setup steps, troubleshooting, and privacy notes.</li>
-        <li>Generated PROJECT-HUB, TECHNICAL, UX, and HANDOFF docs.</li>
-        <li>Created MASTER-HUB.html at workspace root with this project as the first card.</li>
-        <li><strong>Deployed to GitHub Pages.</strong> Created public repo at <code>github.com/TECGUNTHER/startdashboard</code>, pushed all 7 files (52.66 KiB), enabled Pages from <code>main</code> / root. Live URL: <a href="https://tecgunther.github.io/startdashboard/">tecgunther.github.io/startdashboard</a>.</li>
-        <li><strong>Ran first-time setup in Safari</strong> (Tom's default browser). Generated a classic PAT with <code>gist</code> scope, pasted it, created a fresh private gist, picked Work as the default persona. Dashboard rendered as expected (Midnight Mesh background, Work + Personal tabs, seeded Daily/Tools categories).</li>
-        <li><strong>Installed and tested bookmarklet on Safari.</strong> Two real-site adds round-tripped to the gist. Discovered the cross-persona-add visibility gap (added an Open Item, deferred for batch fix).</li>
-        <li><strong>Set up Chrome on the Mac</strong> with a separate PAT, joined the existing gist via gist ID. Existing data loaded correctly.</li>
-        <li><strong>Verified cross-browser sync.</strong> Bookmark rename and drag-to-another-category round-tripped between Safari and Chrome.</li>
-        <li><strong>Discovered the rename-affordance gap.</strong> Rename works via double-click or hover-pencil, but neither is discoverable. Added Open Item for batch fix.</li>
-        <li><strong>Set up iPhone Safari</strong> with its own PAT, joined the same gist. All data appeared as expected.</li>
-      </ul>
-      <h4>Decisions made</h4>
-      <ul>
-        <li>Per-persona widgets and backgrounds (not global) &mdash; matches Tom's mental separation between Work and Personal.</li>
-        <li>GitHub gist + Personal Access Token over a third-party sync service &mdash; durable, free, no vendor risk.</li>
-        <li>Bookmarklet over a browser extension &mdash; avoids per-browser build/maintenance.</li>
-        <li>Backgrounds: 8 CSS-only presets + paste-any-image-URL; image upload deferred (would bloat the gist).</li>
-        <li>Per-device default persona stored in <code>localStorage</code> &mdash; lets the work Mac open to Work, iPhone open to Personal, without affecting the shared data.</li>
-      </ul>
+      <div class="focus">v1.0 &mdash; designed, built, documented, and deployed StartDashboard end-to-end: single-file <code>index.html</code> with persona tabs, GitHub gist sync, four widgets (clock, weather, todos, notes), CSS-only backgrounds, and a bookmarklet. Deployed to GitHub Pages and set up Safari (Mac), Chrome (Mac), and iPhone Safari with verified cross-browser sync. Shipped.</div>
     </article>
     <!-- /HUB:SESSION_LOG -->
   </section>
@@ -519,13 +393,6 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
   <section id="open-items">
     <h2>Open Items</h2>
     <!-- HUB:OPEN_ITEMS -->
-    <div class="open-item">
-      <span class="type-tag question">Question</span>
-      <div class="body">
-        <strong>Confirm the Gemini browser-direct call works on the first real query.</strong> The v1.11 chat calls Gemini directly from the browser; the Build Agent couldn&rsquo;t fully verify that path doesn&rsquo;t hit a CORS block without Tom&rsquo;s own key. If it&rsquo;s blocked, the &ldquo;Open full Gemini&rdquo; link-out fallback already covers it (a backend is deliberately not planned). Tom&rsquo;s first query settles it.
-        <div class="added">Added: 2026-05-28</div>
-      </div>
-    </div>
     <div class="open-item">
       <span class="type-tag feature">Feature</span>
       <div class="body">
@@ -561,7 +428,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
 
 <footer>
   <div class="container">
-    Maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · late night</span>
+    Maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-29 · Fri</span>
   </div>
 </footer>
 

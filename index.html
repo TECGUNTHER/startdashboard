@@ -1476,6 +1476,22 @@ body.light-mode .chat-overlay .chat-backdrop {
   font-style: normal;
 }
 .chat-msg.note a { color: var(--accent); border-bottom: 1px dotted var(--accent); font-weight: 600; }
+/* The small "Retry" button shown inside the overload note bubble. Styled to
+   match the Send button so light + dark mode both look right. Sits on its own
+   line under the message text. */
+.chat-msg.note .chat-retry {
+  display: inline-block;
+  margin-top: 8px;
+  background: var(--accent);
+  color: var(--on-accent);
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.chat-msg.note .chat-retry:disabled { opacity: 0.5; cursor: not-allowed; }
 /* The "Gemini is thinking…" placeholder. */
 .chat-msg.thinking { color: var(--text-muted); font-style: italic; }
 
@@ -4981,9 +4997,47 @@ function geminiLinkOut() {
   return '<a href="https://gemini.google.com" target="_blank" rel="noopener">Open full Gemini ↗</a>';
 }
 
-/* Send the textarea contents to Gemini. This is the heart of the feature:
-   it records the user's turn, calls the API, and records (or explains the
-   failure of) the model's reply. */
+/* How many automatic retries we attempt when Google reports its model is
+   overloaded (HTTP 503 / "high demand"). Capped low because this is a chat —
+   most transient 503s clear on the very first retry. */
+const CHAT_OVERLOAD_MAX_RETRIES = 2;
+/* Base wait (ms) before each retry: ~1.5s before the 1st, ~3s before the 2nd.
+   We add a little random jitter on top so simultaneous clients don't all
+   retry in lockstep. */
+const CHAT_OVERLOAD_BACKOFFS = [1500, 3000];
+
+/* Small promise-based sleep used between overload retries. */
+function chatSleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/* Decide whether a non-OK response is the transient "model overloaded"
+   condition (distinct from 429 rate-limiting). True when the status is 503,
+   OR when the API's error text mentions "overloaded" / "high demand". We read
+   the body text once here and hand it back so the caller doesn't re-read it. */
+async function chatIsOverload(res) {
+  let bodyText = '';
+  try { bodyText = await res.text(); } catch { /* no readable body */ }
+
+  let message = bodyText;
+  /* Prefer the structured error.message if the body is JSON. */
+  try {
+    const json = JSON.parse(bodyText);
+    if (json && json.error && json.error.message) message = json.error.message;
+  } catch { /* not JSON — fall back to the raw text */ }
+
+  const lower = (message || '').toLowerCase();
+  const overloaded =
+    res.status === 503 ||
+    lower.includes('overloaded') ||
+    lower.includes('high demand');
+
+  return { overloaded, message, bodyText };
+}
+
+/* Send the textarea contents to Gemini. This is the entry point wired to the
+   Send button / Enter key: it validates, records the user's turn, then hands
+   off to runChatRequest to actually call the API. */
 async function sendChatMessage() {
   if (state.chatSending) return;
 
@@ -5006,7 +5060,17 @@ async function sendChatMessage() {
   autoGrowChatInput();
   renderChatMessages();
 
-  /* Show the "thinking…" placeholder while the request is out. */
+  /* Fire the actual request for the turn we just recorded. */
+  runChatRequest();
+}
+
+/* Issue the Gemini request for whatever is currently the last user turn in
+   state.chatHistory, and record (or explain the failure of) the reply.
+   Pulled out of sendChatMessage so the Retry button can re-run the SAME turn
+   without pushing the user's message into history a second time. */
+async function runChatRequest() {
+  /* Show the "thinking…" placeholder while the request is out. We keep this
+     same indicator visible across overload retries below. */
   setChatSending(true);
   const thinking = appendTransientBubble('model thinking', 'Gemini is thinking…', false);
 
@@ -5021,53 +5085,78 @@ async function sendChatMessage() {
     system_instruction: { parts: [{ text: GEMINI_SYSTEM_PROMPT }] },
     contents: recent.map(m => ({ role: m.role, parts: [{ text: m.text }] })),
   };
+  const fetchOptions = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': state.geminiKey,
+    },
+    body: JSON.stringify(body),
+  };
 
   try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': state.geminiKey,
-      },
-      body: JSON.stringify(body),
-    });
+    /* Overload-retry loop. We try once, then up to CHAT_OVERLOAD_MAX_RETRIES
+       more times if Google reports its model is overloaded (503 / high
+       demand). The "thinking…" bubble stays up the whole time — we never
+       flash an error between attempts. */
+    for (let attempt = 0; attempt <= CHAT_OVERLOAD_MAX_RETRIES; attempt++) {
+      const res = await fetch(url, fetchOptions);
 
-    thinking.remove();
+      /* Non-OK HTTP responses. */
+      if (!res.ok) {
+        /* Rate limit (429) is handled exactly as before — no retry. */
+        if (res.status === 429) {
+          thinking.remove();
+          appendTransientBubble('note', 'Gemini is rate-limited right now — wait a moment and try again.', false);
+          return;
+        }
 
-    /* Non-OK HTTP responses: translate the common ones into plain English,
-       fall back to status + the API's own error.message for the rest. */
-    if (!res.ok) {
-      if (res.status === 429) {
-        appendTransientBubble('note', 'Gemini is rate-limited right now — wait a moment and try again.', false);
-      } else {
+        /* Is this the transient "model overloaded" case? (Reads the body.) */
+        const overload = await chatIsOverload(res);
+        if (overload.overloaded) {
+          /* Retries left → wait the backoff (plus jitter) and try again,
+             leaving the thinking indicator in place. */
+          if (attempt < CHAT_OVERLOAD_MAX_RETRIES) {
+            const wait = CHAT_OVERLOAD_BACKOFFS[attempt] + Math.floor(Math.random() * 500);
+            await chatSleep(wait);
+            continue;
+          }
+          /* Retries exhausted → show the friendly overload note with a
+             Retry button (handled outside the loop). */
+          thinking.remove();
+          appendOverloadNote();
+          return;
+        }
+
+        /* Any other non-OK status keeps the existing generic handling:
+           status line, or the API's own error.message if present. */
+        thinking.remove();
         let detail = res.status + ' ' + res.statusText;
-        try {
-          const errJson = await res.json();
-          if (errJson && errJson.error && errJson.error.message) detail = errJson.error.message;
-        } catch { /* response wasn't JSON — keep the status line */ }
+        if (overload.message) detail = overload.message;
         appendTransientBubble('note', 'Gemini couldn\'t answer: ' + detail, false);
+        return;
       }
-      setChatSending(false);
+
+      /* Success — pull the text out of the first candidate. */
+      thinking.remove();
+      const data = await res.json();
+      const reply = data &&
+        data.candidates &&
+        data.candidates[0] &&
+        data.candidates[0].content &&
+        data.candidates[0].content.parts &&
+        data.candidates[0].content.parts[0] &&
+        data.candidates[0].content.parts[0].text;
+
+      if (reply) {
+        state.chatHistory.push({ role: 'model', text: reply });
+        saveChatHistory();
+        renderChatMessages();
+      } else {
+        /* 200 OK but no text — usually a safety block or an empty candidate. */
+        appendTransientBubble('note', 'Gemini returned an empty answer. Try rephrasing your question.', false);
+      }
       return;
-    }
-
-    /* Success — pull the text out of the first candidate. */
-    const data = await res.json();
-    const reply = data &&
-      data.candidates &&
-      data.candidates[0] &&
-      data.candidates[0].content &&
-      data.candidates[0].content.parts &&
-      data.candidates[0].content.parts[0] &&
-      data.candidates[0].content.parts[0].text;
-
-    if (reply) {
-      state.chatHistory.push({ role: 'model', text: reply });
-      saveChatHistory();
-      renderChatMessages();
-    } else {
-      /* 200 OK but no text — usually a safety block or an empty candidate. */
-      appendTransientBubble('note', 'Gemini returned an empty answer. Try rephrasing your question.', false);
     }
   } catch (e) {
     /* A thrown fetch means the browser never got a usable response — almost
@@ -5084,6 +5173,39 @@ async function sendChatMessage() {
   } finally {
     setChatSending(false);
   }
+}
+
+/* Render the exhausted-retry note for the "model overloaded" case: a friendly,
+   plain-English message (never the raw API text) plus a one-click Retry button
+   and the link-out to full Gemini. The Retry button re-runs the existing last
+   user turn via runChatRequest — it does NOT re-add the user's message, so the
+   history can't get a duplicate. */
+function appendOverloadNote() {
+  const note = appendTransientBubble(
+    'note',
+    'Google’s servers are briefly overloaded — this is on Google’s side, not you. ' +
+    'Try again in a moment.<br><br>' +
+    geminiLinkOut(),
+    true
+  );
+
+  /* Build the Retry button and attach it to the same note bubble. */
+  const retryBtn = document.createElement('button');
+  retryBtn.className = 'chat-retry';
+  retryBtn.textContent = 'Retry';
+  retryBtn.addEventListener('click', () => {
+    if (state.chatSending) return;
+    /* Drop this note so we don't stack old failure messages, then re-attempt
+       the same last user turn (no new user message is pushed). */
+    note.remove();
+    runChatRequest();
+  });
+
+  /* Put the button on its own line under the message + link-out. */
+  note.appendChild(document.createElement('br'));
+  note.appendChild(retryBtn);
+  document.getElementById('chat-messages').scrollTop =
+    document.getElementById('chat-messages').scrollHeight;
 }
 
 /* Wipe the conversation: clear state, the localStorage key, and re-render

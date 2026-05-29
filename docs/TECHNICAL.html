@@ -57,7 +57,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h1>StartDashboard</h1>
     <p class="subtitle">A single-file, cross-browser personal dashboard with GitHub-gist sync.</p>
     <!-- TECH:LAST_UPDATED -->
-    <span class="last-updated">Last updated: 2026-05-28 · v1.12</span>
+    <span class="last-updated">Last updated: 2026-05-29 · v1.13</span>
     <!-- /TECH:LAST_UPDATED -->
   </div>
 </header>
@@ -69,7 +69,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h2>Architecture Overview</h2>
     <p class="section-lead">How the app is structured and how the pieces fit together.</p>
     <!-- TECH:ARCHITECTURE -->
-    <p>StartDashboard is a single HTML file. Everything &mdash; markup, styles, and behavior &mdash; lives in <code>index.html</code> (~5,235 lines as of v1.12). There is no build step, no framework, and no server. The page is served as a static asset (GitHub Pages in production; you can also double-click the file locally).</p>
+    <p>StartDashboard is a single HTML file. Everything &mdash; markup, styles, and behavior &mdash; lives in <code>index.html</code> (~5,357 lines as of v1.13). There is no build step, no framework, and no server. The page is served as a static asset (GitHub Pages in production; you can also double-click the file locally).</p>
     <p>The app has three runtime layers:</p>
     <ul>
       <li><strong>State.</strong> A single <code>state</code> object holds everything: the GitHub token, gist ID, default persona, and Finnhub API key (all from localStorage on boot), plus the synced <code>state.data</code> object that mirrors the gist's JSON. (The old Twelve Data key is still read into <code>state.twelveDataKey</code> for backward-compat but is no longer used by any app logic as of v1.9.) All UI rendering reads from this object; all mutations go through <code>setState()</code> which re-renders and triggers a debounced save. The Settings save flow bypasses the debounce and awaits the save directly so fast reloads always see the latest state.</li>
@@ -294,6 +294,11 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
       <p class="meta">decided 2026-05-28 (v1.11)</p>
     </div>
     <div class="decision">
+      <h3>Auto-retry Gemini&rsquo;s transient 503 &ldquo;overloaded&rdquo; responses (v1.13)</h3>
+      <p>Gemini occasionally returns an HTTP <strong>503 &ldquo;model overloaded&rdquo; / &ldquo;high demand&rdquo;</strong> &mdash; a Google server-side capacity blip on the model tier, unrelated to the user&rsquo;s quota, account, or time of day. These almost always clear within a second or two, so the standard remedy is a short automatic retry rather than surfacing the error. v1.11 treated a 503 as a dead end; v1.13 detects it (<code>chatIsOverload(res)</code>: non-OK and either HTTP 503 or error text containing &ldquo;overloaded&rdquo;/&ldquo;high demand&rdquo;, case-insensitive) and retries up to <code>CHAT_OVERLOAD_MAX_RETRIES = 2</code> times (1 initial + 2 = 3 attempts total) with backoffs <code>CHAT_OVERLOAD_BACKOFFS = [1500, 3000]</code> ms plus up to 500ms random jitter, keeping the &ldquo;thinking&hellip;&rdquo; indicator up throughout (no interim error flashes). If all retries fail, <code>appendOverloadNote()</code> shows a plain-English note (&ldquo;Google&rsquo;s servers are briefly overloaded &mdash; this is on Google&rsquo;s side, not you. Try again in a moment.&rdquo;) with a one-click Retry button and the existing link-out &mdash; never the raw API text. <strong>Limitation / deliberate scope:</strong> retries stay on the same model &mdash; there is no automatic model-switching fallback (the default <code>gemini-2.5-flash</code> tier is already relatively stable), and the cap is intentionally low (no 30s+ exponential backoff) so the chat stays responsive. A 503 is handled distinctly from a 429 rate limit (checked first, never retried &mdash; retrying a rate limit makes it worse) and from a network/CORS failure (link-out fallback, unchanged). To tune it, edit the <code>CHAT_OVERLOAD_MAX_RETRIES</code> / <code>CHAT_OVERLOAD_BACKOFFS</code> constants. The retry loop lives in <code>runChatRequest</code> (split out of <code>sendChatMessage</code> in v1.13 so the Retry button can re-issue the request without re-pushing the user&rsquo;s message).</p>
+      <p class="meta">decided 2026-05-29 (v1.13)</p>
+    </div>
+    <div class="decision">
       <h3>Chat history per-device in localStorage, not synced to the gist (v1.11)</h3>
       <p>The conversation is stored in <code>sd_chat_history</code> (localStorage, capped to the last <code>CHAT_HISTORY_CAP = 50</code> messages) so it survives reloads on that browser. It is deliberately <em>not</em> written to the synced gist: chat transcripts would bloat the synced data on every save, and which conversation you're mid-way through is naturally a per-device concern (the same reasoning behind the per-device theme and default-persona choices). &ldquo;Clear chat&rdquo; empties the state and removes the key.</p>
       <p class="meta">decided 2026-05-28 (v1.11)</p>
@@ -469,7 +474,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
       <li><strong>API key (now Finnhub) cannot be cleared from the Settings field (v1.8 behavior, carried into v1.9).</strong> An empty trimmed value in the Settings input means &ldquo;no change,&rdquo; not &ldquo;clear.&rdquo; This is intentional &mdash; Safari's <code>type="password"</code> fields can't reliably re-populate from autofill, so before v1.8 every Settings save with an empty key field silently wiped the stored key. To explicitly clear the key, use <strong>Danger Zone &rarr; Reset browser</strong>, which is unambiguous about destructive intent. Trade-off: there's no "just clear this one credential" path short of Reset browser, which wipes the whole local setup for that browser. Acceptable cost for the safety win.</li>
       <li><strong>The Ask Gemini chat is a fresh assistant, not Tom's personal Gemini account (v1.11).</strong> It has no memory of Tom's real Gemini conversations, no access to his Google account context or logged-in features &mdash; it's an anonymous API call primed by a system prompt. For his actual account, the &ldquo;Open full Gemini&rdquo; link-out is the path.</li>
       <li><strong>The chat is non-streaming (v1.11).</strong> The reply appears all at once when Gemini finishes, rather than token-by-token. Streaming was deferred to avoid the streaming endpoint's separate CORS wrinkle; for short quick answers the difference is small.</li>
-      <li><strong>Browser-direct Gemini CORS is unconfirmed until the first real query (v1.11).</strong> The chat calls Gemini directly from the browser; the Build Agent couldn't definitively confirm that path works without Tom's own key (the commonly-reported Gemini CORS error is about the OpenAI-compat endpoint, not the native <code>:generateContent</code> endpoint this build uses). If it is blocked, the feature degrades gracefully to a message plus the link-out &mdash; a backend is deliberately not planned. Tracked as an open item.</li>
+      <li><strong>Browser-direct Gemini works &mdash; CORS confirmed (v1.11, verified v1.13).</strong> The chat calls Gemini directly from the browser. Tom confirmed the native <code>:generateContent</code> endpoint is not CORS-blocked (the commonly-reported Gemini CORS error is about the OpenAI-compat endpoint, which this build does not use), so the v1.11 open question is closed. The graceful &ldquo;Couldn&rsquo;t reach Gemini&rdquo; message plus link-out remains as the fallback for any future connection failure &mdash; a backend is deliberately not planned. Separately, as of v1.13 a transient Google-side 503 &ldquo;model overloaded&rdquo; auto-retries (up to 2x, short backoff) rather than surfacing an error; see the decision above.</li>
       <li><strong>Chat history is per-device only (v1.11).</strong> The conversation lives in this browser's localStorage and is not synced through the gist, so opening the dashboard on another device starts a fresh chat. This is by design (transcripts would bloat the synced data), but it means there's no single, cross-device chat history.</li>
     </ul>
     <!-- /TECH:LIMITATIONS -->
@@ -479,7 +484,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
 
 <footer>
   <div class="container">
-    Generated and maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-28 · v1.11 · night</span>
+    Generated and maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-29 · v1.13</span>
   </div>
 </footer>
 
