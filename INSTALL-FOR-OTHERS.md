@@ -8,7 +8,9 @@ This guide walks you through forking StartDashboard and running it as your own p
 
 StartDashboard is a single-file web app that becomes the start page across every browser and device you use. A tab bar at the top lets you switch between **personas** — Work, Personal, Investments, anything you create. Each persona is its own complete dashboard: its own bookmarks (organized into categories), its own widgets, its own background, its own accent color. The default look is dark and modern; a sun/moon button in the header flips the whole UI to a clean light mode for daytime use.
 
-Seven widgets are available per persona, each show-or-hide-able: **Clock** (multi time zone, 12 or 24 hour), **Weather** (free Open-Meteo, no key), **To-do list**, **Sticky notes**, **Crypto** (free CoinGecko, no key), **Markets** (S&P / Nasdaq / Dow via Twelve Data — free key needed), and **Watchlist** (your custom stocks).
+Widgets are available per persona, each show-or-hide-able and reorderable: **Clock** (multi time zone, 12 or 24 hour), **Weather** (free Open-Meteo, no key — icon, high/low, chance of rain), **To-do list**, **Sticky notes**, **Crypto** (free CoinGecko, no key), **Markets** (S&P / Nasdaq / Dow via Finnhub — free key needed), and **Watchlists** (your own custom stock lists, multiple and renamable — also Finnhub).
+
+There's also a global **Ask Gemini** chat panel (a bubble in the bottom-right corner) for quick AI answers without leaving the dashboard — free Google Gemini key, optional. And a **Help** button (the "?" in the header) that opens the user guide any time.
 
 Your data lives in one private GitHub gist on your own GitHub account. Open the same dashboard URL in Safari on your Mac and Chrome on your laptop and they show the same view, synced within seconds.
 
@@ -18,7 +20,8 @@ Your data lives in one private GitHub gist on your own GitHub account. Open the 
 
 - A **GitHub account** (free).
 - About **10 minutes** for the first-time setup.
-- *(Optional)* a **Twelve Data API key** (free, no credit card) if you want the Markets and Watchlist widgets to work. You can skip this and add it later.
+- *(Optional)* a **Finnhub API key** (free, no credit card) if you want the Markets and Watchlist widgets to work. You can skip this and add it later.
+- *(Optional)* a **Google Gemini API key** (free, no credit card) if you want the Ask Gemini chat panel. Skippable too.
 
 That's it. No terminal beyond a couple of git commands (and you can do those through the GitHub web UI if you prefer). No npm, no Docker, no compile step.
 
@@ -102,15 +105,25 @@ Either token type works.
 
 You'll see two default personas (Work and Personal) with seeded Daily/Tools categories, a dark Midnight Mesh background, and clock + weather + to-do + notes widgets up top. From here, you can rename things, add bookmarks, swap backgrounds, etc.
 
-### Step 6 — *(Optional)* Add a Twelve Data API key
+### Step 6 — *(Optional)* Add a Finnhub API key (stocks)
 
 Only needed if you want the Markets or Watchlist widgets to show real stock prices. Crypto works without it (CoinGecko is free and key-less).
 
 1. In the dashboard, click **Settings ⚙** in the header.
-2. Find the **Twelve Data API key** section. Follow the inline four-step walkthrough: sign up at twelvedata.com/register (free, no credit card), verify your email, copy your key, paste it in.
+2. Find the **Finnhub API key** section. Follow the inline walkthrough: sign up at [finnhub.io/register](https://finnhub.io/register) (free, no credit card), copy your key, paste it in.
 3. Save changes. Markets and Watchlist start working within a few seconds.
 
-Each browser stores its own Twelve Data key in localStorage — it's not synced through the gist, because rate limits are per-key. If you set the dashboard up in five browsers, you can either use the same key in all of them or generate separate keys for higher combined throughput.
+Each browser stores its own Finnhub key in localStorage — it's not synced through the gist, because rate limits are per-key. If you set the dashboard up in five browsers, you can either use the same key in all of them or generate separate keys for higher combined throughput. (Finnhub's free tier allows 60 calls/minute, comfortably more than the dashboard needs.)
+
+### Step 6b — *(Optional)* Add a Google Gemini API key (Ask Gemini chat)
+
+Only needed if you want the **Ask Gemini** panel (the bubble in the bottom-right) to answer questions. Without a key, the panel still offers a one-click link out to the full Gemini site.
+
+1. In the dashboard, open **Settings ⚙**.
+2. Find the **Gemini API key** section and follow the inline link to [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey) (free, no credit card). Copy the key, paste it in.
+3. Save changes. The chat bubble is ready.
+
+Like the Finnhub key, the Gemini key and your chat history stay on each browser locally — they're not synced through the gist.
 
 ### Step 7 — Install the bookmarklet
 
@@ -141,7 +154,7 @@ On every other browser or device:
 You're free to edit `index.html` directly to make the app yours:
 
 - **Change the default personas.** Search for `Work` and `Personal` in `index.html` to find the seed values.
-- **Add or rename background presets.** Add a CSS rule `.bg-<name>` and a matching entry in the `BG_PRESETS` array (search for `BG_PRESETS`). All nine current backgrounds are CSS-only — no images to load.
+- **Add or rename background presets.** Add a CSS rule `.bg-<name>` and a matching entry in the `BG_PRESETS` array (search for `BG_PRESETS`). All ten current backgrounds (including Starlink) are CSS-only — no images to load. You can also point any persona at an image URL instead of a preset.
 - **Change colors.** The CSS palette lives in the `:root` block near the top of the file. Dark mode and light mode both reference the same token names; the light overrides are in a single `body.light-mode` block.
 - **Add a new widget.** Outlined in detail in `docs/TECHNICAL.html` under **How to Modify**. Roughly: add a `<div class="widget" data-widget="..."`, append to `ALL_WIDGETS` and `WIDGET_LABELS`, and write a `render<Name>Widget(persona)` function.
 - **Change the search engine list.** The `SEARCH_ENGINES` object near the top of the script. Defaults to Google with DuckDuckGo, Bing, and Kagi as options.
@@ -158,7 +171,8 @@ For deeper code edits, read `docs/TECHNICAL.html` — the **Key Decisions** and 
   - `api.github.com` — for sync (always)
   - `api.open-meteo.com` — for weather and city/timezone lookups (only if you use the Weather or Clock widgets)
   - `api.coingecko.com` — for crypto prices (only if you use the Crypto widget)
-  - `api.twelvedata.com` — for stock prices (only if you've added a Twelve Data key)
+  - `finnhub.io` — for stock prices (only if you've added a Finnhub key)
+  - `generativelanguage.googleapis.com` — for Ask Gemini replies (only if you've added a Gemini key and use the chat)
   - `www.google.com/s2/favicons` — for the small site logos next to bookmarks (best-effort)
 - You can revoke any browser's token at any time from **[github.com/settings/tokens](https://github.com/settings/tokens)** without affecting the others.
 - If you don't want favicons routed through Google, search for `s2/favicons` in `index.html` and remove the block or swap in a different favicon source.
@@ -174,9 +188,12 @@ For deeper code edits, read `docs/TECHNICAL.html` — the **Key Decisions** and 
 | Changes not appearing in another browser | Reload the other browser (Cmd+R / F5). Sync polls every ~60s; a manual reload is instant. |
 | Bookmarklet popup blocked | Allow popups for `YOUR-USERNAME.github.io` in your browser settings. |
 | Weather widget says "Could not load" | Transient Open-Meteo failure; refresh. Or you haven't added a city yet — open the Weather widget's ⚙ to add one. |
-| Markets / Watchlist say "Add Twelve Data API key" | Open Settings ⚙ → see the inline walkthrough → paste a key. |
+| Markets / Watchlist say "Add your Finnhub API key" | Open Settings ⚙ → see the inline walkthrough → paste a free key from [finnhub.io/register](https://finnhub.io/register). (If you set this up before mid-2025 with a Twelve Data key, that old key is ignored — switch to Finnhub.) |
+| Markets / Watchlist say "Rate limit reached" | Nothing cached yet and you're briefly rate-limited; the widget backs off and auto-refreshes after ~60s. No action needed. |
 | Finance widget shows "Loading…" for ~2 seconds before resolving | That's the cold-start retry doing its job — the first fetch failed transiently and the widget is auto-retrying once before falling through to an error. Not a hang. |
-| Twelve Data key seems to "disappear" | It hasn't — saving Settings with the field empty does **not** clear the key (intentional, since some browsers can't reliably re-display password-type values). The key is still stored. To explicitly clear it, use **Settings → Danger Zone → Reset browser**. |
+| Finnhub key seems to "disappear" | It hasn't — saving Settings with the field empty does **not** clear the key (intentional, since some browsers can't reliably re-display password-type values). The key is still stored. To explicitly clear it, use **Settings → Danger Zone → Reset browser**. |
+| Ask Gemini says "Add your free Gemini API key" | Open Settings ⚙ → paste a free key from [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey). The "Open full Gemini" link works without a key. |
+| Ask Gemini says "Google's servers are briefly overloaded" + Retry | A transient Google-side blip; the chat already auto-retried twice. Click Retry or ask again shortly. |
 | Lost a token but still have the gist | Make a new token with the `gist` scope. In the setup screen, choose **I already set up another browser** and paste your gist ID. |
 | Want to wipe a browser's setup but keep the data | **Settings → Danger Zone → Reset this browser.** Token and gist ID are cleared from this browser only; the gist itself is untouched. |
 
