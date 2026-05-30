@@ -2956,8 +2956,12 @@ function moveCardInOrder(orderArray, key, direction, keyOf = (x) => x) {
   // Clamp to the valid range; if that lands us where we already are, do nothing.
   target = Math.max(0, Math.min(orderArray.length - 1, target));
   if (target === i) return false;
-  orderArray.splice(i, 1);
-  orderArray.splice(target, 0, key);
+  // Pull out the ACTUAL element and re-insert it. For widgets the element is
+  // the key string, but for categories it's the whole object — inserting `key`
+  // there would replace the category with a bare id string and the card would
+  // vanish until a reload. Splice returns the removed element, so reuse it.
+  const [item] = orderArray.splice(i, 1);
+  orderArray.splice(target, 0, item);
   return true;
 }
 
