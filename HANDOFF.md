@@ -23,8 +23,8 @@
 **Name:** StartDashboard
 **Folder:** `projects/personal-dashboard/` in Tom's `tom-workspace`
 **Current status:** Complete (in active use; iterating on polish)
-**Current phase:** Complete (v1.18 shipped)
-**Last updated:** 2026-05-29
+**Current phase:** Complete (v1.19 shipped)
+**Last updated:** 2026-05-30
 **Live URL:** https://tecgunther.github.io/startdashboard/
 **Code repo:** https://github.com/TECGUNTHER/startdashboard
 **In use on:** Safari (Mac), Chrome (Mac), Safari (iPhone)
@@ -46,7 +46,16 @@ A single-file web app that's Tom's home page across every browser/device. A top 
 
 # Where We Are
 
-## Most recent session (2026-05-29 — v1.18)
+## Most recent session (2026-05-30 — v1.19)
+
+Fixed a real bug from v1.18: **clicking the move arrows (▲/▼) on a category card made the whole card disappear**, and "Reset layout" wouldn't bring it back — only a full browser refresh would. `index.html` only, no new dependencies.
+
+- **Root cause:** the shared `moveCardInOrder(orderArray, key, direction, keyOf)` helper removed the card with `splice(i,1)` but re-inserted **`key`** instead of the removed element. For widgets the element *is* the key string, so it was harmless; for categories the element is an object, so the category was overwritten by a bare id string → the card had no title/bookmarks → it vanished. "Reset layout" only rebuilds `widgetOrder`, never `categories`, so it couldn't repair it; a refresh reloaded the still-intact data from the gist. **No gist data was ever corrupted** (the bad value lived only in the in-memory state until reload).
+- **Fix:** capture the removed element — `const [item] = orderArray.splice(i, 1); orderArray.splice(target, 0, item);` — correct for both widgets (string) and categories (object). Also fixes the category "Move to front/end" menu, which uses the same helper. JS parses cleanly (`node --check` on the extracted script). Pushed; Tom to smoke-test live.
+
+## Earlier sessions
+
+### (2026-05-29 — v1.18)
 
 Made rearranging cards reliable. `index.html` only, no new dependencies:
 
@@ -65,11 +74,9 @@ Made rearranging cards reliable. `index.html` only, no new dependencies:
 
 ## Immediate next step
 
-1. **Push v1.18** (single-file `index.html` commit), wait ~60s for Pages, hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R).
-2. **Test the drag:** grab a card by its grip — confirm **no blinking** (layout stays still, just a glowing edge bar) and a clean drop near where you aimed (approximate is expected).
-3. **Test arrows + front/end:** click the now-always-visible ▲/▼ on a card; try Move to front / Move to end in a widget gear and a category "..." menu.
-4. **Test Reset layout** in Settings.
-5. **Possible future builds (not started):** read-aloud / TTS for chat replies; a backup/export of dashboard data.
+1. **Verify the v1.19 fix (live).** Hard-reload Safari (Opt+Cmd+R). Click the ▲/▼ arrows on a **category** card → it should move one slot and **stay visible**. Repeat with "Move to front" / "Move to end" in a category "..." menu. (This was the broken case.)
+2. **Re-confirm the v1.18 items still work:** widget ▲/▼ arrows, widget Move to front/end, drag (no blink, approximate landing), Settings → Reset layout.
+3. **Possible future builds (not started):** read-aloud / TTS for chat replies; a backup/export of dashboard data.
 
 ---
 
@@ -185,7 +192,7 @@ Then hard-reload (Safari Opt+Cmd+R, Chrome Cmd+Shift+R). Pages takes ~30–60s.
 - Tom is the only user — no multi-user/sharing. Don't add third-party services without checking (Gemini is the one beyond data APIs). Per-persona by default; per-device globals are theme, credentials, Gemini chat + history.
 - Markets is a single fixed index-proxy card — don't make it renamable/multiple; Watchlists are the multiple concept.
 - Layout is CSS multi-column masonry (v1.15) — keep natural card heights; don't reintroduce equal-height grids.
-- **Rearranging (v1.18):** widget + category card drag is `initCardDrag`, now **de-flickered** via a no-reflow overlay edge bar (`.drop-target-before`/`.drop-target-after`), **not** an in-flow placeholder (re-introducing one brings back the masonry-repack flicker). Drag is **intentionally approximate** in masonry; the always-visible ▲/▼ arrows, Move to front/end, and Settings → Reset layout (`defaultWidgetOrder`) are the precise tools. Bookmarks/tabs/config-lists still use native HTML5 drag and `.drop-before`/`.drop-after` — don't remove those. Two harmless `.drop-placeholder` *comment* refs remain.
+- **Rearranging (v1.18):** widget + category card drag is `initCardDrag`, now **de-flickered** via a no-reflow overlay edge bar (`.drop-target-before`/`.drop-target-after`), **not** an in-flow placeholder (re-introducing one brings back the masonry-repack flicker). Drag is **intentionally approximate** in masonry; the always-visible ▲/▼ arrows, Move to front/end, and Settings → Reset layout (`defaultWidgetOrder`) are the precise tools. **`moveCardInOrder` must re-insert the *removed element* (`const [item]=splice(i,1); splice(target,0,item)`), not the `key` — re-inserting the key destroys category objects (the v1.19 bug). Reset layout only rebuilds `widgetOrder`, not `categories`.** Bookmarks/tabs/config-lists still use native HTML5 drag and `.drop-before`/`.drop-after` — don't remove those. Two harmless `.drop-placeholder` *comment* refs remain.
 - Backgrounds are CSS-only presets (10) or an image URL — no uploads; a preset may carry an optional `accent` (only Starlink) that auto-applies but stays overridable.
 - Ask Gemini is a global panel, not a widget; a fresh assistant with no link to Tom's real Gemini history. Auto-retries 503, not 429. Voice input is the free Web Speech API (`#chat-mic`), hidden where unsupported, never auto-sends. Replies render via `renderMarkdownSafe` — escape-first + tag whitelist; to add a tag, add it in *both* the transform and the whitelist, keep links restricted to `https?://`.
 

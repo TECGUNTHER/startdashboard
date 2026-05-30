@@ -111,7 +111,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
       <span class="status-pill complete">Complete</span>
       <!-- /HUB:STATUS_OVERALL -->
       <!-- HUB:LAST_UPDATED -->
-      <span class="last-updated">2026-05-29 · Fri</span>
+      <span class="last-updated">2026-05-30 · Sat</span>
       <!-- /HUB:LAST_UPDATED -->
     </div>
   </div>
@@ -136,6 +136,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <h3>Recently completed</h3>
         <!-- HUB:RECENT_COMPLETED -->
         <ul>
+          <li><strong>v1.19 shipped &mdash; fixed category cards vanishing when you used the move arrows.</strong> A bug slipped in with v1.18: clicking the &#9650;&#9660; arrows (or &ldquo;Move to front/end&rdquo;) on a <strong>category</strong> (bookmark) card made the <strong>whole card disappear</strong>, and &ldquo;Reset layout&rdquo; couldn&rsquo;t bring it back &mdash; only a full browser refresh would. Cause: the one shared helper that reorders cards was putting back the card&rsquo;s <em>id label</em> instead of the <em>card itself</em>. Widgets are just labels, so they were fine; categories are full objects (title, bookmarks, color), so they got wiped out and the card had nothing left to draw. The fix keeps the real card when moving it. <strong>No data was ever lost</strong> &mdash; your categories were always safe in GitHub; the breakage only ever lived in the browser&rsquo;s temporary copy, which is why a refresh restored them. Only <code>index.html</code> changed; no new dependencies.</li>
           <li><strong>v1.18 shipped &mdash; rearranging cards is finally reliable.</strong> Three fixes to how you move widget and category cards around. First, <strong>the drag no longer blinks</strong>. The old drag inserted a real placeholder card into the layout on every tiny mouse move, which forced the whole Pinterest-style masonry to re-pack each time &mdash; that constant re-packing was the flickering you saw. Now, while you drag, a card-sized slot is no longer shoved into the flow; instead a single <strong>glowing edge bar</strong> lights up on the left or right side of whichever card you&rsquo;re hovering, showing where the card will drop. Nothing in the layout moves until you let go, so there&rsquo;s no reflow and no blink. Second, the <strong>&#9650;&#9660; move arrows are now always visible</strong> (faintly, brightening on hover) on every widget and category &mdash; they&rsquo;re promoted to the primary, precise way to rearrange, and each card&rsquo;s menu also gained <strong>&ldquo;Move to front&rdquo; / &ldquo;Move to end&rdquo;</strong> for big jumps. Third, <strong>Settings has a new &ldquo;Reset layout&rdquo; button</strong> that puts the widgets back to their default order in one click if things ever get messy. Honest note: because masonry packs cards by height, a dropped card lands <em>approximately</em> where you aimed, not pixel-perfect &mdash; the arrows and Reset are the precise tools, and the de-flickered drag is the quick-and-rough one. Only <code>index.html</code> changed; no new dependencies.</li>
           <li><strong>v1.17 shipped &mdash; the Ask Gemini chat got a &#127908; voice button and now shows formatted answers.</strong> Two upgrades to the in-dashboard Gemini chat. First, a <strong>&#127908; microphone button</strong> sits in the chat input row (between the text box and Send): click it, speak your question, and it&rsquo;s typed into the box for you to review and send &mdash; it never auto-sends, and it never wipes text you already typed. It uses your browser&rsquo;s built-in speech-to-text (the same engine behind dictation), so it&rsquo;s <strong>free, needs no key, and works on iPhone Safari too</strong>. On any browser that doesn&rsquo;t support voice, the button simply doesn&rsquo;t appear &mdash; nothing breaks. If you deny microphone permission, you get a friendly note rather than an error. Second, Gemini&rsquo;s replies now <strong>render as proper formatting</strong> &mdash; <strong>bold</strong>, <em>italics</em>, bullet and numbered lists, headings, inline and block code, and clickable http(s) links &mdash; instead of showing the raw markdown characters. The formatter is built in-house and <strong>security-first</strong>: it escapes everything first and only ever inserts a small whitelist of safe tags, so nothing in a model reply can run code or inject HTML. Your questions stay plain text; only Gemini&rsquo;s answers get formatted. Works in light and dark. Only <code>index.html</code> changed; no new keys, dependencies, or backend.</li>
           <li><strong>v1.16 shipped &mdash; rebuilt how you rearrange widget and category cards.</strong> Until now, dragging cards used the browser&rsquo;s built-in drag, which was flaky &mdash; and after the v1.15 masonry change it sometimes guessed the wrong direction (it still thought cards were in a left-to-right row). v1.16 throws that out and replaces it with a smooth, custom drag: grab a card by its &#10303; grip and a faded copy follows your cursor, while a <strong>highlighted &ldquo;landing slot&rdquo;</strong> (a glowing dashed outline) shows exactly where the card will drop. Let go and it lands there reliably, every time. As a bonus, the same custom drag works on <strong>touch &mdash; so you can now rearrange cards on your iPhone</strong>, which the old browser drag never supported. Also new: <strong>hover-revealed &#9650;/&#9660; arrows</strong> on every widget and category card &mdash; if you&rsquo;d rather not drag, just hover a card and click up/down to nudge it one spot. The native drag for bookmarks, persona tabs, and the config lists (tickers, cities, zones) is intentionally left as-is and still works exactly as before. Only <code>index.html</code> changed; no new dependencies.</li>
@@ -155,10 +156,8 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
         <h3>What's next</h3>
         <!-- HUB:WHATS_NEXT -->
         <ul>
-          <li><strong>Push v1.18 and test the rearranging.</strong> Commit the single-file <code>index.html</code> change, wait ~60s for GitHub Pages, then hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R). The Build Agent couldn&rsquo;t run a live browser in its sandbox, so this is the real test.</li>
-          <li><strong>Drag a card and confirm no blinking.</strong> Grab a widget or category by its grip and drag it &mdash; the layout should stay still (no flicker), with just a glowing edge bar showing where it&rsquo;ll land. Let go and confirm it drops cleanly near where you aimed (remember: approximate, not pixel-perfect &mdash; that&rsquo;s expected).</li>
-          <li><strong>Try the arrows and front/end.</strong> The &#9650;&#9660; arrows should be visible on every card now &mdash; click them to nudge a card one spot. Open a widget&rsquo;s gear (and a category&rsquo;s &ldquo;...&rdquo; menu) and try <strong>Move to front / Move to end</strong>.</li>
-          <li><strong>Test Reset layout.</strong> In <strong>Settings</strong> (near the widget show/hide toggles), click <strong>Reset layout</strong> and confirm the widgets snap back to their default order.</li>
+          <li><strong>Verify the v1.19 fix (the broken case).</strong> Hard-reload Safari (Opt+Cmd+R), then click the &#9650;&#9660; arrows on a <strong>category</strong> card &mdash; it should move one slot and <strong>stay visible</strong>. Do the same with <strong>Move to front / Move to end</strong> in a category&rsquo;s &ldquo;...&rdquo; menu. This is what was breaking.</li>
+          <li><strong>Re-confirm the v1.18 rearranging still works.</strong> Widget &#9650;&#9660; arrows and widget Move to front/end; drag a card by its grip (no blink, approximate landing); and <strong>Settings &rarr; Reset layout</strong>.</li>
           <li><strong>Future options (not started):</strong> read-aloud / text-to-speech for Gemini&rsquo;s replies, and a backup / export of your dashboard data. Both noted as possible next builds whenever you want them.</li>
         </ul>
         <!-- /HUB:WHATS_NEXT -->
@@ -243,7 +242,26 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h2>Session Log</h2>
     <!-- HUB:SESSION_LOG -->
     <article class="session-entry latest">
-      <div class="date">2026-05-29 &middot; Friday &middot; very late night (latest)</div>
+      <div class="date">2026-05-30 &middot; Saturday (latest)</div>
+      <div class="focus">v1.19 &mdash; fixed a v1.18 regression: clicking the &#9650;&#9660; move arrows (or Move to front/end) on a <strong>category</strong> card made the whole card vanish, and Reset layout couldn&rsquo;t recover it &mdash; only a browser refresh would. Found and fixed directly (lighter flow for a small, contained bug fix, at Tom&rsquo;s request). Only <code>index.html</code>.</div>
+      <h4>Root cause</h4>
+      <ul>
+        <li><strong>One helper, two data shapes.</strong> <code>moveCardInOrder(orderArray, key, direction, keyOf)</code> removed the card with <code>splice(i, 1)</code> but re-inserted <code>key</code> &mdash; <code>orderArray.splice(target, 0, key)</code>. For <strong>widgets</strong> the element <em>is</em> the key string, so it was harmless. For <strong>categories</strong> the element is a full object and <code>keyOf = c =&gt; c.id</code>, so the category object was overwritten by a bare id string. The render then had a &ldquo;category&rdquo; with no title or bookmarks &rarr; the card disappeared.</li>
+        <li><strong>Why Reset layout didn&rsquo;t help, but refresh did.</strong> &ldquo;Reset layout&rdquo; only rebuilds <code>widgetOrder</code>, never the <code>categories</code> array, so it couldn&rsquo;t repair the damage. A full refresh reloaded the persona from the gist, where the data was still intact &mdash; the corruption only ever lived in the in-memory state. <strong>No gist data was lost.</strong></li>
+      </ul>
+      <h4>Completed</h4>
+      <ul>
+        <li><strong>Fix.</strong> <code>moveCardInOrder</code> now captures the removed element and re-inserts <em>that</em>: <code>const [item] = orderArray.splice(i, 1); orderArray.splice(target, 0, item);</code> &mdash; correct for both widgets (string) and categories (object). This also fixes the category &ldquo;Move to front / Move to end&rdquo; menu, which shares the helper.</li>
+        <li><strong>Scope &amp; verification.</strong> Only <code>index.html</code> changed (6-line edit to one function). JavaScript parses cleanly (<code>node --check</code> on the extracted script). No new dependencies. Pushed as v1.19; Tom to smoke-test the category arrows + front/end live.</li>
+      </ul>
+      <h4>Decisions made</h4>
+      <ul>
+        <li><strong>Lighter flow for small bug fixes.</strong> At Tom&rsquo;s request (iterations were feeling slow), contained one-function bug fixes are now diagnosed and fixed directly &mdash; shown to Tom before the push, then documented &mdash; rather than running the full Design &rarr; Build &rarr; Document ceremony. The full flow stays for real features.</li>
+      </ul>
+    </article>
+
+    <article class="session-entry">
+      <div class="date">2026-05-29 &middot; Friday &middot; very late night</div>
       <div class="focus">v1.18 &mdash; reliable card rearranging: de-flickered the custom drag (replaced the in-flow placeholder that re-packed the masonry on every move with a no-reflow overlay edge bar), made the &#9650;&#9660; move arrows always visible as the primary tool, added &ldquo;Move to front / Move to end&rdquo; in the widget gear and category menu, and added a &ldquo;Reset layout&rdquo; button in Settings. Only <code>index.html</code>. Real Build Agent + Documentation Agent subagent flow.</div>
       <h4>Root cause</h4>
       <ul>
@@ -539,7 +557,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
 
 <footer>
   <div class="container">
-    Maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-29 · Fri</span>
+    Maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-30 · Sat</span>
   </div>
 </footer>
 
