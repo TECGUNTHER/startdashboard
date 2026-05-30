@@ -472,6 +472,7 @@ header.dash-header {
 .widget:hover { border-color: var(--border-strong); }
 .widget-head {
   display: flex; justify-content: space-between; align-items: center;
+  gap: 6px;
   margin-bottom: 10px;
 }
 .widget-title {
@@ -480,6 +481,9 @@ header.dash-header {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-muted);
+  /* Take up the slack so the grip + move arrows hug the left and the gear sits
+     at the far right (v1.16 added the arrows between grip and title). */
+  flex: 1;
 }
 .widget-settings-btn {
   font-size: 12px; color: var(--text-muted); padding: 2px 6px;
@@ -728,10 +732,11 @@ header.dash-header {
   letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--accent);
-  cursor: grab;
+  /* v1.16: the title no longer initiates drag (the grip does), so it gets a
+     default/text cursor instead of the old grab cursor. */
+  cursor: default;
   flex: 1;
 }
-.category-title:active { cursor: grabbing; }
 
 /* ---- Drag grip handles ----
    Every draggable thing gets a visible "⠿" grip so it's obvious it can be
@@ -748,9 +753,84 @@ header.dash-header {
 .grip:hover { color: var(--text-primary); }
 .grip:active { cursor: grabbing; }
 .category-head .grip { margin-right: 2px; }
-/* Thin accent line showing where a dragged item will drop. */
+/* Thin accent line showing where a dragged item will drop. Still used by the
+   bookmark-row drag (which keeps the native HTML5 drag-and-drop). */
 .drop-before { box-shadow: inset 0 2px 0 0 var(--accent); }
 .drop-after  { box-shadow: inset 0 -2px 0 0 var(--accent); }
+
+/* ---- Pointer-drag engine (v1.16) ----
+   These three classes drive the smooth card reorder for widget + category
+   cards. The native HTML5 drag was flaky in the masonry layout, so we hand-roll
+   the drag with pointer events. Three pieces are on screen during a drag:
+     1. .card-dragging  — the original card, dimmed in place so the user can see
+                          where it came from.
+     2. .drag-clone     — a floating copy of the card that follows the cursor.
+     3. .drop-placeholder — the highlighted "this is where it will land" box.   */
+
+/* The original card while it's being dragged: faded out so it reads as "lifted". */
+.card-dragging { opacity: 0.30; }
+
+/* The floating copy that tracks the pointer. position:fixed so it ignores the
+   masonry flow; pointer-events:none so it never blocks hit-testing of the
+   real cards underneath; z-index sits above cards but below modals. */
+.drag-clone {
+  position: fixed;
+  top: 0; left: 0;
+  margin: 0;
+  pointer-events: none;
+  z-index: 500;
+  opacity: 0.92;
+  transform: scale(1.03);
+  box-shadow: 0 12px 32px -6px rgba(0,0,0,0.55);
+  border-color: var(--accent) !important;
+  /* Kill any backdrop blur on the clone — it's drawn over arbitrary content
+     and the blur looks wrong / costs performance while dragging. */
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: var(--bg-elev-1);
+}
+
+/* The landing-slot highlight: a card-sized dashed accent box with a soft
+   translucent accent fill. This is the "show me where it lands" cue Tom asked
+   for. Reuses the masonry break/width rules so it occupies a real card slot. */
+.drop-placeholder {
+  border: 2px dashed var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1px var(--accent) inset, 0 0 14px -4px var(--accent);
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  page-break-inside: avoid;
+  width: 100%;
+  margin-bottom: 16px;
+  box-sizing: border-box;
+}
+
+/* ---- Move controls (v1.16) ----
+   Tiny up/down arrows revealed on hover next to the grip. One click nudges the
+   card one slot earlier/later in the saved order — fully reliable regardless of
+   how masonry happens to pack the columns. Hidden until the card header is
+   hovered so they don't clutter the resting layout. */
+.move-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  margin-left: 2px;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.widget-head:hover .move-controls,
+.category-head:hover .move-controls { opacity: 1; }
+.move-btn {
+  font-size: 11px;
+  line-height: 1;
+  color: var(--text-muted);
+  padding: 1px 3px;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+.move-btn:hover { color: var(--text-primary); background: var(--bg-elev-2); }
 .category-title-input {
   font-size: 13px; font-weight: 600;
   color: var(--text-primary);
@@ -2730,6 +2810,231 @@ function addNewPersona() {
 }
 
 /* ============================================================
+   Card reordering — pointer-drag engine + move controls (v1.16)
+   ============================================================ */
+
+/* ---- Order-array helper used by BOTH the drag engine and the move arrows ----
+   Move `key` within `orderArray` in the given direction and return true if the
+   array actually changed. Directions:
+     'earlier' — one slot toward the front
+     'later'   — one slot toward the end
+     'front'   — all the way to the front
+     'end'     — all the way to the end
+   No-ops (and returns false) when the move would run off either end. The caller
+   wraps this in setState() so the change persists + re-renders.
+
+   `keyOf` lets this work for both shapes of order array we have: widgetOrder is
+   a plain array of string keys (default identity), while categories is an array
+   of objects keyed by `.id` — pass keyOf = c => c.id for that case. We splice
+   the array in place so the mutation lands on the real persona data. */
+function moveCardInOrder(orderArray, key, direction, keyOf = (x) => x) {
+  const i = orderArray.findIndex(x => keyOf(x) === key);
+  if (i < 0) return false;
+  let target;
+  if (direction === 'earlier')      target = i - 1;
+  else if (direction === 'later')   target = i + 1;
+  else if (direction === 'front')   target = 0;
+  else if (direction === 'end')     target = orderArray.length - 1;
+  else return false;
+  // Clamp to the valid range; if that lands us where we already are, do nothing.
+  target = Math.max(0, Math.min(orderArray.length - 1, target));
+  if (target === i) return false;
+  orderArray.splice(i, 1);
+  orderArray.splice(target, 0, key);
+  return true;
+}
+
+/* ---- Build a hover-revealed pair of move arrows for a card header ----
+   `getOrderArray` returns the LIVE order array (the persona's widgetOrder, or
+   the persona's categories array) at click time — it must be the real array so
+   the splice mutates the saved data. `key` is this card's key/id, and `keyOf`
+   maps an array element to its key (identity for widgets, `c => c.id` for
+   categories). Each click mutates the order inside setState so it persists to
+   the gist and re-renders. The arrows are the reliable no-aim alternative to
+   dragging. */
+function buildMoveControls(getOrderArray, key, keyOf = (x) => x) {
+  const wrap = document.createElement('span');
+  wrap.className = 'move-controls';
+  const mk = (glyph, dir, label) => {
+    const b = document.createElement('span');
+    b.className = 'move-btn';
+    b.textContent = glyph;
+    b.title = label;
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setState(() => { moveCardInOrder(getOrderArray(), key, dir, keyOf); });
+    });
+    return b;
+  };
+  // Up = earlier in the order, Down = later. (In masonry "earlier/later"
+  // tracks the saved order, not a literal screen direction — but up/down is the
+  // most intuitive label for a one-slot nudge.)
+  wrap.appendChild(mk('▲', 'earlier', 'Move earlier'));
+  wrap.appendChild(mk('▼', 'later', 'Move later'));
+  return wrap;
+}
+
+/* ---- The shared pointer-drag engine ----
+   ONE implementation used by both widget cards and category cards. It replaces
+   the old flaky native HTML5 drag. The whole gesture lives inside one closure
+   started by a pointerdown on a card's grip.
+
+   Parameters:
+     grip      — the ⠿ element the user presses to start dragging.
+     card      — the card being dragged (the .widget or .category element).
+     container — the masonry container the card lives in (.widgets-row /
+                 .categories-grid). We only consider sibling cards in here.
+     cardSelector — CSS selector that matches the real, reorderable cards in the
+                 container (so we ignore the "+ New category" tile, etc.).
+     onDrop    — called with the final target index (position among the OTHER
+                 real cards, 0..N-1 where N is the count excluding this card).
+                 The caller turns that index into an order-array splice.        */
+function initCardDrag({ grip, card, container, cardSelector, onDrop }) {
+  grip.style.touchAction = 'none'; // let us own touch gestures (no scroll-pan)
+
+  grip.addEventListener('pointerdown', (e) => {
+    // Left mouse button or touch/pen only — ignore right/middle clicks.
+    if (e.button !== 0) return;
+    e.preventDefault();
+
+    // --- Set up drag state ---------------------------------------------------
+    // Capture the pointer so we keep getting move/up events even if the cursor
+    // leaves the grip (which it immediately does once the card lifts).
+    grip.setPointerCapture(e.pointerId);
+
+    const startRect = card.getBoundingClientRect();
+    // Where inside the card the user grabbed — so the floating clone sits under
+    // the cursor at the same spot rather than jumping its top-left to the pointer.
+    const grabOffsetX = e.clientX - startRect.left;
+    const grabOffsetY = e.clientY - startRect.top;
+
+    // Floating clone that follows the cursor.
+    const clone = card.cloneNode(true);
+    clone.classList.add('drag-clone');
+    clone.classList.remove('card-dragging');
+    clone.style.width = startRect.width + 'px';
+    clone.style.height = startRect.height + 'px';
+    document.body.appendChild(clone);
+
+    // Card-sized placeholder showing where it will land. Starts exactly where
+    // the card currently sits, inserted right before the real card.
+    const placeholder = document.createElement('div');
+    placeholder.className = 'drop-placeholder';
+    placeholder.style.height = startRect.height + 'px';
+    container.insertBefore(placeholder, card);
+
+    // Dim the original in place.
+    card.classList.add('card-dragging');
+
+    let cancelled = false;
+
+    // Position the clone under the cursor (accounting for the grab offset).
+    const moveClone = (clientX, clientY) => {
+      clone.style.transform =
+        'translate(' + (clientX - grabOffsetX) + 'px,' +
+        (clientY - grabOffsetY) + 'px) scale(1.03)';
+    };
+    moveClone(e.clientX, e.clientY);
+
+    // --- Find where the placeholder should go for a given cursor position ----
+    // We look at every OTHER real card in the container, find the one whose
+    // CENTER is nearest the cursor (straight-line 2D distance — works for the
+    // column-packed masonry where neither pure-X nor pure-Y is right), then
+    // decide whether to drop before or after it. "Before/after" is chosen by
+    // the dominant axis to that card's center: if the cards in that area are
+    // stacked vertically we compare Y, otherwise X. We approximate that by
+    // simply comparing against the card's center on whichever axis the cursor
+    // is further from — in practice comparing Y handles the common vertical
+    // stacking and X handles side-by-side columns. We use: after = cursor is
+    // below the center (Y) OR (roughly same row) to the right of center (X).
+    const updatePlaceholder = (clientX, clientY) => {
+      const cards = Array.from(container.querySelectorAll(cardSelector))
+        .filter(c => c !== card && c !== placeholder);
+      if (!cards.length) return;
+
+      let nearest = null;
+      let nearestDist = Infinity;
+      let nearestAfter = false;
+      cards.forEach(c => {
+        const r = c.getBoundingClientRect();
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        const dx = clientX - cx;
+        const dy = clientY - cy;
+        const dist = dx * dx + dy * dy; // squared distance is fine for "nearest"
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearest = c;
+          // Decide before/after by the axis with the bigger gap to the center.
+          // Vertical stacking (within a column) → use Y; horizontal neighbours
+          // (across columns) → use X.
+          if (Math.abs(dy) >= Math.abs(dx)) nearestAfter = dy > 0;
+          else nearestAfter = dx > 0;
+        }
+      });
+      if (!nearest) return;
+
+      // Place the highlighted slot before or after the nearest card.
+      if (nearestAfter) container.insertBefore(placeholder, nearest.nextSibling);
+      else              container.insertBefore(placeholder, nearest);
+    };
+    updatePlaceholder(e.clientX, e.clientY);
+
+    // --- Live move handler ---------------------------------------------------
+    const onMove = (ev) => {
+      if (cancelled) return;
+      ev.preventDefault();
+      moveClone(ev.clientX, ev.clientY);
+      updatePlaceholder(ev.clientX, ev.clientY);
+    };
+
+    // --- Finish (commit or cancel) -------------------------------------------
+    const cleanup = () => {
+      clone.remove();
+      placeholder.remove();
+      card.classList.remove('card-dragging');
+      grip.removeEventListener('pointermove', onMove);
+      grip.removeEventListener('pointerup', onUp);
+      grip.removeEventListener('pointercancel', onCancel);
+      window.removeEventListener('keydown', onKey, true);
+      try { grip.releasePointerCapture(e.pointerId); } catch (_) {}
+    };
+
+    const onUp = () => {
+      if (cancelled) { cleanup(); return; }
+      // Final target index = how many real OTHER cards sit before the
+      // placeholder in DOM order. That's exactly the slot the user saw
+      // highlighted, expressed as an index among the other cards.
+      const ordered = Array.from(container.querySelectorAll(cardSelector))
+        .filter(c => c !== card);
+      let targetIndex = 0;
+      for (const c of ordered) {
+        // Walk the real cards; stop counting once we pass the placeholder.
+        if (placeholder.compareDocumentPosition(c) &
+            Node.DOCUMENT_POSITION_FOLLOWING) {
+          break; // this card comes after the placeholder
+        }
+        targetIndex++;
+      }
+      cleanup();
+      onDrop(targetIndex);
+    };
+
+    const onCancel = () => { cancelled = true; cleanup(); };
+
+    // Escape cancels the drag with no reorder.
+    const onKey = (ev) => {
+      if (ev.key === 'Escape') { cancelled = true; cleanup(); }
+    };
+
+    grip.addEventListener('pointermove', onMove);
+    grip.addEventListener('pointerup', onUp);
+    grip.addEventListener('pointercancel', onCancel);
+    window.addEventListener('keydown', onKey, true);
+  });
+}
+
+/* ============================================================
    Categories & bookmarks
    ============================================================ */
 function renderCategories(p) {
@@ -2756,9 +3061,9 @@ function renderCategory(cat) {
   /* Per-card custom color (border + soft glow). Null = inherit theme accent. */
   applyCardColor(wrap, cat.color);
 
-  /* Header: visible grip handle (the drag target) + title + ... menu.
-     The grip is what the user grabs to reorder categories. We keep the
-     title draggable too as a fallback, but the grip is the obvious affordance. */
+  /* Header: visible grip handle (the drag target) + move arrows + title + ⋯ menu.
+     The grip starts the smooth pointer-drag (v1.16); the move arrows are the
+     reliable one-click alternative. */
   const head = document.createElement('div');
   head.className = 'category-head';
 
@@ -2766,22 +3071,21 @@ function renderCategory(cat) {
   grip.className = 'grip';
   grip.textContent = '⠿';
   grip.title = 'Drag to reorder this category';
-  grip.draggable = true;
-  grip.addEventListener('dragstart', (e) => {
-    e.dataTransfer.setData('application/x-category-id', cat.id);
-    e.dataTransfer.effectAllowed = 'move';
-  });
   head.appendChild(grip);
+
+  /* Hover-revealed move arrows. They reorder the persona's live categories
+     array (keyed by id), so they're predictable no matter how masonry packs
+     the columns. */
+  head.appendChild(buildMoveControls(
+    () => currentPersona().categories,
+    cat.id,
+    (c) => c.id
+  ));
 
   const titleSpan = document.createElement('span');
   titleSpan.className = 'category-title';
   titleSpan.textContent = cat.name;
   titleSpan.title = 'Drag the grip to reorder · Double-click to rename';
-  titleSpan.draggable = true;
-  titleSpan.addEventListener('dragstart', (e) => {
-    e.dataTransfer.setData('application/x-category-id', cat.id);
-    e.dataTransfer.effectAllowed = 'move';
-  });
   titleSpan.addEventListener('dblclick', () => beginRenameCategory(cat.id, titleSpan));
   head.appendChild(titleSpan);
 
@@ -2806,15 +3110,17 @@ function renderCategory(cat) {
   addBtn.addEventListener('click', () => openManualAddBookmark(cat.id));
   wrap.appendChild(addBtn);
 
-  /* Make the entire card a drop target for URLs (from address bar)
-     AND for in-app bookmark/category drag operations. */
+  /* Make the entire card a drop target for URLs (from address bar) AND for
+     in-app BOOKMARK drag operations. Category REORDER no longer uses native
+     drag (it's the pointer-drag engine + move arrows now), so we no longer
+     advertise 'application/x-category-id' as an acceptable drop here. Bookmark
+     drops still land via handleDropOnCategory below. */
   wrap.addEventListener('dragover', (e) => {
     if (
       e.dataTransfer.types.includes('text/uri-list') ||
       e.dataTransfer.types.includes('text/x-moz-url') ||
       e.dataTransfer.types.includes('text/plain') ||
-      e.dataTransfer.types.includes('application/x-bookmark-id') ||
-      e.dataTransfer.types.includes('application/x-category-id')
+      e.dataTransfer.types.includes('application/x-bookmark-id')
     ) {
       e.preventDefault();
       wrap.classList.add('drop-target');
@@ -2825,6 +3131,27 @@ function renderCategory(cat) {
     e.preventDefault();
     wrap.classList.remove('drop-target');
     handleDropOnCategory(e, cat.id);
+  });
+
+  /* Smooth pointer-drag reorder (v1.16). Grabbing the grip lifts a floating
+     clone and shows a highlighted landing slot among the other category cards.
+     On release, the dropped slot index is spliced into persona.categories. */
+  initCardDrag({
+    grip,
+    card: wrap,
+    container: document.getElementById('categories-grid'),
+    cardSelector: '.category',
+    onDrop: (targetIndex) => {
+      setState(d => {
+        const p = d.personas.find(pp => pp.id === currentPersona().id);
+        const from = p.categories.findIndex(c => c.id === cat.id);
+        if (from < 0) return;
+        const [item] = p.categories.splice(from, 1);
+        // targetIndex counts the OTHER cards before the placeholder, which is
+        // exactly the insertion index after we've pulled this card out.
+        p.categories.splice(targetIndex, 0, item);
+      });
+    },
   });
 
   return wrap;
@@ -3232,19 +3559,9 @@ function handleDropOnCategory(e, targetCatId) {
     });
     return;
   }
-  const catId = e.dataTransfer.getData('application/x-category-id');
-  if (catId) {
-    setState(d => {
-      const p = d.personas.find(pp => pp.id === currentPersona().id);
-      const src = p.categories.findIndex(cc => cc.id === catId);
-      const tgt = p.categories.findIndex(cc => cc.id === targetCatId);
-      if (src < 0 || tgt < 0) return;
-      const [item] = p.categories.splice(src, 1);
-      const newTgt = p.categories.findIndex(cc => cc.id === targetCatId);
-      p.categories.splice(newTgt, 0, item);
-    });
-    return;
-  }
+  /* (Category reorder used to live here via 'application/x-category-id' — it's
+     now handled by the v1.16 pointer-drag engine + move arrows, so that path
+     was removed. Bookmark drops above and URL drops below stay.) */
   /* External URL drop. Different browsers stash the URL in different MIME types. */
   let url =
     e.dataTransfer.getData('text/uri-list') ||
@@ -3295,17 +3612,19 @@ function buildWidgetCard(p, key, title, bodyId, cfgKey) {
   const head = document.createElement('div');
   head.className = 'widget-head';
 
-  /* Grip handle — drag this to reorder the card among the other widgets. */
+  /* Grip handle — grab this to start the smooth pointer-drag reorder (v1.16). */
   const grip = document.createElement('span');
   grip.className = 'grip';
   grip.textContent = '⠿';
   grip.title = 'Drag to reorder this widget';
-  grip.draggable = true;
-  grip.addEventListener('dragstart', (e) => {
-    e.dataTransfer.setData('application/x-widget-key', key);
-    e.dataTransfer.effectAllowed = 'move';
-  });
   head.appendChild(grip);
+
+  /* Hover-revealed move arrows: reorder this widget one slot at a time in the
+     persona's live widgetOrder (plain string keys, so identity keyOf). */
+  head.appendChild(buildMoveControls(
+    () => currentPersona().widgetOrder,
+    key
+  ));
 
   const titleEl = document.createElement('span');
   titleEl.className = 'widget-title';
@@ -3328,25 +3647,41 @@ function buildWidgetCard(p, key, title, bodyId, cfgKey) {
   if (bodyId) body.id = bodyId;
   card.appendChild(body);
 
-  /* Position-aware drop target: dropping another widget's grip onto this card
-     reorders it before/after, with an accent drop-indicator line. */
-  card.addEventListener('dragover', (e) => {
-    if (!e.dataTransfer.types.includes('application/x-widget-key')) return;
-    e.preventDefault();
-    const rect = card.getBoundingClientRect();
-    const after = (e.clientX - rect.left) > rect.width / 2;
-    card.classList.toggle('drop-after', after);
-    card.classList.toggle('drop-before', !after);
-  });
-  card.addEventListener('dragleave', () => card.classList.remove('drop-before', 'drop-after'));
-  card.addEventListener('drop', (e) => {
-    const from = e.dataTransfer.getData('application/x-widget-key');
-    if (!from) return;
-    e.preventDefault();
-    card.classList.remove('drop-before', 'drop-after');
-    const rect = card.getBoundingClientRect();
-    const after = (e.clientX - rect.left) > rect.width / 2;
-    moveWidget(from, key, after);
+  /* Smooth pointer-drag reorder (v1.16) — replaces the old native HTML5 drag,
+     which was flaky in the masonry layout (wrong before/after axis, dropped
+     drops). Grabbing the grip lifts a floating clone and shows a highlighted
+     landing slot among the other widget cards. On release, the dropped slot
+     index maps straight onto persona.widgetOrder.
+
+     NOTE on the index math: targetIndex counts the OTHER VISIBLE widget cards
+     before the placeholder. Some widget keys can be hidden (hiddenWidgets), so
+     the DOM only contains visible cards. We therefore translate the visible
+     target index into the right spot in the full widgetOrder by inserting this
+     key just before the visible card currently at that slot. */
+  initCardDrag({
+    grip,
+    card,
+    container: document.getElementById('widgets-row'),
+    cardSelector: '.widget',
+    onDrop: (targetIndex) => {
+      // Snapshot the visible widget keys in their current DOM order BEFORE the
+      // re-render, excluding the card we just dragged.
+      const visibleKeys = Array.from(
+        document.querySelectorAll('#widgets-row .widget')
+      ).map(el => el.dataset.widget).filter(k => k !== key);
+      // The key whose slot we're landing in front of (undefined = drop at end).
+      const anchorKey = visibleKeys[targetIndex];
+      setState(d => {
+        const p = d.personas.find(pp => pp.id === currentPersona().id);
+        const order = p.widgetOrder;
+        const fromIdx = order.indexOf(key);
+        if (fromIdx < 0) return;
+        order.splice(fromIdx, 1);
+        if (anchorKey === undefined) { order.push(key); return; }
+        const anchorIdx = order.indexOf(anchorKey);
+        order.splice(anchorIdx < 0 ? order.length : anchorIdx, 0, key);
+      });
+    },
   });
 
   return { card, body };
@@ -3367,7 +3702,10 @@ function applyCardColor(card, color) {
 }
 
 /* Reorder widget card `fromKey` to sit before/after `targetKey` in this
-   persona's widgetOrder, then persist + re-render. */
+   persona's widgetOrder, then persist + re-render.
+   NOTE (v1.16): No longer called — the pointer-drag engine (initCardDrag) and
+   the move arrows (moveCardInOrder) replaced it. Kept for reference / possible
+   future reuse since it's the canonical widgetOrder splice. */
 function moveWidget(fromKey, targetKey, after) {
   if (fromKey === targetKey) return;
   setState(d => {

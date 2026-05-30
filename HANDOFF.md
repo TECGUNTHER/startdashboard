@@ -23,7 +23,7 @@
 **Name:** StartDashboard
 **Folder:** `projects/personal-dashboard/` in Tom's `tom-workspace`
 **Current status:** Complete (in active use; iterating on polish)
-**Current phase:** Complete (v1.15 shipped)
+**Current phase:** Complete (v1.16 shipped)
 **Last updated:** 2026-05-29
 **Live URL:** https://tecgunther.github.io/startdashboard/
 **Code repo:** https://github.com/TECGUNTHER/startdashboard
@@ -32,56 +32,56 @@
 **What it does (plain English):**
 A single-file web app that's Tom's home page across every browser/device. A top tab bar switches between "personas" (Work, Personal, Investments, etc.); each is its own complete dashboard with its own bookmarks (in categories), widgets, background, and accent. All data lives in one private GitHub gist, so the same URL shows the same synced view everywhere within seconds. Dark/modern by default; a light-mode toggle (v1.6) covers daytime use.
 
-**Layout (v1.15):** the widget row and the categories pack vertically like Pinterest tiles (CSS multi-column "masonry") — each card is only as tall as its content, so a tall card no longer stretches its neighbors or pushes the categories down.
+**Layout (v1.15):** the widget row and the categories pack vertically like Pinterest tiles (CSS multi-column "masonry") — each card is only as tall as its content. **Rearranging cards (v1.16):** widget and category cards drag with a custom pointer-drag — a faded clone follows the cursor and a highlighted "landing slot" shows where the card drops; works on touch (iPhone); each card also has hover-revealed ▲/▼ move arrows.
 
-**Backgrounds:** 10 CSS-only dark presets (Midnight Mesh, Aurora, Synthwave, Carbon Grid, Deep Space, Liquid Glass, Tokyo Night, Terminal, Monochrome, **Starlink** as of v1.14), or any image URL. Starlink also auto-applies a matched electric-blue accent (overridable) when selected.
+**Backgrounds:** 10 CSS-only dark presets (Midnight Mesh, Aurora, Synthwave, Carbon Grid, Deep Space, Liquid Glass, Tokyo Night, Terminal, Monochrome, **Starlink** as of v1.14), or any image URL. Starlink auto-applies a matched electric-blue accent (overridable).
 
 **Widgets** (per-persona; show/hide, drag-to-reorder, optional glow color as of v1.10): Clock (multi-zone, 12/24hr), Weather (Open-Meteo, no key — each day shows icon + label, high/low, "🌧 NN%" as of v1.12), To-do, Sticky notes, Crypto (CoinGecko), Markets (Finnhub, fixed SPY/QQQ/DIA), Watchlists (Finnhub, multiple/renamable, v1.10).
 
-**Also an "Ask Gemini" AI chat panel (v1.11)** — a *global* panel, not a widget. A bottom-right bubble opens a slide-over chat for concise answers from every persona, on the free Gemini API, with an "Open full Gemini" link-out. As of v1.13 it auto-retries Google's transient "overloaded" 503s, with a Retry button if retries run out.
+**Also an "Ask Gemini" AI chat panel (v1.11)** — a *global* panel, not a widget. A bottom-right bubble opens a slide-over chat for concise answers, on the free Gemini API, with an "Open full Gemini" link-out. As of v1.13 it auto-retries Google's transient "overloaded" 503s, with a Retry button if retries run out.
 
 ---
 
 # Where We Are
 
-## Most recent session (2026-05-29 — v1.15)
+## Most recent session (2026-05-29 — v1.16)
 
-Switched the **widget row and the categories to a masonry (vertical-packing) layout** — CSS only, `index.html` only, no JS logic change, no new deps:
+Rebuilt how widget and category cards are rearranged — `index.html` only, no new deps:
 
-- `.widgets-row`: grid `repeat(4,1fr)` → `column-count:4` (with `column-count:2` ≤1100px, `1` ≤600px). `.categories-grid`: grid `auto-fill minmax(280px,1fr)` → `column-width:280px` (+ a `column-count:1` rule ≤700px). Each `.widget`/`.category`/`.new-category-card` got `break-inside:avoid` (+ webkit/page-break for Safari), `width:100%`, `margin-bottom:16px`. (Exact CSS in PROJECT-HUB / TECHNICAL.)
-- **Drag-reorder needed no change** — `moveWidget` splices `widgetOrder`, category drop splices `persona.categories`, both read per-card `getBoundingClientRect` (not grid geometry), so they're layout-agnostic. `.drop-before`/`.drop-after` kept.
-- **Not verified live:** the Build Agent's sandbox had no browser, so static checks only (JS parses clean); it asked Tom to eyeball the packing and grip-drag one widget + one category once live.
+- Replaced the flaky native HTML5 drag (which also guessed the wrong direction after v1.15's masonry change) with **one shared vanilla pointer-drag engine**, `initCardDrag({ grip, card, container, cardSelector, onDrop })`. On grip `pointerdown` it builds a fixed `.drag-clone` that follows the cursor and a `.drop-placeholder` "landing slot"; on `pointermove` it picks the nearest card by 2D distance and decides before/after by the **dominant axis**; on `pointerup` it computes the index and fires `onDrop`. Pointer events → **mouse and touch (iPhone)**. Widget drop = anchor-key splice of `widgetOrder` (hidden widgets don't skew the index); category drop = splice `persona.categories` at the index.
+- Added **hover-revealed ▲/▼ move arrows** on every widget + category card (`moveCardInOrder` / `buildMoveControls`) for a no-drag nudge. New CSS: `.drag-clone`, `.drop-placeholder`, `.card-dragging`, `.move-controls`/`.move-btn`; kept `.drop-before`/`.drop-after` (bookmark rows still use them).
+- **Native drag for bookmarks, persona tabs, and config lists is intentionally untouched.** `moveWidget` is now unused (left with a note).
+- **Not verified live:** sandbox can't fully load the app (needs gist auth); `node --check` passes, index math traced. Tom should smoke-test.
 
 ## Sessions before that
 
+- **v1.15 (2026-05-29):** Masonry layout — widget row and categories switched from equal-height grids to CSS multi-column (vertical packing), so a tall card no longer stretches neighbors or pushes categories down. CSS-only.
 - **v1.14 (2026-05-29):** "Starlink" CSS-only deep-space background preset (10th); selecting it auto-applies a matched electric-blue accent (`#4F9CFF`, overridable) via a new optional `accent` field on the preset.
-- **v1.13 (2026-05-29):** Ask Gemini chat auto-retries Google's transient 503 "overloaded" (2x) instead of surfacing it, with a Retry button; confirmed the browser-direct call isn't CORS-blocked.
-- **v1.12 (2026-05-28):** Weather forecast — each day shows a condition icon + label and a "🌧 NN%" rain line.
-- **v1.10–v1.11 (2026-05-28):** Drag-to-reorder widget cards, multiple renamable watchlists, per-card glow color (v1.10); the "Ask Gemini" chat panel (v1.11).
+- **v1.13 (2026-05-29):** Ask Gemini chat auto-retries Google's transient 503 "overloaded" (2x) with a Retry button; confirmed the browser-direct call isn't CORS-blocked.
+- **v1.10–v1.12 (2026-05-28):** Drag-to-reorder widget cards, multiple renamable watchlists, per-card glow color (v1.10); the "Ask Gemini" chat panel (v1.11); richer weather forecast (v1.12).
 - **v1.0–v1.9 (2026-05-27 → 28):** Initial build through earlier polish (deploy, finance widgets, Finnhub migration, light mode, hotfixes). Full history in PROJECT-HUB.
 
 ## Immediate next step
 
-1. **Push v1.15** (single-file `index.html` commit), wait ~60s for Pages, hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R).
-2. **Eyeball the packing:** on a persona with a tall widget (a long Watchlist), confirm the short cards beside it are no longer stretched and the categories sit higher up.
-3. **Grip-drag one widget and one category** (the ⠿ handle) to confirm reorder still works and the order persists — the one thing the Build Agent couldn't auto-verify.
+1. **Push v1.16** (single-file `index.html` commit), wait ~60s for Pages, hard-reload Safari (Opt+Cmd+R) and Chrome (Cmd+Shift+R).
+2. **Smoke-test the drag:** drag a widget and a category by the ⠿ grip — confirm the highlighted landing slot shows where it'll go and the card drops there reliably. Try the ▲/▼ arrows.
+3. **Check light + dark mode, and iPhone** (touch dragging is new).
 4. **Possible future build (not started):** a backup/export of dashboard data.
 
 ---
 
 # Key Decisions Made (and Why)
 
-- **GitHub gist as the data backend; no backend, browser-direct, single file** — durable, free, zero-dependency; chosen over Supabase/jsonbin/iCloud.
-- **Per-browser Personal Access Tokens in localStorage** — avoids OAuth in a static page; losing a device means revoking one token, not all.
-- **Per-persona everything** (widgets, backgrounds, accent, visibility, order, colors) — personas are for mental separation, so each is fully independent. **Per-device, not synced:** default persona, theme, credentials (GitHub/Finnhub/Gemini keys), Gemini chat history — per-environment by nature; syncing keys/transcripts through a gist would be wrong.
-- **Masonry via CSS multi-column, not the experimental `grid-template-rows:masonry` (v1.15)** — vertical packing fixes "tall card stretches its neighbors / pushes categories down"; multi-column is well-supported today, native CSS masonry isn't. No internal-scroll height caps or per-card width spanning this round (both deferred). Drag-reorder reads per-card geometry, so it's layout-agnostic.
-- **Starlink background auto-applies a matched accent, but doesn't lock it (v1.14)** — complete out of the box yet overridable; an **optional `accent` field on the preset** (not a separate map). CSS-only, no light variant.
+- **Custom vanilla pointer-drag for cards, replacing native HTML5 DnD (v1.16)** — native drag was unreliable and, after v1.15's masonry switch, computed the wrong drop axis (treated cards as a left-to-right row). One shared `initCardDrag` engine fixes reliability + masonry correctness (dominant-axis before/after), adds touch support for free (iPhone), pulls in no library, and shows a real landing-slot highlight. Bookmarks/tabs/config-lists kept on native drag this round.
+- **Masonry via CSS multi-column, not experimental `grid-template-rows:masonry` (v1.15)** — fixes "tall card stretches neighbors / pushes categories down"; multi-column is well-supported today. Drag-reorder reads per-card geometry, so it's layout-agnostic.
+- **GitHub gist as the data backend; no backend, browser-direct, single file** — durable, free, zero-dependency; chosen over Supabase/jsonbin/iCloud. Per-browser PATs in localStorage avoid OAuth in a static page.
+- **Per-persona everything** (widgets, backgrounds, accent, order, colors). **Per-device, not synced:** default persona, theme, credentials, Gemini chat history — syncing keys/transcripts through a gist would be wrong.
+- **Starlink background auto-applies a matched accent but doesn't lock it (v1.14)** — an optional `accent` field on the preset; overridable. CSS-only, no light variant.
 - **Finnhub over Twelve Data (v1.9)** — 60 calls/min vs 8; Tom's ~12 symbols hit chronic 429s. Both free, same REST shape.
-- **Ask Gemini = Gemini Flash, browser-direct, no backend (v1.11)** — free with no card, fits "fast quick answer." Model is a Settings override (default `gemini-2.5-flash`). The native `:generateContent` endpoint is confirmed working (not CORS-blocked); a note + "Open full Gemini" link-out covers any connection failure.
-- **Auto-retry Gemini's transient 503 "overloaded" (v1.13)** — a Google-side blip that clears in a second or two, so retry up to 2x (short backoff) rather than surface it. A 429 is never retried.
-- **Multiple watchlists via an array + composite `watchlist:<id>` keys (v1.10)** — lets each use the same reorder/hide/color/config machinery as a built-in widget. **Markets stays a singleton index-proxy card (SPY/QQQ/DIA)** — different purpose from user watchlists.
-- **Light mode = one clean light surface + tokenized CSS (v1.6); bookmarklet over an extension; CSS-only backgrounds + image URL, no upload** (upload would bloat the gist).
-- **Empty Settings credential field = "no change" (v1.8)** — saving must never be destructive; explicit clear is Danger Zone → Reset browser. **Last-write-wins on sync** (single-user; a toast warns on conflict). **iPhone slim mode deferred indefinitely.**
+- **Ask Gemini = Gemini Flash, browser-direct, no backend (v1.11)** — free, fits "fast quick answer." Model is a Settings override (default `gemini-2.5-flash`). Native `:generateContent` confirmed not CORS-blocked; a note + "Open full Gemini" link-out covers failures. **Auto-retries the transient 503 "overloaded" (v1.13)**; a 429 is never retried.
+- **Multiple watchlists via array + composite `watchlist:<id>` keys (v1.10)** — each uses the same reorder/hide/color/config machinery as a built-in widget. **Markets stays a singleton index-proxy card (SPY/QQQ/DIA).**
+- **Light mode = one light surface + tokenized CSS (v1.6); bookmarklet over an extension; CSS-only backgrounds + image URL, no upload** (upload would bloat the gist).
+- **Empty Settings credential field = "no change" (v1.8)** — saving is never destructive; explicit clear is Danger Zone → Reset browser. **Last-write-wins on sync.** **iPhone slim mode deferred indefinitely.**
 
 Minor decisions live in `docs/TECHNICAL.html`.
 
@@ -95,13 +95,13 @@ Minor decisions live in `docs/TECHNICAL.html`.
 - **Storage:** One private GitHub gist (account `TECGUNTHER`) holds all persona data. Per-browser localStorage holds the GitHub PAT, gist ID, default persona, Finnhub key, Gemini key/model/history, theme, and a shared 5-min quote cache. (A legacy Twelve Data key is read but unused.)
 - **Hosting:** GitHub Pages (free static), public repo `github.com/TECGUNTHER/startdashboard`.
 
-**Layout (v1.15):** both `.widgets-row` and `.categories-grid` use CSS multi-column masonry (natural card heights). Knobs: `column-count` (widgets), `column-width` (categories); `.widget`/`.category`/`.new-category-card` use `break-inside:avoid` so cards don't split across columns. **Backgrounds:** 10 presets in `BG_PRESETS`, each `{ id, name }` + optional `accent` (only Starlink, `#4F9CFF`). **Data model (v1.10):** each persona has `categories` (optional `color`), `widgets`, `watchlists` (`[{id, title, symbols[]}]`), `widgetOrder` (incl. composite `watchlist:<id>` keys), `widgetColors`, `hiddenWidgets`. Gemini chat is global, history outside the gist. Full schema in `docs/TECHNICAL.html`.
+**Layout + card drag:** `.widgets-row` and `.categories-grid` use CSS multi-column masonry (knobs `column-count` / `column-width`; cards use `break-inside:avoid`). Widget + category cards drag via `initCardDrag` (clone + `.drop-placeholder` landing highlight + dominant-axis nearest-slot + anchor-key splice; pointer events = touch-capable). **Data model (v1.10):** each persona has `categories` (optional `color`), `widgets`, `watchlists` (`[{id, title, symbols[]}]`), `widgetOrder` (incl. composite `watchlist:<id>` keys), `widgetColors`, `hiddenWidgets`. `BG_PRESETS` = 10 entries, each `{ id, name }` + optional `accent` (only Starlink). Gemini chat is global, history outside the gist. Full schema in `docs/TECHNICAL.html`.
 
 ## File structure (key files only)
 
 ```
 projects/personal-dashboard/
-├── index.html               — the entire app (~5,390 lines)
+├── index.html               — the entire app (~5,450 lines)
 ├── README.md / INSTALL-FOR-OTHERS.md  — Tom's setup / fork-and-run guides
 ├── PROJECT-HUB.html         — project dashboard
 ├── HANDOFF.md               — this file
@@ -155,7 +155,7 @@ Then hard-reload (Safari Opt+Cmd+R, Chrome Cmd+Shift+R). Pages takes ~30–60s.
 - `README.md` — Tom's setup walkthrough · `INSTALL-FOR-OTHERS.md` — fork-and-run guide for anyone he shares with
 - `PROJECT-HUB.html` — Tom's home base · `HANDOFF.md` — this file
 - `docs/TECHNICAL.html` — architecture/decisions/how-to-modify · `docs/USER-EXPERIENCE.html` — features and workflows
-- `plans/` — approved build plans (through v1.15), read-only history
+- `plans/` — approved build plans (through v1.16), read-only history
 
 ---
 
@@ -174,17 +174,16 @@ Then hard-reload (Safari Opt+Cmd+R, Chrome Cmd+Shift+R). Pages takes ~30–60s.
 - Plain English, no jargon. One question at a time. Lead with the answer. No filler. Be honest about limits.
 
 ## Project-specific quirks
-- Single-file HTML by design — don't suggest splitting into modules without a real reason.
-- The *app* (`index.html`) is dark/modern (v1.6 light option); the workspace *docs* are light/restrained — don't mix the two.
-- Tom is the only user — no multi-user/sharing. Data lives on his GitHub; don't add third-party services without checking (Gemini is the one beyond data APIs).
-- Per-persona by default. Per-device globals: theme, credentials, Gemini chat + history.
+- Single-file HTML by design — don't suggest splitting into modules without a real reason. The *app* is dark/modern (v1.6 light option); the workspace *docs* are light/restrained.
+- Tom is the only user — no multi-user/sharing. Don't add third-party services without checking (Gemini is the one beyond data APIs). Per-persona by default; per-device globals are theme, credentials, Gemini chat + history.
 - Markets is a single fixed index-proxy card — don't make it renamable/multiple; Watchlists are the multiple concept.
-- Layout is CSS multi-column masonry (v1.15) — cards keep natural height; don't reintroduce equal-height grids. Drag-reorder is layout-agnostic.
-- Backgrounds are CSS-only presets (10) or an image URL — no uploads. A preset may carry an optional `accent` (only Starlink) that auto-applies but stays overridable.
+- Layout is CSS multi-column masonry (v1.15) — keep natural card heights; don't reintroduce equal-height grids.
+- Widget + category card drag is the custom pointer engine `initCardDrag` (v1.16) — touch-capable, `.drop-placeholder` landing highlight, ▲/▼ arrows. Bookmarks/tabs/config-lists still use native HTML5 drag; don't assume they share the engine, and don't remove `.drop-before`/`.drop-after` (bookmarks use them). `moveWidget` is dead code, left with a note.
+- Backgrounds are CSS-only presets (10) or an image URL — no uploads; a preset may carry an optional `accent` (only Starlink) that auto-applies but stays overridable.
 - Ask Gemini is a global panel, not a widget; a fresh assistant with no link to Tom's real Gemini history. Auto-retries 503; a 429 is not retried.
 
 ## What he's likely to want next
-- More polish from real use. Near-term: verify v1.15; possibly the Crypto cache or a data backup/export; eventually a Custom embed widget or more financial widgets.
+- More polish from real use. Near-term: verify v1.16; possibly the Crypto cache, a data backup/export, or extending the new pointer-drag engine to bookmarks/tabs/config lists. Eventually a Custom embed widget or more financial widgets.
 
 ---
 
