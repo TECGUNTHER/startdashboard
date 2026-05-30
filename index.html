@@ -1868,6 +1868,10 @@ body.light-mode .chat-overlay .chat-backdrop {
         <span id="sync-text">Synced</span>
       </div>
       <button class="icon-btn" id="theme-toggle" title="Toggle light/dark mode">☀</button>
+      <!-- Help: opens the User Experience guide (docs/USER-EXPERIENCE.html) in a
+           new tab. Relative href works on GitHub Pages and from a local file.
+           An <a> (not a button) so cmd/middle-click open-in-new-tab works too. -->
+      <a class="icon-btn" id="open-help" href="docs/USER-EXPERIENCE.html" target="_blank" rel="noopener" title="How to use StartDashboard">?</a>
       <button class="icon-btn" id="open-settings" title="Settings">⚙</button>
     </div>
   </header>
@@ -2011,6 +2015,14 @@ body.light-mode .chat-overlay .chat-backdrop {
         <button class="btn" id="set-copy-gist-id" style="padding: 4px 10px; font-size: 12px;">Copy gist ID</button>
         <button class="btn" id="set-bookmarklet" style="padding: 4px 10px; font-size: 12px;">Bookmarklet code</button>
       </div>
+    </div>
+
+    <!-- Help link to the User Experience guide. Same relative target as the
+         top-bar "?" icon; opens in a new tab so Settings isn't disturbed. -->
+    <div style="margin-top: 4px; margin-bottom: 14px; font-size: 13px; color: var(--text-muted);">
+      New here or need a refresher? Read the
+      <a href="docs/USER-EXPERIENCE.html" target="_blank" rel="noopener" style="color: var(--accent); border-bottom: 1px dotted var(--accent);">How to use StartDashboard</a>
+      guide.
     </div>
 
     <div class="modal-actions">
