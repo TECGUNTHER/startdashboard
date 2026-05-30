@@ -51,7 +51,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h1>StartDashboard</h1>
     <p class="subtitle">A personal home page that travels with you across every browser and every device, with separate "channels" for different sides of your life.</p>
     <!-- UX:LAST_UPDATED -->
-    <span class="last-updated">Last updated: 2026-05-29 · v1.16</span>
+    <span class="last-updated">Last updated: 2026-05-29 · v1.17</span>
     <!-- /UX:LAST_UPDATED -->
   </div>
 </header>
@@ -83,9 +83,9 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     </div>
 
     <div class="feature">
-      <h3>Ask Gemini &mdash; AI chat without leaving the dashboard (v1.11)</h3>
-      <p class="one-liner">A floating bubble opens a chat panel for quick, search-style answers.</p>
-      <p class="walkthrough">A floating chat bubble sits in the bottom-right corner on every persona. Click it and a panel slides over from the right. Type a question, press Enter, and you get a concise answer &mdash; the assistant is tuned for short, direct, search-style replies rather than long essays, and it remembers your recent back-and-forth for follow-ups. It&rsquo;s powered by Google&rsquo;s <strong>free</strong> Gemini API: generate a key at <a href="https://aistudio.google.com/app/apikey">aistudio.google.com/app/apikey</a> (no credit card) and paste it into Settings once per browser. A header <strong>&ldquo;Open full Gemini &#8599;&rdquo;</strong> button jumps to gemini.google.com when you want your real, logged-in Gemini account. Note: this in-dashboard chat is a <em>separate, fresh assistant</em> &mdash; it doesn&rsquo;t see your personal Gemini history; the link-out is for that. Your chat here is saved on this device (not synced to your other devices), and &ldquo;Clear chat&rdquo; wipes it. If you haven&rsquo;t added a key yet, the panel shows a one-line prompt; if Gemini is ever unreachable, you get a short note with the link-out rather than an error. If Google&rsquo;s servers are briefly overloaded (a &ldquo;high demand&rdquo; blip on Google&rsquo;s side), the chat quietly retries on its own and usually recovers without you seeing anything &mdash; and if it can&rsquo;t, it shows a plain-English note with a one-click <strong>Retry</strong> button (v1.13).</p>
+      <h3>Ask Gemini &mdash; AI chat without leaving the dashboard (v1.11, voice + formatting v1.17)</h3>
+      <p class="one-liner">A floating bubble opens a chat panel for quick, search-style answers &mdash; ask by typing or by voice, and get formatted replies.</p>
+      <p class="walkthrough">A floating chat bubble sits in the bottom-right corner on every persona. Click it and a panel slides over from the right. Type a question, press Enter, and you get a concise answer &mdash; the assistant is tuned for short, direct, search-style replies rather than long essays, and it remembers your recent back-and-forth for follow-ups. <strong>Ask by voice (v1.17):</strong> click the <strong>&#127908; microphone button</strong> next to the text box and speak &mdash; your words are transcribed straight into the box for you to review and Send (it never auto-sends, and never erases text you&rsquo;d already typed). It uses your browser&rsquo;s built-in dictation, so it&rsquo;s free and needs no setup, and it works on iPhone Safari too; on a browser that doesn&rsquo;t support voice the button simply doesn&rsquo;t appear. (If you deny microphone access you get a friendly note.) <strong>Formatted answers (v1.17):</strong> Gemini&rsquo;s replies now show real formatting &mdash; <strong>bold</strong>, <em>italics</em>, bullet and numbered lists, headings, code blocks, and clickable links &mdash; instead of raw markdown characters. It&rsquo;s powered by Google&rsquo;s <strong>free</strong> Gemini API: generate a key at <a href="https://aistudio.google.com/app/apikey">aistudio.google.com/app/apikey</a> (no credit card) and paste it into Settings once per browser. A header <strong>&ldquo;Open full Gemini &#8599;&rdquo;</strong> button jumps to gemini.google.com when you want your real, logged-in Gemini account. Note: this in-dashboard chat is a <em>separate, fresh assistant</em> &mdash; it doesn&rsquo;t see your personal Gemini history; the link-out is for that. Your chat here is saved on this device (not synced to your other devices), and &ldquo;Clear chat&rdquo; wipes it. If you haven&rsquo;t added a key yet, the panel shows a one-line prompt; if Gemini is ever unreachable, you get a short note with the link-out rather than an error. If Google&rsquo;s servers are briefly overloaded (a &ldquo;high demand&rdquo; blip on Google&rsquo;s side), the chat quietly retries on its own and usually recovers without you seeing anything &mdash; and if it can&rsquo;t, it shows a plain-English note with a one-click <strong>Retry</strong> button (v1.13).</p>
     </div>
 
     <div class="feature">
@@ -185,8 +185,8 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     </div>
 
     <div class="screen">
-      <h3>Ask Gemini chat panel (v1.11)</h3>
-      <p>A slide-over panel triggered by the floating chat bubble (bottom-right of the main dashboard). Header with the title, the model name, an &ldquo;Open full Gemini &#8599;&rdquo; link-out, and a close &#10005;; a scrollable message area below; an input row at the bottom; and a &ldquo;Clear chat&rdquo; footer. It overlays the dashboard but sits beneath the Settings/config modals, and works in both light and dark mode. On a phone it goes full-width.</p>
+      <h3>Ask Gemini chat panel (v1.11, voice + formatting v1.17)</h3>
+      <p>A slide-over panel triggered by the floating chat bubble (bottom-right of the main dashboard). Header with the title, the model name, an &ldquo;Open full Gemini &#8599;&rdquo; link-out, and a close &#10005;; a scrollable message area below where Gemini&rsquo;s answers render with formatting (bold, lists, code, links &mdash; v1.17); an input row at the bottom with a <strong>&#127908; voice button</strong> next to Send (v1.17, hidden where the browser doesn&rsquo;t support speech); and a &ldquo;Clear chat&rdquo; footer. It overlays the dashboard but sits beneath the Settings/config modals, and works in both light and dark mode. On a phone it goes full-width.</p>
     </div>
 
     <div class="screen">
@@ -204,10 +204,11 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <!-- UX:WORKFLOWS -->
 
     <div class="workflow">
-      <h3>Ask a quick question without leaving the dashboard (v1.11)</h3>
+      <h3>Ask a quick question without leaving the dashboard (v1.11, ask by voice v1.17)</h3>
       <ol>
         <li>Click the floating <strong>chat bubble</strong> in the bottom-right corner. A panel slides over from the right.</li>
-        <li>Type your question and press <strong>Enter</strong> (Shift+Enter for a new line). A concise answer appears in the panel; ask follow-ups and it keeps the recent context.</li>
+        <li>Type your question and press <strong>Enter</strong> (Shift+Enter for a new line). A concise answer appears in the panel &mdash; with <strong>bold, lists, code, and clickable links</strong> formatted properly (v1.17); ask follow-ups and it keeps the recent context.</li>
+        <li><strong>Or ask by voice (v1.17):</strong> click the <strong>&#127908;</strong> button next to the box and speak. Your words are typed in for you &mdash; review them (edit if needed), then Send. It never sends on its own, and never erases what you&rsquo;d already typed. (Voice button missing? Your browser doesn&rsquo;t support it &mdash; just type instead.)</li>
         <li>One-time: if you see &ldquo;Add your free Gemini API key,&rdquo; open Settings, generate a free key at <a href="https://aistudio.google.com/app/apikey">aistudio.google.com/app/apikey</a>, paste it in, and Save.</li>
         <li>Want your real Gemini account (with its history and your logged-in features)? Click <strong>&ldquo;Open full Gemini &#8599;&rdquo;</strong> in the panel header.</li>
         <li>Close the panel with the <strong>&#10005;</strong>, the Escape key, or by clicking outside it. Use <strong>&ldquo;Clear chat&rdquo;</strong> to wipe the conversation on this device.</li>
@@ -382,7 +383,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
 
 <footer>
   <div class="container">
-    Generated and maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-29 · v1.16</span>
+    Generated and maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-29 · v1.17</span>
   </div>
 </footer>
 

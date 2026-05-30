@@ -1683,6 +1683,89 @@ body.light-mode .chat-overlay .chat-backdrop {
 }
 .chat-input-row .chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* The 🎤 voice-input button. Sized and themed to sit naturally next to Send,
+   but visually a secondary control (elevated surface, not the accent fill).
+   The script hides it entirely on browsers without speech support. */
+.chat-mic {
+  background: var(--bg-elev-2);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 11px;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.chat-mic:hover { border-color: var(--accent); }
+/* "Listening" state: clearly on — accent fill plus a gentle breathing pulse
+   so Tom can tell the mic is live at a glance. Works in light + dark because
+   it's all theme tokens. */
+.chat-mic.listening {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+  animation: chat-mic-pulse 1.4s ease-in-out infinite;
+}
+@keyframes chat-mic-pulse {
+  0%   { box-shadow: 0 0 0 0 var(--accent-soft); }
+  70%  { box-shadow: 0 0 0 8px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* ---------- Rendered markdown inside Gemini (model) bubbles ----------
+   These only apply to .chat-msg.model, which now carries safe HTML produced
+   by renderMarkdownSafe(). All theme-token based so light + dark both read
+   well in the narrow chat panel. */
+.chat-msg.model p { margin: 0 0 8px; }
+.chat-msg.model p:last-child { margin-bottom: 0; }
+.chat-msg.model h3 {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 10px 0 6px;
+  line-height: 1.3;
+}
+.chat-msg.model h3:first-child { margin-top: 0; }
+.chat-msg.model strong { font-weight: 700; }
+.chat-msg.model em { font-style: italic; }
+.chat-msg.model a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+/* Bullet + numbered lists: indent enough to read clearly in the narrow panel. */
+.chat-msg.model ul,
+.chat-msg.model ol {
+  margin: 4px 0 8px;
+  padding-left: 20px;
+}
+.chat-msg.model li { margin: 2px 0; }
+/* Inline code: subtle tinted chip. */
+.chat-msg.model code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  background: var(--bg-elev-1);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+/* Fenced code blocks: own surface, scroll sideways instead of wrapping code. */
+.chat-msg.model pre {
+  margin: 6px 0 8px;
+  background: var(--bg-elev-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 11px;
+  overflow-x: auto;
+}
+.chat-msg.model pre code {
+  display: block;
+  background: none;
+  border: none;
+  padding: 0;
+  white-space: pre;
+  line-height: 1.45;
+}
+
 /* The "Clear chat" footer control. */
 .chat-footer {
   padding: 8px 16px 12px;
@@ -2068,6 +2151,10 @@ body.light-mode .chat-overlay .chat-backdrop {
     <div class="chat-messages" id="chat-messages"></div>
     <div class="chat-input-row">
       <textarea id="chat-input" rows="1" placeholder="Ask a quick question…"></textarea>
+      <!-- Voice input. Hidden by the script if the browser has no Web Speech
+           support, so it never shows as a broken control. Mic sits between the
+           text box and Send; Send stays the primary action. -->
+      <button id="chat-mic" class="chat-mic" title="Speak your question" aria-label="Speak">🎤</button>
       <button class="chat-send" id="chat-send">Send</button>
     </div>
     <div class="chat-footer">
@@ -5313,6 +5400,136 @@ function normalizeHex(c) {
   return c;
 }
 
+/* ---------- Safe markdown renderer for Gemini replies ----------
+   Turns Gemini's markdown text into formatted HTML for the chat bubble —
+   bold, italic, lists, headers, code, and links.
+
+   SECURITY MODEL — escape FIRST, then format:
+   The very first thing we do is HTML-escape the entire input (& < > "). After
+   that, NOTHING the model wrote is live HTML anymore — a string like
+   `<img onerror=...>` has already become harmless text. Every transform below
+   then INSERTS our own whitelisted tags (strong, em, code, pre, ul/ol/li, h3,
+   a, br, p) around that already-safe text. The model can never inject its own
+   tags or scripts, because by the time we add markup, its angle brackets are
+   gone. Links are extra-restricted to http(s) only, so `javascript:` URLs are
+   rejected and shown as plain text.
+
+   This is a deliberately small, practical subset of markdown — common cases
+   handled cleanly; anything exotic just falls through as readable escaped text. */
+function renderMarkdownSafe(text) {
+  /* Step 1 — escape everything. From here on we only operate on safe text.
+     (We don't escape ' here; escapeHtml does, which is fine — it only affects
+     display of literal apostrophes, never security.) */
+  let s = escapeHtml(String(text || ''));
+
+  /* Step 2 — pull fenced code blocks ```...``` out FIRST and stash them behind
+     placeholders, so the inline transforms below (bold/italic/links/etc.) can't
+     mangle code. We reinsert them at the very end. Contents are already escaped. */
+  const codeBlocks = [];
+  s = s.replace(/```[^\n]*\n([\s\S]*?)```/g, (m, body) => {
+    /* Drop one trailing newline so the <pre> doesn't render an empty last line. */
+    const cleaned = body.replace(/\n$/, '');
+    codeBlocks.push('<pre><code>' + cleaned + '</code></pre>');
+    return ' CODEBLOCK' + (codeBlocks.length - 1) + ' ';
+  });
+
+  /* Step 3 — inline code `x`. Also stashed so * and _ inside it stay literal. */
+  const inlineCodes = [];
+  s = s.replace(/`([^`\n]+)`/g, (m, body) => {
+    inlineCodes.push('<code>' + body + '</code>');
+    return ' INLINECODE' + (inlineCodes.length - 1) + ' ';
+  });
+
+  /* Step 4 — work line by line so headers and lists (which are line-based)
+     are easy to detect, and so we can group consecutive list items. */
+  const lines = s.split('\n');
+  const out = [];
+  let listType = null;   /* 'ul' or 'ol' while we're inside a list, else null */
+
+  /* Close any open list before emitting a non-list block. */
+  function closeList() {
+    if (listType) { out.push('</' + listType + '>'); listType = null; }
+  }
+
+  for (let line of lines) {
+    /* Headers: #, ##, ### at line start. We collapse all levels to <h3> to keep
+       the chat compact. */
+    const header = line.match(/^\s{0,3}#{1,6}\s+(.*)$/);
+    if (header) {
+      closeList();
+      out.push('<h3>' + header[1] + '</h3>');
+      continue;
+    }
+
+    /* Unordered list item: "- x" or "* x". */
+    const ul = line.match(/^\s{0,3}[-*]\s+(.*)$/);
+    if (ul) {
+      if (listType !== 'ul') { closeList(); out.push('<ul>'); listType = 'ul'; }
+      out.push('<li>' + ul[1] + '</li>');
+      continue;
+    }
+
+    /* Ordered list item: "1. x", "2. x", etc. */
+    const ol = line.match(/^\s{0,3}\d+\.\s+(.*)$/);
+    if (ol) {
+      if (listType !== 'ol') { closeList(); out.push('<ol>'); listType = 'ol'; }
+      out.push('<li>' + ol[1] + '</li>');
+      continue;
+    }
+
+    /* Plain line. Blank lines become paragraph breaks; we mark them so the
+       join step below can build <p> blocks. */
+    closeList();
+    out.push(line.trim() === '' ? ' PARA ' : line);
+  }
+  closeList();
+
+  s = out.join('\n');
+
+  /* Step 5 — inline emphasis. Bold BEFORE italic so a double-asterisk bold
+     isn't half-eaten by the single-char italic rule. Both the double forms
+     (asterisks or underscores) and the single forms are supported. */
+  s = s.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/__([^_\n]+)__/g, '<strong>$1</strong>');
+  s = s.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+  s = s.replace(/_([^_\n]+)_/g, '<em>$1</em>');
+
+  /* Step 6 — links [text](url). Only http(s) URLs are allowed; anything else
+     (javascript:, data:, etc.) is rejected and left as the literal escaped
+     text, so it can never produce an executable link. The URL has already been
+     escaped, so quotes can't break out of the href attribute. */
+  s = s.replace(/\[([^\]\n]+)\]\(([^)\s]+)\)/g, (m, label, url) => {
+    if (/^https?:\/\//i.test(url)) {
+      return '<a href="' + url + '" target="_blank" rel="noopener">' + label + '</a>';
+    }
+    return m; /* not a safe URL → leave the raw (escaped) markdown text */
+  });
+
+  /* Step 7 — rebuild paragraphs and line breaks from the remaining plain lines.
+     Split on our PARA markers into blocks; wrap each text block in <p>, turning
+     its internal newlines into <br>. Block-level pieces (lists, headers, code)
+     are passed through untouched. */
+  const blocks = s.split(/\n? PARA \n?/);
+  s = blocks.map(block => {
+    block = block.trim();
+    if (!block) return '';
+    /* If the block is purely our own block-level markup or a stashed code
+       placeholder, don't wrap it in a <p>. */
+    if (/^(<h3>|<ul>|<ol>| CODEBLOCK)/.test(block) &&
+        /(<\/h3>|<\/ul>|<\/ol>|CODEBLOCK\d+ )\s*$/.test(block)) {
+      return block.replace(/\n/g, '');
+    }
+    /* Otherwise it's prose: paragraph with <br> for internal newlines. */
+    return '<p>' + block.replace(/\n/g, '<br>') + '</p>';
+  }).join('');
+
+  /* Step 8 — put the stashed code back. (Done last so nothing transformed it.) */
+  s = s.replace(/ INLINECODE(\d+) /g, (m, i) => inlineCodes[+i]);
+  s = s.replace(/ CODEBLOCK(\d+) /g, (m, i) => codeBlocks[+i]);
+
+  return s;
+}
+
 /* ============================================================
    Gemini chat (v1.11)
    A floating "Ask Gemini" assistant. Sends questions straight from the
@@ -5384,7 +5601,17 @@ function renderChatMessages() {
     return;
   }
 
-  state.chatHistory.forEach(m => box.appendChild(makeChatBubble(m.role, m.text)));
+  /* Render each turn. Gemini (model) replies go through renderMarkdownSafe so
+     their markdown shows as real formatting; we pass isHtml=true to inject that
+     safe HTML. User turns stay plain text (escaped via textContent). The raw
+     text in state.chatHistory is untouched, so re-rendering always re-parses. */
+  state.chatHistory.forEach(m => {
+    if (m.role === 'model') {
+      box.appendChild(makeChatBubble('model', renderMarkdownSafe(m.text), true));
+    } else {
+      box.appendChild(makeChatBubble(m.role, m.text));
+    }
+  });
   box.scrollTop = box.scrollHeight;
 }
 
@@ -5772,6 +5999,90 @@ document.getElementById('chat-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
 });
 document.getElementById('chat-input').addEventListener('input', autoGrowChatInput);
+
+/* ============================================================
+   Voice input (Web Speech API) for the chat box
+   Lets Tom press 🎤 and speak instead of typing. Browser-native speech-to-text
+   (Safari + Chrome + iOS Safari), no key, no library, requires HTTPS — which
+   GitHub Pages provides. Transcribed text lands in the input for review; we
+   never auto-send.
+   ============================================================ */
+(function setupChatVoiceInput() {
+  const micBtn = document.getElementById('chat-mic');
+  const input = document.getElementById('chat-input');
+
+  /* Feature-detect. If the browser has no speech recognition, hide the mic
+     entirely so there's no dead control, and stop here. */
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { micBtn.style.display = 'none'; return; }
+
+  let recognition = null;     /* created lazily on first use */
+  let listening = false;      /* are we currently capturing speech? */
+  let baseText = '';          /* whatever was in the box when we started */
+
+  /* Build the recognition object once, with our settings + handlers. */
+  function ensureRecognition() {
+    if (recognition) return recognition;
+    recognition = new SR();
+    recognition.interimResults = true;   /* show words as they're spoken */
+    recognition.continuous = false;      /* stop after a natural pause */
+    recognition.lang = navigator.language || 'en-US';
+
+    /* Each result event carries the full running transcript so far. We append
+       it to whatever Tom had already typed (baseText), so dictation never wipes
+       his existing text. */
+    recognition.onresult = (e) => {
+      let transcript = '';
+      for (let i = 0; i < e.results.length; i++) {
+        transcript += e.results[i][0].transcript;
+      }
+      input.value = baseText + (baseText ? ' ' : '') + transcript;
+      autoGrowChatInput();
+    };
+
+    /* Speech ended (pause, stop, or done) → reset to the idle state so the next
+       click starts a fresh capture. Text stays in the box for Tom to review. */
+    recognition.onend = () => {
+      listening = false;
+      micBtn.classList.remove('listening');
+    };
+
+    /* Errors: never dump a raw error at Tom. A blocked mic gets a friendly,
+       actionable note in the chat; anything else just quietly resets. */
+    recognition.onerror = (e) => {
+      listening = false;
+      micBtn.classList.remove('listening');
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+        appendTransientBubble('note',
+          'Microphone access was blocked. Allow it in your browser settings to use voice input.',
+          false);
+      }
+    };
+    return recognition;
+  }
+
+  /* Click toggles listening: start a fresh capture, or stop the current one. */
+  micBtn.addEventListener('click', () => {
+    const rec = ensureRecognition();
+    if (listening) {
+      rec.stop();   /* onend will clear the listening state */
+      return;
+    }
+    /* Remember what's already typed so we append rather than overwrite. */
+    baseText = input.value.trim();
+    listening = true;
+    micBtn.classList.add('listening');
+    try {
+      rec.start();
+    } catch {
+      /* start() throws if called while already starting — reset cleanly. */
+      listening = false;
+      micBtn.classList.remove('listening');
+    }
+    input.focus();
+  });
+})();
+
 /* Escape closes the chat panel when it's open. */
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !document.getElementById('chat-overlay').classList.contains('hidden')) {
