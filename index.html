@@ -758,14 +758,19 @@ header.dash-header {
 .drop-before { box-shadow: inset 0 2px 0 0 var(--accent); }
 .drop-after  { box-shadow: inset 0 -2px 0 0 var(--accent); }
 
-/* ---- Pointer-drag engine (v1.16) ----
-   These three classes drive the smooth card reorder for widget + category
-   cards. The native HTML5 drag was flaky in the masonry layout, so we hand-roll
-   the drag with pointer events. Three pieces are on screen during a drag:
+/* ---- Pointer-drag engine (v1.16, de-flickered v1.18) ----
+   These classes drive the smooth card reorder for widget + category cards. The
+   native HTML5 drag was flaky in the masonry layout, so we hand-roll the drag
+   with pointer events. Pieces on screen during a drag:
      1. .card-dragging  — the original card, dimmed in place so the user can see
                           where it came from.
      2. .drag-clone     — a floating copy of the card that follows the cursor.
-     3. .drop-placeholder — the highlighted "this is where it will land" box.   */
+     3. .drop-target-before / .drop-target-after — a purely visual accent edge
+        painted on the nearest card to show which side the drop will land on.
+        v1.18 replaced the old in-flow `.drop-placeholder` box: inserting a real
+        element re-packed the whole masonry on every move (the blinking). These
+        are box-shadow only — they change NO layout, so the masonry never
+        reflows mid-drag and there's no flicker. */
 
 /* The original card while it's being dragged: faded out so it reads as "lifted". */
 .card-dragging { opacity: 0.30; }
@@ -790,37 +795,36 @@ header.dash-header {
   background: var(--bg-elev-1);
 }
 
-/* The landing-slot highlight: a card-sized dashed accent box with a soft
-   translucent accent fill. This is the "show me where it lands" cue Tom asked
-   for. Reuses the masonry break/width rules so it occupies a real card slot. */
-.drop-placeholder {
-  border: 2px dashed var(--accent);
-  border-radius: var(--radius);
-  background: var(--accent-soft);
-  box-shadow: 0 0 0 1px var(--accent) inset, 0 0 14px -4px var(--accent);
-  break-inside: avoid;
-  -webkit-column-break-inside: avoid;
-  page-break-inside: avoid;
-  width: 100%;
-  margin-bottom: 16px;
-  box-sizing: border-box;
+/* The drop indicator (v1.18): a thick accent edge painted on the side of the
+   nearest card where the dragged card will land. box-shadow only — it draws
+   OUTSIDE the box model and changes no layout, so the masonry doesn't reflow
+   and nothing blinks. The inset companion shadow keeps the bar crisp against
+   the card's own border in both light and dark themes (accent tokens adapt). */
+.drop-target-before {
+  box-shadow: -4px 0 0 0 var(--accent), 0 0 12px -2px var(--accent);
+}
+.drop-target-after {
+  box-shadow: 4px 0 0 0 var(--accent), 0 0 12px -2px var(--accent);
 }
 
-/* ---- Move controls (v1.16) ----
-   Tiny up/down arrows revealed on hover next to the grip. One click nudges the
-   card one slot earlier/later in the saved order — fully reliable regardless of
-   how masonry happens to pack the columns. Hidden until the card header is
-   hovered so they don't clutter the resting layout. */
+/* ---- Move controls (v1.16, promoted to primary v1.18) ----
+   Tiny up/down arrows next to the grip. One click nudges the card one slot
+   earlier/later in the saved order — fully reliable regardless of how masonry
+   packs the columns, so these are now the PRIMARY rearrange tool. Shown always
+   at low opacity (like the bookmark action icons) so they're discoverable at
+   rest, and brightened to full on hover/focus of the card header. */
 .move-controls {
   display: inline-flex;
   align-items: center;
   gap: 1px;
   margin-left: 2px;
-  opacity: 0;
+  opacity: 0.45;
   transition: opacity 0.12s;
 }
 .widget-head:hover .move-controls,
-.category-head:hover .move-controls { opacity: 1; }
+.widget-head:focus-within .move-controls,
+.category-head:hover .move-controls,
+.category-head:focus-within .move-controls { opacity: 1; }
 .move-btn {
   font-size: 11px;
   line-height: 1;
@@ -1950,6 +1954,14 @@ body.light-mode .chat-overlay .chat-backdrop {
     <div class="widget-toggle-grid" id="set-widget-toggles"></div>
     <button class="btn" id="set-add-watchlist" style="margin-top:8px;">+ Add watchlist</button>
 
+    <!-- Layout reset (v1.18): restore the default widget order and cleanly
+         re-pack the masonry. Order-only — no data is lost. -->
+    <label>This persona — layout</label>
+    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">
+      Puts widgets back in their default order and tidies the board. Nothing is deleted.
+    </div>
+    <button class="btn" id="set-reset-layout">Reset layout</button>
+
     <label>Finnhub API key (for Markets &amp; Watchlist)</label>
     <div style="font-size: 12px; color: var(--text-secondary); background: var(--bg-elev-2); padding: 10px 12px; border-radius: 8px; margin-bottom: 8px; line-height: 1.55;">
       Markets and Watchlist need a free API key from Finnhub — no credit card, 60 calls/min.
@@ -2104,6 +2116,14 @@ body.light-mode .chat-overlay .chat-backdrop {
          swatches + custom picker + "Default (theme)" reset. -->
     <label>Card color</label>
     <div id="widget-cfg-color" class="card-color-control"></div>
+
+    <!-- Layout row (v1.18): jump this widget to the very start or end of the
+         saved widget order. The reliable, no-aim alternative to dragging. -->
+    <label>Layout</label>
+    <div style="display: flex; gap: 8px;">
+      <button class="btn" id="widget-cfg-move-front" style="padding: 4px 10px; font-size: 12px;">Move to front</button>
+      <button class="btn" id="widget-cfg-move-end" style="padding: 4px 10px; font-size: 12px;">Move to end</button>
+    </div>
 
     <div class="modal-actions">
       <!-- Watchlist-only delete button, shown on the left. -->
@@ -2422,6 +2442,17 @@ function ensureSchema(d) {
   d.personas.forEach(ensurePersonaSchema);
 }
 
+/* The canonical default widget order for a persona (v1.18): the built-in
+   widgets in their historical order, then one "watchlist:<id>" key per existing
+   watchlist in watchlist order. Only includes keys for widgets/watchlists that
+   actually exist. This is the order ensurePersonaSchema seeds AND the order the
+   Settings "Reset layout" button restores — factored out so both agree. Does
+   NOT touch visibility (hiddenWidgets) — it only orders. */
+function defaultWidgetOrder(p) {
+  const watchlistKeys = (p.watchlists || []).map(wl => 'watchlist:' + wl.id);
+  return [...BUILTIN_WIDGETS, ...watchlistKeys];
+}
+
 function ensurePersonaSchema(p) {
   if (!p.id) p.id = uid();
   if (!p.name) p.name = 'Untitled';
@@ -2504,10 +2535,9 @@ function ensurePersonaSchema(p) {
      alongside the other cards. */
   const watchlistKeys = p.watchlists.map(wl => 'watchlist:' + wl.id);
   if (!Array.isArray(p.widgetOrder)) {
-    /* No saved order (persona predates v1.10). Use the historical fixed
-       order, expanding the single "watchlist" slot into one key per
-       watchlist so migrated symbols still appear. */
-    p.widgetOrder = ['clock', 'weather', 'todos', 'notes', 'crypto', 'markets', ...watchlistKeys];
+    /* No saved order (persona predates v1.10). Use the canonical default
+       order (builtins in fixed order, then one key per watchlist). */
+    p.widgetOrder = defaultWidgetOrder(p);
   } else {
     /* Existing order — migrate the legacy bare "watchlist" key (used before
        watchlists became multiple) into the composite per-watchlist keys, and
@@ -3003,17 +3033,27 @@ function initCardDrag({ grip, card, container, cardSelector, onDrop }) {
     clone.style.height = startRect.height + 'px';
     document.body.appendChild(clone);
 
-    // Card-sized placeholder showing where it will land. Starts exactly where
-    // the card currently sits, inserted right before the real card.
-    const placeholder = document.createElement('div');
-    placeholder.className = 'drop-placeholder';
-    placeholder.style.height = startRect.height + 'px';
-    container.insertBefore(placeholder, card);
+    /* v1.18 — NO in-flow placeholder during the drag.
+       WHY: this is a CSS multi-column masonry. Inserting any real element into
+       the container (the old `.drop-placeholder`) forced the browser to re-pack
+       every column on EVERY pointermove — that's the blinking Tom saw, and
+       because masonry packs by height the final landing slot often didn't match
+       the preview. So instead of moving an element through the flow, we leave
+       the layout completely untouched while dragging and just paint a purely
+       VISUAL accent edge on whichever existing card we'd drop next to. No
+       element is inserted, so the masonry never reflows → no flicker. The drag
+       is intentionally APPROXIMATE in masonry; the move arrows + Reset are the
+       precise tools. */
 
     // Dim the original in place.
     card.classList.add('card-dragging');
 
     let cancelled = false;
+    // The card we're currently marking with a drop indicator, and which side.
+    // Tracked so we only touch the DOM when the target or side actually changes
+    // (another guard against needless work mid-drag).
+    let markedCard = null;
+    let markedAfter = false;
 
     // Position the clone under the cursor (accounting for the grab offset).
     const moveClone = (clientX, clientY) => {
@@ -3023,22 +3063,16 @@ function initCardDrag({ grip, card, container, cardSelector, onDrop }) {
     };
     moveClone(e.clientX, e.clientY);
 
-    // --- Find where the placeholder should go for a given cursor position ----
-    // We look at every OTHER real card in the container, find the one whose
-    // CENTER is nearest the cursor (straight-line 2D distance — works for the
-    // column-packed masonry where neither pure-X nor pure-Y is right), then
-    // decide whether to drop before or after it. "Before/after" is chosen by
-    // the dominant axis to that card's center: if the cards in that area are
-    // stacked vertically we compare Y, otherwise X. We approximate that by
-    // simply comparing against the card's center on whichever axis the cursor
-    // is further from — in practice comparing Y handles the common vertical
-    // stacking and X handles side-by-side columns. We use: after = cursor is
-    // below the center (Y) OR (roughly same row) to the right of center (X).
-    const updatePlaceholder = (clientX, clientY) => {
+    /* --- Find the nearest OTHER card + which side to drop on ----------------
+       Look at every other real card, find the one whose CENTER is nearest the
+       cursor (straight-line 2D distance — works for column-packed masonry where
+       neither pure-X nor pure-Y is right), then decide before/after by the axis
+       with the bigger gap to that card's center (vertical stacking → compare Y,
+       side-by-side columns → compare X). Returns { card, after } or null. */
+    const findNearest = (clientX, clientY) => {
       const cards = Array.from(container.querySelectorAll(cardSelector))
-        .filter(c => c !== card && c !== placeholder);
-      if (!cards.length) return;
-
+        .filter(c => c !== card);
+      if (!cards.length) return null;
       let nearest = null;
       let nearestDist = Infinity;
       let nearestAfter = false;
@@ -3052,33 +3086,49 @@ function initCardDrag({ grip, card, container, cardSelector, onDrop }) {
         if (dist < nearestDist) {
           nearestDist = dist;
           nearest = c;
-          // Decide before/after by the axis with the bigger gap to the center.
-          // Vertical stacking (within a column) → use Y; horizontal neighbours
-          // (across columns) → use X.
           if (Math.abs(dy) >= Math.abs(dx)) nearestAfter = dy > 0;
           else nearestAfter = dx > 0;
         }
       });
-      if (!nearest) return;
-
-      // Place the highlighted slot before or after the nearest card.
-      if (nearestAfter) container.insertBefore(placeholder, nearest.nextSibling);
-      else              container.insertBefore(placeholder, nearest);
+      return nearest ? { card: nearest, after: nearestAfter } : null;
     };
-    updatePlaceholder(e.clientX, e.clientY);
+
+    // Clear any indicator we painted on a card.
+    const clearMark = () => {
+      if (markedCard) {
+        markedCard.classList.remove('drop-target-before', 'drop-target-after');
+      }
+      markedCard = null;
+    };
+
+    /* Paint the accent edge on the nearest card for this cursor position.
+       Purely visual (a box-shadow/pseudo edge via CSS) — it changes NO layout,
+       so the masonry stays still. Only re-paints when the target card or side
+       changes. */
+    const updateIndicator = (clientX, clientY) => {
+      const hit = findNearest(clientX, clientY);
+      if (!hit) { clearMark(); return; }
+      // Nothing changed since last move — leave the DOM alone (no flicker).
+      if (hit.card === markedCard && hit.after === markedAfter) return;
+      clearMark();
+      markedCard = hit.card;
+      markedAfter = hit.after;
+      markedCard.classList.add(hit.after ? 'drop-target-after' : 'drop-target-before');
+    };
+    updateIndicator(e.clientX, e.clientY);
 
     // --- Live move handler ---------------------------------------------------
     const onMove = (ev) => {
       if (cancelled) return;
       ev.preventDefault();
       moveClone(ev.clientX, ev.clientY);
-      updatePlaceholder(ev.clientX, ev.clientY);
+      updateIndicator(ev.clientX, ev.clientY);
     };
 
     // --- Finish (commit or cancel) -------------------------------------------
     const cleanup = () => {
       clone.remove();
-      placeholder.remove();
+      clearMark(); // remove the accent-edge indicator from whatever card had it
       card.classList.remove('card-dragging');
       grip.removeEventListener('pointermove', onMove);
       grip.removeEventListener('pointerup', onUp);
@@ -3087,23 +3137,19 @@ function initCardDrag({ grip, card, container, cardSelector, onDrop }) {
       try { grip.releasePointerCapture(e.pointerId); } catch (_) {}
     };
 
-    const onUp = () => {
+    const onUp = (ev) => {
       if (cancelled) { cleanup(); return; }
-      // Final target index = how many real OTHER cards sit before the
-      // placeholder in DOM order. That's exactly the slot the user saw
-      // highlighted, expressed as an index among the other cards.
-      const ordered = Array.from(container.querySelectorAll(cardSelector))
-        .filter(c => c !== card);
-      let targetIndex = 0;
-      for (const c of ordered) {
-        // Walk the real cards; stop counting once we pass the placeholder.
-        if (placeholder.compareDocumentPosition(c) &
-            Node.DOCUMENT_POSITION_FOLLOWING) {
-          break; // this card comes after the placeholder
-        }
-        targetIndex++;
-      }
+      // Compute the drop target directly from the nearest card + before/after at
+      // release — NOT from any inserted placeholder (there isn't one anymore).
+      // Then translate that to an index among the OTHER real cards in DOM order:
+      // the position of the nearest card among the others, +1 if dropping after.
+      const hit = findNearest(ev.clientX, ev.clientY);
       cleanup();
+      if (!hit) { onDrop(0); return; }
+      const others = Array.from(container.querySelectorAll(cardSelector))
+        .filter(c => c !== card);
+      const pos = others.indexOf(hit.card);
+      const targetIndex = pos < 0 ? others.length : pos + (hit.after ? 1 : 0);
       onDrop(targetIndex);
     };
 
@@ -3492,12 +3538,21 @@ function openCategoryContextMenu(e, cat) {
     <button data-act="add">+ Add bookmark</button>
     <button data-act="rename">Rename</button>
     <button data-act="color">Card color…</button>
+    <button data-act="front">Move to front</button>
+    <button data-act="end">Move to end</button>
     <button data-act="delete" class="danger">Delete category</button>
   `;
   menu.addEventListener('click', (ev) => {
     const act = ev.target.dataset.act;
     if (act === 'add') openManualAddBookmark(cat.id);
     if (act === 'color') openCategoryColorPopover(ev, cat);
+    /* Jump this category to the very start or end of the persona's category
+       order. Reuses the shared move helper (categories are keyed by id). */
+    if (act === 'front' || act === 'end') {
+      setState(() => {
+        moveCardInOrder(currentPersona().categories, cat.id, act, (c) => c.id);
+      });
+    }
     if (act === 'rename') {
       const span = document.querySelector(`.category[data-cat-id="${cat.id}"] .category-title`);
       if (span) beginRenameCategory(cat.id, span);
@@ -4944,6 +4999,20 @@ function openWidgetConfig(widgetKey) {
   };
   renderColor();
 
+  /* Layout buttons (v1.18): move this widget to the front or end of the
+     persona's widgetOrder, then close the modal so the re-ordered board is
+     visible. Reuses the shared move helper (widgetOrder is plain string keys,
+     so the default identity keyOf is fine). */
+  const moveFrontBtn = document.getElementById('widget-cfg-move-front');
+  const moveEndBtn = document.getElementById('widget-cfg-move-end');
+  const moveTo = (dir) => {
+    setState(() => { moveCardInOrder(currentPersona().widgetOrder, widgetKey, dir); });
+    document.getElementById('widget-cfg-modal').classList.add('hidden');
+    _widgetCfgFor = null;
+  };
+  moveFrontBtn.onclick = () => moveTo('front');
+  moveEndBtn.onclick = () => moveTo('end');
+
   if (!colorOnly) renderWidgetCfgList();
   document.getElementById('widget-cfg-modal').classList.remove('hidden');
   if (!colorOnly) setTimeout(() => input.focus(), 50);
@@ -5911,6 +5980,17 @@ document.getElementById('set-add-watchlist').addEventListener('click', () => {
     label.appendChild(document.createTextNode(' ' + entry.label));
     togglesEl.appendChild(label);
   });
+});
+/* "Reset layout" in Settings: restore this persona's widgets to their default
+   order and force a clean re-render so the masonry re-packs tidily. Categories
+   keep their order but re-pack on the same render. Order-only, so no data is
+   lost — hidden widgets stay hidden (we only reorder widgetOrder). */
+document.getElementById('set-reset-layout').addEventListener('click', () => {
+  setState(d => {
+    const p = d.personas.find(pp => pp.id === currentPersona().id);
+    if (p) p.widgetOrder = defaultWidgetOrder(p);
+  });
+  showToast('Layout reset.');
 });
 document.getElementById('set-copy-gist-id').addEventListener('click', () => {
   navigator.clipboard.writeText(state.gistId).then(() => showToast('Gist ID copied.'));

@@ -51,7 +51,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <h1>StartDashboard</h1>
     <p class="subtitle">A personal home page that travels with you across every browser and every device, with separate "channels" for different sides of your life.</p>
     <!-- UX:LAST_UPDATED -->
-    <span class="last-updated">Last updated: 2026-05-29 · v1.17</span>
+    <span class="last-updated">Last updated: 2026-05-29 · v1.18</span>
     <!-- /UX:LAST_UPDATED -->
   </div>
 </header>
@@ -103,7 +103,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     <div class="feature">
       <h3>Inline rename, drag-to-reorder with grip handles</h3>
       <p class="one-liner">Organize without ever leaving the page.</p>
-      <p class="walkthrough">Double-click anything &mdash; persona tab, category title, bookmark name &mdash; to rename. To reorder, grab the <strong>&#10303;</strong> grip handle (as of v1.9, every draggable item shows one) and drag. For the <strong>widget cards and category cards</strong>, v1.16 made this much nicer: a faded copy of the card follows your cursor and a <strong>highlighted &ldquo;landing slot&rdquo;</strong> (a glowing dashed outline) shows exactly where the card will drop &mdash; let go and it lands there reliably. This new card drag also works by <strong>touch, so you can rearrange cards on your iPhone</strong>. If you&rsquo;d rather not drag at all, hover any widget or category card and use the <strong>&#9650;/&#9660; arrows</strong> that appear to nudge it one spot. (Bookmarks and the lists inside widget config &mdash; stock tickers, weather cities, clock zones &mdash; still reorder with the older drag: grab the grip and a blue line shows where the item will land.) You can drag a bookmark within its category or drop it into a different category. Use the <strong>&#8599;</strong> icon on a bookmark to move it to a different persona entirely.</p>
+      <p class="walkthrough">Double-click anything &mdash; persona tab, category title, bookmark name &mdash; to rename. To rearrange <strong>widget cards and category cards</strong>, the most reliable way (as of v1.18) is the <strong>&#9650;/&#9660; arrows</strong> on every card &mdash; they&rsquo;re always visible now (faint, brightening on hover); click them to nudge a card one spot. Each card&rsquo;s menu also has <strong>&ldquo;Move to front&rdquo;</strong> and <strong>&ldquo;Move to end&rdquo;</strong> for bigger jumps, and there&rsquo;s a <strong>&ldquo;Reset layout&rdquo;</strong> button in Settings if things ever get messy. You can also still <strong>drag</strong> a card by its <strong>&#10303;</strong> grip &mdash; v1.18 fixed the old flickering, so the page now stays still while you drag and a <strong>glowing edge bar</strong> lights up on the side of the card where yours will land. Drag works by touch too, including on iPhone. One honest caveat: because the cards pack together by height (like Pinterest tiles), a dropped card lands <em>near</em> where you aimed, not exactly &mdash; so for precise placement, use the arrows or Reset. (Bookmarks and the lists inside widget config &mdash; stock tickers, weather cities, clock zones &mdash; still reorder with the older drag: grab the grip and a blue line shows where the item will land.) You can drag a bookmark within its category or drop it into a different category. Use the <strong>&#8599;</strong> icon on a bookmark to move it to a different persona entirely.</p>
     </div>
 
     <div class="feature">
@@ -287,13 +287,12 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
     </div>
 
     <div class="workflow">
-      <h3>Rearrange your widget &amp; category cards (v1.10, rebuilt v1.16)</h3>
+      <h3>Rearrange your widget &amp; category cards (v1.10, rebuilt v1.16, made reliable v1.18)</h3>
       <ol>
-        <li>Find the <strong>&#10303;</strong> grip handle in the header of the widget or category card you want to move.</li>
-        <li>Click (or touch) and hold it, then drag. A faded copy of the card follows your cursor and a <strong>highlighted landing slot</strong> (a glowing dashed outline) shows exactly where the card will drop.</li>
-        <li>Release over the slot. The card lands there and the new order saves automatically &mdash; it sticks across reloads and your other browsers.</li>
-        <li><em>Prefer not to drag?</em> Hover the card and click the <strong>&#9650;</strong> or <strong>&#9660;</strong> arrow that appears to nudge it one spot.</li>
-        <li><em>On iPhone:</em> this works by touch too &mdash; press and hold the grip with your finger and drag.</li>
+        <li><strong>The reliable way &mdash; the arrows.</strong> Every widget and category card shows faint <strong>&#9650;/&#9660;</strong> arrows in its header (they brighten on hover). Click them to move a card one spot. The new order saves automatically and sticks across reloads and your other browsers.</li>
+        <li><strong>Bigger jumps.</strong> Open a widget&rsquo;s gear &#9881; (or a category&rsquo;s <strong>...</strong> menu) and choose <strong>Move to front</strong> or <strong>Move to end</strong>.</li>
+        <li><strong>Or drag it.</strong> Grab the <strong>&#10303;</strong> grip handle and drag &mdash; v1.18 fixed the old flickering, so the page stays still and a <strong>glowing edge bar</strong> shows the side of a card where yours will land. Works by touch on iPhone too. Note: because the cards pack by height, the drop is <em>approximate</em> &mdash; for an exact spot, use the arrows.</li>
+        <li><strong>Start over.</strong> If the layout ever gets messy, click <strong>Reset layout</strong> in Settings (near the widget show/hide toggles) to put the widgets back to their default order.</li>
       </ol>
     </div>
 
@@ -383,7 +382,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 0 32px; font-size: 1
 
 <footer>
   <div class="container">
-    Generated and maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-29 · v1.17</span>
+    Generated and maintained by the Documentation Agent &middot; last updated <span class="last-updated">2026-05-29 · v1.18</span>
   </div>
 </footer>
 
