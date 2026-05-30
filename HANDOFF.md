@@ -23,7 +23,7 @@
 **Name:** StartDashboard
 **Folder:** `projects/personal-dashboard/` in Tom's `tom-workspace`
 **Current status:** Complete (in active use; iterating on polish)
-**Current phase:** Complete (v1.19 shipped)
+**Current phase:** Complete (v1.20 shipped)
 **Last updated:** 2026-05-30
 **Live URL:** https://tecgunther.github.io/startdashboard/
 **Code repo:** https://github.com/TECGUNTHER/startdashboard
@@ -46,14 +46,23 @@ A single-file web app that's Tom's home page across every browser/device. A top 
 
 # Where We Are
 
-## Most recent session (2026-05-30 — v1.19)
+## Most recent session (2026-05-30 — v1.20)
+
+Added an in-app **Help link to the User Experience guide** (full Design→Build→Document flow, as a feature). `index.html` + `docs/USER-EXPERIENCE.html` only, no new dependencies.
+
+- **Two entry points, same target.** A **`?` icon in the top-bar header** (between the ☀ theme toggle and the ⚙ gear, `#open-help`) and a **"How to use StartDashboard" link in the Settings modal** (just above Close/Save) both open `docs/USER-EXPERIENCE.html` in a new tab.
+- **Reuses the existing, already-deployed guide** — no new doc written. The guide is tracked in the repo, so GitHub Pages already serves it at `…/startdashboard/docs/USER-EXPERIENCE.html`.
+- **Relative href** (`docs/USER-EXPERIENCE.html`), so it resolves correctly both on Pages and from a local file. The top-bar control is an `<a>` (not a button) so cmd/middle-click open-in-new-tab works; it carries `class="icon-btn"` and matches the other header icons (anchors already inherit color + no-underline).
+- Bumped the guide's "last updated" stamp to **v1.20**. JS parses cleanly (`node --check` on the extracted script).
+
+## Earlier sessions
+
+### (2026-05-30 — v1.19)
 
 Fixed a real bug from v1.18: **clicking the move arrows (▲/▼) on a category card made the whole card disappear**, and "Reset layout" wouldn't bring it back — only a full browser refresh would. `index.html` only, no new dependencies.
 
 - **Root cause:** the shared `moveCardInOrder(orderArray, key, direction, keyOf)` helper removed the card with `splice(i,1)` but re-inserted **`key`** instead of the removed element. For widgets the element *is* the key string, so it was harmless; for categories the element is an object, so the category was overwritten by a bare id string → the card had no title/bookmarks → it vanished. "Reset layout" only rebuilds `widgetOrder`, never `categories`, so it couldn't repair it; a refresh reloaded the still-intact data from the gist. **No gist data was ever corrupted** (the bad value lived only in the in-memory state until reload).
 - **Fix:** capture the removed element — `const [item] = orderArray.splice(i, 1); orderArray.splice(target, 0, item);` — correct for both widgets (string) and categories (object). Also fixes the category "Move to front/end" menu, which uses the same helper. JS parses cleanly (`node --check` on the extracted script). Pushed; Tom to smoke-test live.
-
-## Earlier sessions
 
 ### (2026-05-29 — v1.18)
 
@@ -74,9 +83,10 @@ Made rearranging cards reliable. `index.html` only, no new dependencies:
 
 ## Immediate next step
 
-1. **Verify the v1.19 fix (live).** Hard-reload Safari (Opt+Cmd+R). Click the ▲/▼ arrows on a **category** card → it should move one slot and **stay visible**. Repeat with "Move to front" / "Move to end" in a category "..." menu. (This was the broken case.)
-2. **Re-confirm the v1.18 items still work:** widget ▲/▼ arrows, widget Move to front/end, drag (no blink, approximate landing), Settings → Reset layout.
-3. **Possible future builds (not started):** read-aloud / TTS for chat replies; a backup/export of dashboard data.
+1. **Verify the v1.20 Help link (live).** Hard-reload Safari (Opt+Cmd+R). Click the **`?`** icon in the top bar (next to the ⚙ gear) → the User Experience guide should open in a new tab. Also check the **"How to use StartDashboard"** link inside Settings.
+2. **Verify the v1.19 fix** (still untested by Tom if he hasn't yet): click the ▲/▼ arrows on a **category** card → it should move one slot and **stay visible**. Repeat with "Move to front" / "Move to end" in a category "..." menu.
+3. **Re-confirm the v1.18 items:** widget ▲/▼ arrows, widget Move to front/end, drag (no blink, approximate landing), Settings → Reset layout.
+4. **Possible future builds (not started):** read-aloud / TTS for chat replies; a backup/export of dashboard data.
 
 ---
 
